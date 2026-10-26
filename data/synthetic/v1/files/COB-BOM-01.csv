@@ -1,0 +1,8 @@
+# PARTS LIST - Project: Cobalt - issued 2021-09-30
+part_number,description,material,rated_psi,qty
+HX-3799,Plate heat exchanger,Bronze C95800,150 psi,3
+PS-2981,Pressure switch,Bronze C95800,1500 psi,4
+PS-2759,Pressure switch,A105 carbon steel,900 psi,5
+PV-9437,Gate valve,A105 carbon steel,600 psi,2
+FL-5958,Weld-neck flange,316L stainless,1500 psi,3
+FL-9832,Weld-neck flange,316L stainless,300 psi,1

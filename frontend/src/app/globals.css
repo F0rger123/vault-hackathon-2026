@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+/* VAULT design tokens. Franco owns the visual system; extend tokens here rather than hard-coding colors. */
+:root {
+  --canvas: #f6f7f9;
+  --panel: #ffffff;
+  --line: #dde1e7;
+  --fg: #111827;
+  --muted: #5b6474;
+  --accent: #2f5bd3;
+  --ok: #157a4a;
+  --warn: #a15c07;
+  --bad: #b42318;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --canvas: #0d1117;
+    --panel: #151b23;
+    --line: #2a3340;
+    --fg: #e6e9ee;
+    --muted: #8b95a5;
+    --accent: #5b8cff;
+    --ok: #3fb97b;
+    --warn: #e0a43a;
+    --bad: #f0645a;
+  }
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-panel: var(--panel);
+  --color-line: var(--line);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-bad: var(--bad);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--canvas);
+  color: var(--fg);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}

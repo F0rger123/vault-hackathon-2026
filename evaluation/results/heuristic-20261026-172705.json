@@ -1,0 +1,81 @@
+{
+  "provider": "heuristic",
+  "model": "regex-rules-v1",
+  "collection": "demo",
+  "documents_scored": 150,
+  "generated_at": "2026-10-26T17:27:05",
+  "splits": {
+    "train": {
+      "doc_type": {
+        "correct": 96,
+        "total": 105,
+        "rate": 0.914
+      },
+      "project": {
+        "correct": 89,
+        "total": 105,
+        "rate": 0.848
+      },
+      "doc_date": {
+        "correct": 89,
+        "total": 89,
+        "rate": 1.0
+      },
+      "part_recall": {
+        "correct": 279,
+        "total": 279,
+        "rate": 1.0
+      },
+      "rating_accuracy": {
+        "correct": 237,
+        "total": 279,
+        "rate": 0.849
+      },
+      "evidence_verified_docs": {
+        "correct": 105,
+        "total": 105,
+        "rate": 1.0
+      }
+    },
+    "heldout": {
+      "doc_type": {
+        "correct": 40,
+        "total": 45,
+        "rate": 0.889
+      },
+      "project": {
+        "correct": 36,
+        "total": 45,
+        "rate": 0.8
+      },
+      "doc_date": {
+        "correct": 36,
+        "total": 36,
+        "rate": 1.0
+      },
+      "evidence_verified_docs": {
+        "correct": 45,
+        "total": 45,
+        "rate": 1.0
+      },
+      "part_recall": {
+        "correct": 118,
+        "total": 118,
+        "rate": 1.0
+      },
+      "rating_accuracy": {
+        "correct": 100,
+        "total": 118,
+        "rate": 0.847
+      }
+    }
+  },
+  "conflicts": {
+    "planted": 10,
+    "found": 10,
+    "true_positive": 10,
+    "recall": 1.0,
+    "precision": 1.0,
+    "note": "findings reflect the most recent processing run of the collection"
+  }
+}

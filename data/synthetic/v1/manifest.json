@@ -1,0 +1,3418 @@
+{
+  "generator": "vault-synthetic-v1",
+  "seed": 2026,
+  "fictional": true,
+  "documents": [
+    {
+      "filename": "ALP-BOM-01.csv",
+      "doc_type": "parts_list",
+      "project": "Alpha",
+      "doc_date": "2021-11-12",
+      "components": [
+        {
+          "part_number": "PV-7533",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "PV-7043",
+          "pressure_rating_psi": 900
+        },
+        {
+          "part_number": "PV-5706",
+          "pressure_rating_psi": 900
+        },
+        {
+          "part_number": "FL-8494",
+          "pressure_rating_psi": 2500
+        },
+        {
+          "part_number": "RV-9032",
+          "pressure_rating_psi": 300
+        },
+        {
+          "part_number": "HX-8226",
+          "pressure_rating_psi": 150
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "ALP-BOM-02.csv",
+      "doc_type": "parts_list",
+      "project": "Alpha",
+      "doc_date": "2023-07-29",
+      "components": [
+        {
+          "part_number": "PV-7533",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "PV-5706",
+          "pressure_rating_psi": 900
+        },
+        {
+          "part_number": "BV-7891",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "RV-9032",
+          "pressure_rating_psi": 300
+        },
+        {
+          "part_number": "PV-7043",
+          "pressure_rating_psi": 900
+        },
+        {
+          "part_number": "PV-6234",
+          "pressure_rating_psi": 1500
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "ALP-CTR-001.pdf",
+      "doc_type": "contract",
+      "project": "Alpha",
+      "doc_date": "2023-04-24",
+      "components": [
+        {
+          "part_number": "HX-8226",
+          "pressure_rating_psi": 150
+        },
+        {
+          "part_number": "PV-7043",
+          "pressure_rating_psi": 900
+        },
+        {
+          "part_number": "PV-5706",
+          "pressure_rating_psi": 900
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "ALP-CTR-002.pdf",
+      "doc_type": "contract",
+      "project": "Alpha",
+      "doc_date": "2021-05-31",
+      "components": [
+        {
+          "part_number": "FL-6696",
+          "pressure_rating_psi": 900
+        },
+        {
+          "part_number": "PV-7533",
+          "pressure_rating_psi": 1500
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "ALP-CTR-003.pdf",
+      "doc_type": "contract",
+      "project": "Alpha",
+      "doc_date": "2022-11-03",
+      "components": [
+        {
+          "part_number": "RV-9032",
+          "pressure_rating_psi": 300
+        },
+        {
+          "part_number": "FL-8494",
+          "pressure_rating_psi": 2500
+        },
+        {
+          "part_number": "FL-6696",
+          "pressure_rating_psi": 900
+        },
+        {
+          "part_number": "PV-6234",
+          "pressure_rating_psi": 1500
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "heldout"
+    },
+    {
+      "filename": "ALP-DWG-0001.pdf",
+      "doc_type": "engineering_drawing",
+      "project": "Alpha",
+      "doc_date": "2023-11-04",
+      "components": [
+        {
+          "part_number": "FL-8494",
+          "pressure_rating_psi": 2500
+        },
+        {
+          "part_number": "RV-6577",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "RV-9032",
+          "pressure_rating_psi": 300
+        },
+        {
+          "part_number": "PV-7043",
+          "pressure_rating_psi": 900
+        },
+        {
+          "part_number": "PV-5706",
+          "pressure_rating_psi": 900
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "heldout"
+    },
+    {
+      "filename": "ALP-DWG-0002.pdf",
+      "doc_type": "engineering_drawing",
+      "project": "Alpha",
+      "doc_date": "2023-11-27",
+      "components": [
+        {
+          "part_number": "PV-7533",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "PV-5706",
+          "pressure_rating_psi": 900
+        },
+        {
+          "part_number": "HX-8226",
+          "pressure_rating_psi": 150
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "ALP-DWG-0003.pdf",
+      "doc_type": "engineering_drawing",
+      "project": "Alpha",
+      "doc_date": "2024-10-05",
+      "components": [
+        {
+          "part_number": "PV-7533",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "RV-6577",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "FL-8494",
+          "pressure_rating_psi": 2500
+        }
+      ],
+      "anomalies": [],
+      "layout": "alternate",
+      "split": "train"
+    },
+    {
+      "filename": "ALP-DWG-0004.pdf",
+      "doc_type": "engineering_drawing",
+      "project": "Alpha",
+      "doc_date": "2021-09-07",
+      "components": [
+        {
+          "part_number": "FL-8494",
+          "pressure_rating_psi": 2500
+        },
+        {
+          "part_number": "PV-7533",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "RV-9032",
+          "pressure_rating_psi": 300
+        },
+        {
+          "part_number": "PV-7043",
+          "pressure_rating_psi": 900
+        },
+        {
+          "part_number": "PV-5706",
+          "pressure_rating_psi": 900
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "heldout"
+    },
+    {
+      "filename": "ALP-DWG-0005.pdf",
+      "doc_type": "engineering_drawing",
+      "project": "Alpha",
+      "doc_date": "2024-08-17",
+      "components": [
+        {
+          "part_number": "FL-8494",
+          "pressure_rating_psi": 2500
+        },
+        {
+          "part_number": "RV-6577",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "PV-7043",
+          "pressure_rating_psi": 900
+        },
+        {
+          "part_number": "BV-7891",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "HX-8226",
+          "pressure_rating_psi": 150
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "ALP-DWG-0006.pdf",
+      "doc_type": "engineering_drawing",
+      "project": "Alpha",
+      "doc_date": "2021-11-03",
+      "components": [
+        {
+          "part_number": "PV-7533",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "FL-8494",
+          "pressure_rating_psi": 2500
+        },
+        {
+          "part_number": "PV-7043",
+          "pressure_rating_psi": 900
+        },
+        {
+          "part_number": "HX-8226",
+          "pressure_rating_psi": 150
+        },
+        {
+          "part_number": "BV-7891",
+          "pressure_rating_psi": 1500
+        }
+      ],
+      "anomalies": [],
+      "layout": "alternate",
+      "split": "train"
+    },
+    {
+      "filename": "ALP-DWG-0007.pdf",
+      "doc_type": "engineering_drawing",
+      "project": "Alpha",
+      "doc_date": "2023-08-14",
+      "components": [
+        {
+          "part_number": "FL-8494",
+          "pressure_rating_psi": 2500
+        },
+        {
+          "part_number": "RV-6577",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "PV-6234",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "PV-7043",
+          "pressure_rating_psi": 900
+        },
+        {
+          "part_number": "HX-8226",
+          "pressure_rating_psi": 150
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "ALP-DWG-0008.pdf",
+      "doc_type": "engineering_drawing",
+      "project": "Alpha",
+      "doc_date": "2021-07-21",
+      "components": [
+        {
+          "part_number": "PV-7043",
+          "pressure_rating_psi": 900
+        },
+        {
+          "part_number": "RV-9032",
+          "pressure_rating_psi": 300
+        },
+        {
+          "part_number": "FL-8494",
+          "pressure_rating_psi": 2500
+        },
+        {
+          "part_number": "BV-7891",
+          "pressure_rating_psi": 1500
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "heldout"
+    },
+    {
+      "filename": "ALP-INS-0001.pdf",
+      "doc_type": "inspection_report",
+      "project": "Alpha",
+      "doc_date": "2023-09-09",
+      "components": [
+        {
+          "part_number": "RV-9032",
+          "pressure_rating_psi": 300
+        },
+        {
+          "part_number": "FL-8494",
+          "pressure_rating_psi": 2500
+        },
+        {
+          "part_number": "BV-7891",
+          "pressure_rating_psi": 600
+        }
+      ],
+      "anomalies": [
+        "rating_conflict:BV-7891"
+      ],
+      "layout": "standard",
+      "split": "heldout"
+    },
+    {
+      "filename": "ALP-INS-0002.pdf",
+      "doc_type": "inspection_report",
+      "project": "Alpha",
+      "doc_date": "2022-02-03",
+      "components": [
+        {
+          "part_number": "RV-6577",
+          "pressure_rating_psi": 150
+        },
+        {
+          "part_number": "HX-8226",
+          "pressure_rating_psi": 150
+        },
+        {
+          "part_number": "FL-8494",
+          "pressure_rating_psi": 2500
+        },
+        {
+          "part_number": "PV-6234",
+          "pressure_rating_psi": 1500
+        }
+      ],
+      "anomalies": [
+        "rating_conflict:RV-6577"
+      ],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "ALP-INS-0003.pdf",
+      "doc_type": "inspection_report",
+      "project": "Alpha",
+      "doc_date": "2023-07-14",
+      "components": [
+        {
+          "part_number": "PV-7043",
+          "pressure_rating_psi": 900
+        },
+        {
+          "part_number": "BV-7891",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "PV-5706",
+          "pressure_rating_psi": 900
+        },
+        {
+          "part_number": "PV-7533",
+          "pressure_rating_psi": 1500
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "ALP-INS-0004.pdf",
+      "doc_type": "inspection_report",
+      "project": "Alpha",
+      "doc_date": null,
+      "components": [
+        {
+          "part_number": "PV-7043",
+          "pressure_rating_psi": 900
+        },
+        {
+          "part_number": "RV-9032",
+          "pressure_rating_psi": 300
+        }
+      ],
+      "anomalies": [],
+      "layout": "alternate",
+      "split": "heldout"
+    },
+    {
+      "filename": "ALP-INS-0005.pdf",
+      "doc_type": "inspection_report",
+      "project": "Alpha",
+      "doc_date": "2024-07-25",
+      "components": [
+        {
+          "part_number": "HX-8226",
+          "pressure_rating_psi": 150
+        },
+        {
+          "part_number": "PV-6234",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "FL-6696",
+          "pressure_rating_psi": 900
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "ALP-INS-0006.pdf",
+      "doc_type": "inspection_report",
+      "project": "Alpha",
+      "doc_date": "2024-04-09",
+      "components": [
+        {
+          "part_number": "FL-8494",
+          "pressure_rating_psi": 2500
+        },
+        {
+          "part_number": "HX-8226",
+          "pressure_rating_psi": 150
+        },
+        {
+          "part_number": "PV-5706",
+          "pressure_rating_psi": 900
+        },
+        {
+          "part_number": "PV-7533",
+          "pressure_rating_psi": 1500
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "ALP-INS-0007.pdf",
+      "doc_type": "inspection_report",
+      "project": "Alpha",
+      "doc_date": "2021-09-26",
+      "components": [
+        {
+          "part_number": "PV-7043",
+          "pressure_rating_psi": 900
+        },
+        {
+          "part_number": "RV-9032",
+          "pressure_rating_psi": 300
+        },
+        {
+          "part_number": "BV-7891",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "PV-5706",
+          "pressure_rating_psi": 900
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "ALP-INS-0008.pdf",
+      "doc_type": "inspection_report",
+      "project": "Alpha",
+      "doc_date": null,
+      "components": [
+        {
+          "part_number": "PV-7533",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "RV-9032",
+          "pressure_rating_psi": 300
+        }
+      ],
+      "anomalies": [],
+      "layout": "alternate",
+      "split": "heldout"
+    },
+    {
+      "filename": "ALP-MEM-01.txt",
+      "doc_type": "project_memo",
+      "project": "Alpha",
+      "doc_date": "2024-09-16",
+      "components": [],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "ALP-MEM-02.txt",
+      "doc_type": "project_memo",
+      "project": "Alpha",
+      "doc_date": "2023-03-10",
+      "components": [],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "ALP-MEM-03.txt",
+      "doc_type": "project_memo",
+      "project": "Alpha",
+      "doc_date": "2023-12-28",
+      "components": [],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "heldout"
+    },
+    {
+      "filename": "ALP-MEM-04.txt",
+      "doc_type": "project_memo",
+      "project": "Alpha",
+      "doc_date": "2023-02-24",
+      "components": [],
+      "anomalies": [
+        "injection"
+      ],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "ALP-REV-01.md",
+      "doc_type": "revision_history",
+      "project": "Alpha",
+      "doc_date": "2022-02-05",
+      "components": [],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "ALP-REV-02.md",
+      "doc_type": "revision_history",
+      "project": "Alpha",
+      "doc_date": "2024-12-27",
+      "components": [],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "ALP-STP-01.png",
+      "doc_type": "other",
+      "project": "Alpha",
+      "doc_date": null,
+      "components": [],
+      "anomalies": [],
+      "layout": "image",
+      "split": "heldout"
+    },
+    {
+      "filename": "ALP-STP-02.png",
+      "doc_type": "other",
+      "project": "Alpha",
+      "doc_date": null,
+      "components": [],
+      "anomalies": [],
+      "layout": "image",
+      "split": "train"
+    },
+    {
+      "filename": "ALP-STP-03.png",
+      "doc_type": "other",
+      "project": "Alpha",
+      "doc_date": null,
+      "components": [],
+      "anomalies": [],
+      "layout": "image",
+      "split": "train"
+    },
+    {
+      "filename": "BOR-BOM-01.csv",
+      "doc_type": "parts_list",
+      "project": "Borealis",
+      "doc_date": "2023-02-03",
+      "components": [
+        {
+          "part_number": "RV-2741",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "PV-5595",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "PS-6413",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "HX-5828",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "PV-5320",
+          "pressure_rating_psi": 900
+        },
+        {
+          "part_number": "PS-2967",
+          "pressure_rating_psi": 1500
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "heldout"
+    },
+    {
+      "filename": "BOR-BOM-02.csv",
+      "doc_type": "parts_list",
+      "project": "Borealis",
+      "doc_date": "2021-02-07",
+      "components": [
+        {
+          "part_number": "RV-2741",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "PV-6766",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "PV-5595",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "PV-1990",
+          "pressure_rating_psi": 2500
+        },
+        {
+          "part_number": "PS-2967",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "HX-2047",
+          "pressure_rating_psi": 600
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "BOR-CTR-001.pdf",
+      "doc_type": "contract",
+      "project": "Borealis",
+      "doc_date": "2022-04-22",
+      "components": [
+        {
+          "part_number": "PV-5595",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "HX-5828",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "PV-6766",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "PS-6413",
+          "pressure_rating_psi": 1500
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "BOR-CTR-002.pdf",
+      "doc_type": "contract",
+      "project": "Borealis",
+      "doc_date": "2024-01-29",
+      "components": [
+        {
+          "part_number": "HX-2047",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "PV-5595",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "PV-6766",
+          "pressure_rating_psi": 600
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "BOR-CTR-003.pdf",
+      "doc_type": "contract",
+      "project": "Borealis",
+      "doc_date": "2021-01-11",
+      "components": [
+        {
+          "part_number": "RV-2741",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "PV-5320",
+          "pressure_rating_psi": 900
+        },
+        {
+          "part_number": "PS-2967",
+          "pressure_rating_psi": 1500
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "heldout"
+    },
+    {
+      "filename": "BOR-DWG-0001.pdf",
+      "doc_type": "engineering_drawing",
+      "project": "Borealis",
+      "doc_date": "2021-05-09",
+      "components": [
+        {
+          "part_number": "PV-5320",
+          "pressure_rating_psi": 900
+        },
+        {
+          "part_number": "PV-5595",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "HX-2047",
+          "pressure_rating_psi": 600
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "BOR-DWG-0002.pdf",
+      "doc_type": "engineering_drawing",
+      "project": "Borealis",
+      "doc_date": "2022-04-27",
+      "components": [
+        {
+          "part_number": "PV-5595",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "PV-4511",
+          "pressure_rating_psi": 150
+        },
+        {
+          "part_number": "RV-2741",
+          "pressure_rating_psi": 600
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "BOR-DWG-0003.pdf",
+      "doc_type": "engineering_drawing",
+      "project": "Borealis",
+      "doc_date": "2022-12-19",
+      "components": [
+        {
+          "part_number": "PV-1990",
+          "pressure_rating_psi": 2500
+        },
+        {
+          "part_number": "PS-2967",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "PV-5320",
+          "pressure_rating_psi": 900
+        },
+        {
+          "part_number": "PS-6413",
+          "pressure_rating_psi": 1500
+        }
+      ],
+      "anomalies": [],
+      "layout": "alternate",
+      "split": "heldout"
+    },
+    {
+      "filename": "BOR-DWG-0004.pdf",
+      "doc_type": "engineering_drawing",
+      "project": "Borealis",
+      "doc_date": "2023-08-06",
+      "components": [
+        {
+          "part_number": "PV-4511",
+          "pressure_rating_psi": 150
+        },
+        {
+          "part_number": "HX-5828",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "PV-5595",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "PV-6766",
+          "pressure_rating_psi": 600
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "BOR-DWG-0005.pdf",
+      "doc_type": "engineering_drawing",
+      "project": "Borealis",
+      "doc_date": "2021-04-29",
+      "components": [
+        {
+          "part_number": "PV-5320",
+          "pressure_rating_psi": 900
+        },
+        {
+          "part_number": "PS-2967",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "PV-5595",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "HX-5828",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "PS-6413",
+          "pressure_rating_psi": 1500
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "BOR-DWG-0006.pdf",
+      "doc_type": "engineering_drawing",
+      "project": "Borealis",
+      "doc_date": "2021-09-08",
+      "components": [
+        {
+          "part_number": "PV-5320",
+          "pressure_rating_psi": 900
+        },
+        {
+          "part_number": "HX-5828",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "PS-2967",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "PV-5595",
+          "pressure_rating_psi": 1500
+        }
+      ],
+      "anomalies": [],
+      "layout": "alternate",
+      "split": "heldout"
+    },
+    {
+      "filename": "BOR-DWG-0007.pdf",
+      "doc_type": "engineering_drawing",
+      "project": "Borealis",
+      "doc_date": "2021-04-25",
+      "components": [
+        {
+          "part_number": "PV-4511",
+          "pressure_rating_psi": 150
+        },
+        {
+          "part_number": "PS-6413",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "HX-2047",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "PS-2967",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "PV-5320",
+          "pressure_rating_psi": 900
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "BOR-DWG-0008.pdf",
+      "doc_type": "engineering_drawing",
+      "project": "Borealis",
+      "doc_date": "2024-05-07",
+      "components": [
+        {
+          "part_number": "PV-5595",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "PS-2967",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "PV-5320",
+          "pressure_rating_psi": 900
+        },
+        {
+          "part_number": "HX-2047",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "PV-4511",
+          "pressure_rating_psi": 150
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "BOR-INS-0001.pdf",
+      "doc_type": "inspection_report",
+      "project": "Borealis",
+      "doc_date": "2023-02-12",
+      "components": [
+        {
+          "part_number": "PV-5320",
+          "pressure_rating_psi": 900
+        },
+        {
+          "part_number": "PV-6766",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "PV-5595",
+          "pressure_rating_psi": 300
+        }
+      ],
+      "anomalies": [
+        "rating_conflict:PV-5595"
+      ],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "BOR-INS-0002.pdf",
+      "doc_type": "inspection_report",
+      "project": "Borealis",
+      "doc_date": "2024-01-17",
+      "components": [
+        {
+          "part_number": "RV-2741",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "HX-2047",
+          "pressure_rating_psi": 1500
+        }
+      ],
+      "anomalies": [
+        "rating_conflict:HX-2047"
+      ],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "BOR-INS-0003.pdf",
+      "doc_type": "inspection_report",
+      "project": "Borealis",
+      "doc_date": "2021-10-30",
+      "components": [
+        {
+          "part_number": "PS-2967",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "HX-2047",
+          "pressure_rating_psi": 600
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "heldout"
+    },
+    {
+      "filename": "BOR-INS-0004.pdf",
+      "doc_type": "inspection_report",
+      "project": "Borealis",
+      "doc_date": null,
+      "components": [
+        {
+          "part_number": "PV-5320",
+          "pressure_rating_psi": 900
+        },
+        {
+          "part_number": "PV-5595",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "HX-5828",
+          "pressure_rating_psi": 600
+        }
+      ],
+      "anomalies": [],
+      "layout": "alternate",
+      "split": "train"
+    },
+    {
+      "filename": "BOR-INS-0005.pdf",
+      "doc_type": "inspection_report",
+      "project": "Borealis",
+      "doc_date": "2024-07-07",
+      "components": [
+        {
+          "part_number": "PV-4511",
+          "pressure_rating_psi": 150
+        },
+        {
+          "part_number": "PS-6413",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "PS-2967",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "HX-5828",
+          "pressure_rating_psi": 600
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "BOR-INS-0006.pdf",
+      "doc_type": "inspection_report",
+      "project": "Borealis",
+      "doc_date": "2023-11-19",
+      "components": [
+        {
+          "part_number": "HX-5828",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "RV-2741",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "HX-2047",
+          "pressure_rating_psi": 600
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "heldout"
+    },
+    {
+      "filename": "BOR-INS-0007.pdf",
+      "doc_type": "inspection_report",
+      "project": "Borealis",
+      "doc_date": "2024-09-09",
+      "components": [
+        {
+          "part_number": "PV-6766",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "PV-1990",
+          "pressure_rating_psi": 2500
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "BOR-INS-0008.pdf",
+      "doc_type": "inspection_report",
+      "project": "Borealis",
+      "doc_date": null,
+      "components": [
+        {
+          "part_number": "RV-2741",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "PS-6413",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "PV-5320",
+          "pressure_rating_psi": 900
+        },
+        {
+          "part_number": "HX-5828",
+          "pressure_rating_psi": 600
+        }
+      ],
+      "anomalies": [],
+      "layout": "alternate",
+      "split": "train"
+    },
+    {
+      "filename": "BOR-MEM-01.txt",
+      "doc_type": "project_memo",
+      "project": "Borealis",
+      "doc_date": "2024-04-28",
+      "components": [],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "BOR-MEM-02.txt",
+      "doc_type": "project_memo",
+      "project": "Borealis",
+      "doc_date": "2021-11-29",
+      "components": [],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "heldout"
+    },
+    {
+      "filename": "BOR-MEM-03.txt",
+      "doc_type": "project_memo",
+      "project": "Borealis",
+      "doc_date": "2024-01-14",
+      "components": [],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "BOR-MEM-04.txt",
+      "doc_type": "project_memo",
+      "project": "Borealis",
+      "doc_date": "2021-10-02",
+      "components": [],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "BOR-REV-01.md",
+      "doc_type": "revision_history",
+      "project": "Borealis",
+      "doc_date": "2023-02-19",
+      "components": [],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "heldout"
+    },
+    {
+      "filename": "BOR-REV-02.md",
+      "doc_type": "revision_history",
+      "project": "Borealis",
+      "doc_date": "2023-03-09",
+      "components": [],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "BOR-STP-01.png",
+      "doc_type": "other",
+      "project": "Borealis",
+      "doc_date": null,
+      "components": [],
+      "anomalies": [],
+      "layout": "image",
+      "split": "heldout"
+    },
+    {
+      "filename": "BOR-STP-02.png",
+      "doc_type": "other",
+      "project": "Borealis",
+      "doc_date": null,
+      "components": [],
+      "anomalies": [],
+      "layout": "image",
+      "split": "train"
+    },
+    {
+      "filename": "BOR-STP-03.png",
+      "doc_type": "other",
+      "project": "Borealis",
+      "doc_date": null,
+      "components": [],
+      "anomalies": [],
+      "layout": "image",
+      "split": "train"
+    },
+    {
+      "filename": "COB-BOM-01.csv",
+      "doc_type": "parts_list",
+      "project": "Cobalt",
+      "doc_date": "2021-09-30",
+      "components": [
+        {
+          "part_number": "HX-3799",
+          "pressure_rating_psi": 150
+        },
+        {
+          "part_number": "PS-2981",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "PS-2759",
+          "pressure_rating_psi": 900
+        },
+        {
+          "part_number": "PV-9437",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "FL-5958",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "FL-9832",
+          "pressure_rating_psi": 300
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "COB-BOM-02.csv",
+      "doc_type": "parts_list",
+      "project": "Cobalt",
+      "doc_date": "2023-01-23",
+      "components": [
+        {
+          "part_number": "HX-5065",
+          "pressure_rating_psi": 150
+        },
+        {
+          "part_number": "FL-8470",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "HX-5939",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "PV-9437",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "FL-9832",
+          "pressure_rating_psi": 300
+        },
+        {
+          "part_number": "PV-2439",
+          "pressure_rating_psi": 600
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "heldout"
+    },
+    {
+      "filename": "COB-CTR-001.pdf",
+      "doc_type": "contract",
+      "project": "Cobalt",
+      "doc_date": "2023-12-05",
+      "components": [
+        {
+          "part_number": "PV-2439",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "FL-8470",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "PV-9437",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "HX-3799",
+          "pressure_rating_psi": 150
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "COB-CTR-002.pdf",
+      "doc_type": "contract",
+      "project": "Cobalt",
+      "doc_date": "2022-01-15",
+      "components": [
+        {
+          "part_number": "FL-8470",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "FL-5958",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "PS-2981",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "PS-2759",
+          "pressure_rating_psi": 900
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "COB-CTR-003.pdf",
+      "doc_type": "contract",
+      "project": "Cobalt",
+      "doc_date": "2022-10-13",
+      "components": [
+        {
+          "part_number": "PS-2981",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "HX-5065",
+          "pressure_rating_psi": 150
+        },
+        {
+          "part_number": "PV-2439",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "PV-9437",
+          "pressure_rating_psi": 600
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "heldout"
+    },
+    {
+      "filename": "COB-DWG-0001.pdf",
+      "doc_type": "engineering_drawing",
+      "project": "Cobalt",
+      "doc_date": "2022-10-28",
+      "components": [
+        {
+          "part_number": "FL-8470",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "PV-2439",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "PS-2759",
+          "pressure_rating_psi": 900
+        },
+        {
+          "part_number": "PV-9437",
+          "pressure_rating_psi": 600
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "COB-DWG-0002.pdf",
+      "doc_type": "engineering_drawing",
+      "project": "Cobalt",
+      "doc_date": "2023-10-08",
+      "components": [
+        {
+          "part_number": "PS-2759",
+          "pressure_rating_psi": 900
+        },
+        {
+          "part_number": "PV-9437",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "FL-5958",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "HX-5939",
+          "pressure_rating_psi": 600
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "heldout"
+    },
+    {
+      "filename": "COB-DWG-0003.pdf",
+      "doc_type": "engineering_drawing",
+      "project": "Cobalt",
+      "doc_date": "2024-11-12",
+      "components": [
+        {
+          "part_number": "PS-2759",
+          "pressure_rating_psi": 900
+        },
+        {
+          "part_number": "HX-5939",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "FL-8470",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "FL-9832",
+          "pressure_rating_psi": 300
+        }
+      ],
+      "anomalies": [],
+      "layout": "alternate",
+      "split": "train"
+    },
+    {
+      "filename": "COB-DWG-0004.pdf",
+      "doc_type": "engineering_drawing",
+      "project": "Cobalt",
+      "doc_date": "2024-03-06",
+      "components": [
+        {
+          "part_number": "PV-9437",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "HX-5939",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "HX-5065",
+          "pressure_rating_psi": 150
+        },
+        {
+          "part_number": "PV-2439",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "HX-3799",
+          "pressure_rating_psi": 150
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "COB-DWG-0005.pdf",
+      "doc_type": "engineering_drawing",
+      "project": "Cobalt",
+      "doc_date": "2023-06-30",
+      "components": [
+        {
+          "part_number": "PV-9437",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "FL-8470",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "HX-5065",
+          "pressure_rating_psi": 150
+        },
+        {
+          "part_number": "FL-9832",
+          "pressure_rating_psi": 300
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "heldout"
+    },
+    {
+      "filename": "COB-DWG-0006.pdf",
+      "doc_type": "engineering_drawing",
+      "project": "Cobalt",
+      "doc_date": "2021-09-10",
+      "components": [
+        {
+          "part_number": "HX-5065",
+          "pressure_rating_psi": 150
+        },
+        {
+          "part_number": "PS-2981",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "HX-5939",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "FL-5958",
+          "pressure_rating_psi": 1500
+        }
+      ],
+      "anomalies": [],
+      "layout": "alternate",
+      "split": "train"
+    },
+    {
+      "filename": "COB-DWG-0007.pdf",
+      "doc_type": "engineering_drawing",
+      "project": "Cobalt",
+      "doc_date": "2022-11-06",
+      "components": [
+        {
+          "part_number": "HX-5939",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "PS-2759",
+          "pressure_rating_psi": 900
+        },
+        {
+          "part_number": "FL-9832",
+          "pressure_rating_psi": 300
+        },
+        {
+          "part_number": "FL-8470",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "FL-5958",
+          "pressure_rating_psi": 1500
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "COB-DWG-0008.pdf",
+      "doc_type": "engineering_drawing",
+      "project": "Cobalt",
+      "doc_date": "2024-09-29",
+      "components": [
+        {
+          "part_number": "FL-8470",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "FL-5958",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "HX-5939",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "PV-9437",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "PS-2759",
+          "pressure_rating_psi": 900
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "heldout"
+    },
+    {
+      "filename": "COB-INS-0001.pdf",
+      "doc_type": "inspection_report",
+      "project": "Cobalt",
+      "doc_date": "2021-12-21",
+      "components": [
+        {
+          "part_number": "HX-5065",
+          "pressure_rating_psi": 150
+        },
+        {
+          "part_number": "FL-8470",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "FL-5958",
+          "pressure_rating_psi": 600
+        }
+      ],
+      "anomalies": [
+        "rating_conflict:FL-5958"
+      ],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "COB-INS-0002.pdf",
+      "doc_type": "inspection_report",
+      "project": "Cobalt",
+      "doc_date": "2022-11-16",
+      "components": [
+        {
+          "part_number": "PV-2439",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "HX-5939",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "PS-2981",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "FL-8470",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "PV-9437",
+          "pressure_rating_psi": 1500
+        }
+      ],
+      "anomalies": [
+        "rating_conflict:PV-9437"
+      ],
+      "layout": "standard",
+      "split": "heldout"
+    },
+    {
+      "filename": "COB-INS-0003.pdf",
+      "doc_type": "inspection_report",
+      "project": "Cobalt",
+      "doc_date": "2021-01-25",
+      "components": [
+        {
+          "part_number": "FL-5958",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "FL-9832",
+          "pressure_rating_psi": 300
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "COB-INS-0004.pdf",
+      "doc_type": "inspection_report",
+      "project": "Cobalt",
+      "doc_date": null,
+      "components": [
+        {
+          "part_number": "HX-3799",
+          "pressure_rating_psi": 150
+        },
+        {
+          "part_number": "FL-5958",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "PS-2981",
+          "pressure_rating_psi": 1500
+        }
+      ],
+      "anomalies": [],
+      "layout": "alternate",
+      "split": "train"
+    },
+    {
+      "filename": "COB-INS-0005.pdf",
+      "doc_type": "inspection_report",
+      "project": "Cobalt",
+      "doc_date": "2022-07-22",
+      "components": [
+        {
+          "part_number": "PS-2759",
+          "pressure_rating_psi": 900
+        },
+        {
+          "part_number": "FL-9832",
+          "pressure_rating_psi": 300
+        },
+        {
+          "part_number": "FL-5958",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "HX-5065",
+          "pressure_rating_psi": 150
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "heldout"
+    },
+    {
+      "filename": "COB-INS-0006.pdf",
+      "doc_type": "inspection_report",
+      "project": "Cobalt",
+      "doc_date": "2021-01-24",
+      "components": [
+        {
+          "part_number": "PV-9437",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "PS-2759",
+          "pressure_rating_psi": 900
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "COB-INS-0007.pdf",
+      "doc_type": "inspection_report",
+      "project": "Cobalt",
+      "doc_date": "2023-08-08",
+      "components": [
+        {
+          "part_number": "PV-2439",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "PV-9437",
+          "pressure_rating_psi": 600
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "COB-INS-0008.pdf",
+      "doc_type": "inspection_report",
+      "project": "Cobalt",
+      "doc_date": null,
+      "components": [
+        {
+          "part_number": "PV-2439",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "HX-5939",
+          "pressure_rating_psi": 600
+        }
+      ],
+      "anomalies": [],
+      "layout": "alternate",
+      "split": "heldout"
+    },
+    {
+      "filename": "COB-MEM-01.txt",
+      "doc_type": "project_memo",
+      "project": "Cobalt",
+      "doc_date": "2022-11-27",
+      "components": [],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "heldout"
+    },
+    {
+      "filename": "COB-MEM-02.txt",
+      "doc_type": "project_memo",
+      "project": "Cobalt",
+      "doc_date": "2021-06-09",
+      "components": [],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "COB-MEM-03.txt",
+      "doc_type": "project_memo",
+      "project": "Cobalt",
+      "doc_date": "2022-06-12",
+      "components": [],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "COB-MEM-04.txt",
+      "doc_type": "project_memo",
+      "project": "Cobalt",
+      "doc_date": "2024-07-15",
+      "components": [],
+      "anomalies": [
+        "injection"
+      ],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "COB-REV-01.md",
+      "doc_type": "revision_history",
+      "project": "Cobalt",
+      "doc_date": "2021-04-21",
+      "components": [],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "COB-REV-02.md",
+      "doc_type": "revision_history",
+      "project": "Cobalt",
+      "doc_date": "2024-06-16",
+      "components": [],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "heldout"
+    },
+    {
+      "filename": "COB-STP-01.png",
+      "doc_type": "other",
+      "project": "Cobalt",
+      "doc_date": null,
+      "components": [],
+      "anomalies": [],
+      "layout": "image",
+      "split": "train"
+    },
+    {
+      "filename": "COB-STP-02.png",
+      "doc_type": "other",
+      "project": "Cobalt",
+      "doc_date": null,
+      "components": [],
+      "anomalies": [],
+      "layout": "image",
+      "split": "heldout"
+    },
+    {
+      "filename": "COB-STP-03.png",
+      "doc_type": "other",
+      "project": "Cobalt",
+      "doc_date": null,
+      "components": [],
+      "anomalies": [],
+      "layout": "image",
+      "split": "train"
+    },
+    {
+      "filename": "DRF-BOM-01.csv",
+      "doc_type": "parts_list",
+      "project": "Driftwood",
+      "doc_date": "2024-04-24",
+      "components": [
+        {
+          "part_number": "BV-3521",
+          "pressure_rating_psi": 2500
+        },
+        {
+          "part_number": "HX-1475",
+          "pressure_rating_psi": 300
+        },
+        {
+          "part_number": "FL-9004",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "RV-1565",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "FL-7422",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "BV-6316",
+          "pressure_rating_psi": 2500
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "DRF-BOM-02.csv",
+      "doc_type": "parts_list",
+      "project": "Driftwood",
+      "doc_date": "2021-03-11",
+      "components": [
+        {
+          "part_number": "HX-2507",
+          "pressure_rating_psi": 2500
+        },
+        {
+          "part_number": "HX-1475",
+          "pressure_rating_psi": 300
+        },
+        {
+          "part_number": "BV-3508",
+          "pressure_rating_psi": 300
+        },
+        {
+          "part_number": "BV-6316",
+          "pressure_rating_psi": 2500
+        },
+        {
+          "part_number": "FL-7422",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "BV-5383",
+          "pressure_rating_psi": 2500
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "DRF-CTR-001.pdf",
+      "doc_type": "contract",
+      "project": "Driftwood",
+      "doc_date": "2024-05-17",
+      "components": [
+        {
+          "part_number": "FL-7422",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "BV-8492",
+          "pressure_rating_psi": 300
+        },
+        {
+          "part_number": "BV-3508",
+          "pressure_rating_psi": 300
+        },
+        {
+          "part_number": "HX-1475",
+          "pressure_rating_psi": 300
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "DRF-CTR-002.pdf",
+      "doc_type": "contract",
+      "project": "Driftwood",
+      "doc_date": "2024-11-15",
+      "components": [
+        {
+          "part_number": "BV-3521",
+          "pressure_rating_psi": 2500
+        },
+        {
+          "part_number": "RV-1565",
+          "pressure_rating_psi": 600
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "DRF-CTR-003.pdf",
+      "doc_type": "contract",
+      "project": "Driftwood",
+      "doc_date": "2023-09-29",
+      "components": [
+        {
+          "part_number": "BV-6316",
+          "pressure_rating_psi": 2500
+        },
+        {
+          "part_number": "BV-3508",
+          "pressure_rating_psi": 300
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "DRF-DWG-0001.pdf",
+      "doc_type": "engineering_drawing",
+      "project": "Driftwood",
+      "doc_date": "2021-04-30",
+      "components": [
+        {
+          "part_number": "BV-8492",
+          "pressure_rating_psi": 300
+        },
+        {
+          "part_number": "BV-5383",
+          "pressure_rating_psi": 2500
+        },
+        {
+          "part_number": "BV-6316",
+          "pressure_rating_psi": 2500
+        },
+        {
+          "part_number": "FL-9004",
+          "pressure_rating_psi": 1500
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "DRF-DWG-0002.pdf",
+      "doc_type": "engineering_drawing",
+      "project": "Driftwood",
+      "doc_date": "2022-01-27",
+      "components": [
+        {
+          "part_number": "BV-3521",
+          "pressure_rating_psi": 2500
+        },
+        {
+          "part_number": "BV-6316",
+          "pressure_rating_psi": 2500
+        },
+        {
+          "part_number": "RV-1565",
+          "pressure_rating_psi": 600
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "DRF-DWG-0003.pdf",
+      "doc_type": "engineering_drawing",
+      "project": "Driftwood",
+      "doc_date": "2024-09-17",
+      "components": [
+        {
+          "part_number": "RV-1565",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "BV-8492",
+          "pressure_rating_psi": 300
+        },
+        {
+          "part_number": "BV-3508",
+          "pressure_rating_psi": 300
+        },
+        {
+          "part_number": "BV-5383",
+          "pressure_rating_psi": 2500
+        }
+      ],
+      "anomalies": [],
+      "layout": "alternate",
+      "split": "train"
+    },
+    {
+      "filename": "DRF-DWG-0004.pdf",
+      "doc_type": "engineering_drawing",
+      "project": "Driftwood",
+      "doc_date": "2023-07-30",
+      "components": [
+        {
+          "part_number": "RV-1565",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "BV-5383",
+          "pressure_rating_psi": 2500
+        },
+        {
+          "part_number": "HX-1475",
+          "pressure_rating_psi": 300
+        },
+        {
+          "part_number": "HX-2507",
+          "pressure_rating_psi": 2500
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "heldout"
+    },
+    {
+      "filename": "DRF-DWG-0005.pdf",
+      "doc_type": "engineering_drawing",
+      "project": "Driftwood",
+      "doc_date": "2022-03-09",
+      "components": [
+        {
+          "part_number": "RV-1565",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "FL-7422",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "HX-2507",
+          "pressure_rating_psi": 2500
+        },
+        {
+          "part_number": "BV-3508",
+          "pressure_rating_psi": 300
+        },
+        {
+          "part_number": "BV-8492",
+          "pressure_rating_psi": 300
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "DRF-DWG-0006.pdf",
+      "doc_type": "engineering_drawing",
+      "project": "Driftwood",
+      "doc_date": "2021-11-20",
+      "components": [
+        {
+          "part_number": "BV-3508",
+          "pressure_rating_psi": 300
+        },
+        {
+          "part_number": "RV-1565",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "BV-3521",
+          "pressure_rating_psi": 2500
+        }
+      ],
+      "anomalies": [],
+      "layout": "alternate",
+      "split": "train"
+    },
+    {
+      "filename": "DRF-DWG-0007.pdf",
+      "doc_type": "engineering_drawing",
+      "project": "Driftwood",
+      "doc_date": "2024-01-26",
+      "components": [
+        {
+          "part_number": "BV-5383",
+          "pressure_rating_psi": 2500
+        },
+        {
+          "part_number": "BV-6316",
+          "pressure_rating_psi": 2500
+        },
+        {
+          "part_number": "BV-8492",
+          "pressure_rating_psi": 300
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "heldout"
+    },
+    {
+      "filename": "DRF-DWG-0008.pdf",
+      "doc_type": "engineering_drawing",
+      "project": "Driftwood",
+      "doc_date": "2023-12-04",
+      "components": [
+        {
+          "part_number": "BV-5383",
+          "pressure_rating_psi": 2500
+        },
+        {
+          "part_number": "BV-8492",
+          "pressure_rating_psi": 300
+        },
+        {
+          "part_number": "HX-1475",
+          "pressure_rating_psi": 300
+        },
+        {
+          "part_number": "FL-7422",
+          "pressure_rating_psi": 1500
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "DRF-INS-0001.pdf",
+      "doc_type": "inspection_report",
+      "project": "Driftwood",
+      "doc_date": "2024-02-21",
+      "components": [
+        {
+          "part_number": "BV-8492",
+          "pressure_rating_psi": 300
+        },
+        {
+          "part_number": "HX-1475",
+          "pressure_rating_psi": 1500
+        }
+      ],
+      "anomalies": [
+        "rating_conflict:HX-1475"
+      ],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "DRF-INS-0002.pdf",
+      "doc_type": "inspection_report",
+      "project": "Driftwood",
+      "doc_date": "2024-07-20",
+      "components": [
+        {
+          "part_number": "FL-9004",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "HX-2507",
+          "pressure_rating_psi": 2500
+        },
+        {
+          "part_number": "BV-8492",
+          "pressure_rating_psi": 300
+        },
+        {
+          "part_number": "BV-3521",
+          "pressure_rating_psi": 2500
+        }
+      ],
+      "anomalies": [
+        "rating_conflict:FL-9004"
+      ],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "DRF-INS-0003.pdf",
+      "doc_type": "inspection_report",
+      "project": "Driftwood",
+      "doc_date": "2021-06-11",
+      "components": [
+        {
+          "part_number": "HX-1475",
+          "pressure_rating_psi": 300
+        },
+        {
+          "part_number": "BV-8492",
+          "pressure_rating_psi": 300
+        },
+        {
+          "part_number": "FL-7422",
+          "pressure_rating_psi": 1500
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "DRF-INS-0004.pdf",
+      "doc_type": "inspection_report",
+      "project": "Driftwood",
+      "doc_date": null,
+      "components": [
+        {
+          "part_number": "FL-9004",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "FL-7422",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "BV-6316",
+          "pressure_rating_psi": 2500
+        }
+      ],
+      "anomalies": [],
+      "layout": "alternate",
+      "split": "heldout"
+    },
+    {
+      "filename": "DRF-INS-0005.pdf",
+      "doc_type": "inspection_report",
+      "project": "Driftwood",
+      "doc_date": "2023-12-17",
+      "components": [
+        {
+          "part_number": "BV-6316",
+          "pressure_rating_psi": 2500
+        },
+        {
+          "part_number": "FL-7422",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "BV-3521",
+          "pressure_rating_psi": 2500
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "DRF-INS-0006.pdf",
+      "doc_type": "inspection_report",
+      "project": "Driftwood",
+      "doc_date": "2024-08-14",
+      "components": [
+        {
+          "part_number": "HX-1475",
+          "pressure_rating_psi": 300
+        },
+        {
+          "part_number": "BV-6316",
+          "pressure_rating_psi": 2500
+        },
+        {
+          "part_number": "FL-9004",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "FL-7422",
+          "pressure_rating_psi": 1500
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "DRF-INS-0007.pdf",
+      "doc_type": "inspection_report",
+      "project": "Driftwood",
+      "doc_date": "2021-10-03",
+      "components": [
+        {
+          "part_number": "FL-7422",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "BV-3521",
+          "pressure_rating_psi": 2500
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "heldout"
+    },
+    {
+      "filename": "DRF-INS-0008.pdf",
+      "doc_type": "inspection_report",
+      "project": "Driftwood",
+      "doc_date": null,
+      "components": [
+        {
+          "part_number": "BV-5383",
+          "pressure_rating_psi": 2500
+        },
+        {
+          "part_number": "FL-9004",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "HX-2507",
+          "pressure_rating_psi": 2500
+        },
+        {
+          "part_number": "BV-8492",
+          "pressure_rating_psi": 300
+        }
+      ],
+      "anomalies": [],
+      "layout": "alternate",
+      "split": "train"
+    },
+    {
+      "filename": "DRF-MEM-01.txt",
+      "doc_type": "project_memo",
+      "project": "Driftwood",
+      "doc_date": "2022-03-21",
+      "components": [],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "heldout"
+    },
+    {
+      "filename": "DRF-MEM-02.txt",
+      "doc_type": "project_memo",
+      "project": "Driftwood",
+      "doc_date": "2024-02-10",
+      "components": [],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "DRF-MEM-03.txt",
+      "doc_type": "project_memo",
+      "project": "Driftwood",
+      "doc_date": "2023-04-11",
+      "components": [],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "DRF-MEM-04.txt",
+      "doc_type": "project_memo",
+      "project": "Driftwood",
+      "doc_date": "2021-08-05",
+      "components": [],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "heldout"
+    },
+    {
+      "filename": "DRF-REV-01.md",
+      "doc_type": "revision_history",
+      "project": "Driftwood",
+      "doc_date": "2022-10-05",
+      "components": [],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "DRF-REV-02.md",
+      "doc_type": "revision_history",
+      "project": "Driftwood",
+      "doc_date": "2024-05-18",
+      "components": [],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "DRF-STP-01.png",
+      "doc_type": "other",
+      "project": "Driftwood",
+      "doc_date": null,
+      "components": [],
+      "anomalies": [],
+      "layout": "image",
+      "split": "train"
+    },
+    {
+      "filename": "DRF-STP-02.png",
+      "doc_type": "other",
+      "project": "Driftwood",
+      "doc_date": null,
+      "components": [],
+      "anomalies": [],
+      "layout": "image",
+      "split": "heldout"
+    },
+    {
+      "filename": "DRF-STP-03.png",
+      "doc_type": "other",
+      "project": "Driftwood",
+      "doc_date": null,
+      "components": [],
+      "anomalies": [],
+      "layout": "image",
+      "split": "train"
+    },
+    {
+      "filename": "EMB-BOM-01.csv",
+      "doc_type": "parts_list",
+      "project": "Ember",
+      "doc_date": "2022-09-08",
+      "components": [
+        {
+          "part_number": "FL-8650",
+          "pressure_rating_psi": 2500
+        },
+        {
+          "part_number": "RV-9954",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "PV-1247",
+          "pressure_rating_psi": 900
+        },
+        {
+          "part_number": "BV-8888",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "HX-7438",
+          "pressure_rating_psi": 150
+        },
+        {
+          "part_number": "FL-1714",
+          "pressure_rating_psi": 600
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "heldout"
+    },
+    {
+      "filename": "EMB-BOM-02.csv",
+      "doc_type": "parts_list",
+      "project": "Ember",
+      "doc_date": "2024-10-26",
+      "components": [
+        {
+          "part_number": "FL-2385",
+          "pressure_rating_psi": 300
+        },
+        {
+          "part_number": "BV-2073",
+          "pressure_rating_psi": 300
+        },
+        {
+          "part_number": "PV-1247",
+          "pressure_rating_psi": 900
+        },
+        {
+          "part_number": "RV-9954",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "HX-7438",
+          "pressure_rating_psi": 150
+        },
+        {
+          "part_number": "FL-1714",
+          "pressure_rating_psi": 600
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "EMB-CTR-001.pdf",
+      "doc_type": "contract",
+      "project": "Ember",
+      "doc_date": "2024-12-30",
+      "components": [
+        {
+          "part_number": "BV-8888",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "FL-1714",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "FL-8650",
+          "pressure_rating_psi": 2500
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "heldout"
+    },
+    {
+      "filename": "EMB-CTR-002.pdf",
+      "doc_type": "contract",
+      "project": "Ember",
+      "doc_date": "2024-05-16",
+      "components": [
+        {
+          "part_number": "HX-7438",
+          "pressure_rating_psi": 150
+        },
+        {
+          "part_number": "RV-9954",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "BV-8888",
+          "pressure_rating_psi": 600
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "EMB-CTR-003.pdf",
+      "doc_type": "contract",
+      "project": "Ember",
+      "doc_date": "2024-11-21",
+      "components": [
+        {
+          "part_number": "FL-1714",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "PS-1872",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "BV-8888",
+          "pressure_rating_psi": 600
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "EMB-DWG-0001.pdf",
+      "doc_type": "engineering_drawing",
+      "project": "Ember",
+      "doc_date": "2021-12-18",
+      "components": [
+        {
+          "part_number": "FL-8650",
+          "pressure_rating_psi": 2500
+        },
+        {
+          "part_number": "HX-7438",
+          "pressure_rating_psi": 150
+        },
+        {
+          "part_number": "BV-8888",
+          "pressure_rating_psi": 600
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "EMB-DWG-0002.pdf",
+      "doc_type": "engineering_drawing",
+      "project": "Ember",
+      "doc_date": "2023-03-30",
+      "components": [
+        {
+          "part_number": "FL-8650",
+          "pressure_rating_psi": 2500
+        },
+        {
+          "part_number": "PS-1872",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "BV-2895",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "FL-2385",
+          "pressure_rating_psi": 300
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "heldout"
+    },
+    {
+      "filename": "EMB-DWG-0003.pdf",
+      "doc_type": "engineering_drawing",
+      "project": "Ember",
+      "doc_date": "2021-09-24",
+      "components": [
+        {
+          "part_number": "HX-7438",
+          "pressure_rating_psi": 150
+        },
+        {
+          "part_number": "BV-8888",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "PS-1872",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "RV-9954",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "FL-1714",
+          "pressure_rating_psi": 600
+        }
+      ],
+      "anomalies": [],
+      "layout": "alternate",
+      "split": "train"
+    },
+    {
+      "filename": "EMB-DWG-0004.pdf",
+      "doc_type": "engineering_drawing",
+      "project": "Ember",
+      "doc_date": "2022-10-23",
+      "components": [
+        {
+          "part_number": "PS-1872",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "HX-7438",
+          "pressure_rating_psi": 150
+        },
+        {
+          "part_number": "BV-2895",
+          "pressure_rating_psi": 1500
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "EMB-DWG-0005.pdf",
+      "doc_type": "engineering_drawing",
+      "project": "Ember",
+      "doc_date": "2023-02-17",
+      "components": [
+        {
+          "part_number": "PS-1872",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "RV-9954",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "FL-1714",
+          "pressure_rating_psi": 600
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "EMB-DWG-0006.pdf",
+      "doc_type": "engineering_drawing",
+      "project": "Ember",
+      "doc_date": "2024-10-28",
+      "components": [
+        {
+          "part_number": "FL-2385",
+          "pressure_rating_psi": 300
+        },
+        {
+          "part_number": "BV-2073",
+          "pressure_rating_psi": 300
+        },
+        {
+          "part_number": "BV-8888",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "PV-1247",
+          "pressure_rating_psi": 900
+        },
+        {
+          "part_number": "PS-1872",
+          "pressure_rating_psi": 600
+        }
+      ],
+      "anomalies": [],
+      "layout": "alternate",
+      "split": "heldout"
+    },
+    {
+      "filename": "EMB-DWG-0007.pdf",
+      "doc_type": "engineering_drawing",
+      "project": "Ember",
+      "doc_date": "2024-10-15",
+      "components": [
+        {
+          "part_number": "PV-1247",
+          "pressure_rating_psi": 900
+        },
+        {
+          "part_number": "FL-8650",
+          "pressure_rating_psi": 2500
+        },
+        {
+          "part_number": "BV-2073",
+          "pressure_rating_psi": 300
+        },
+        {
+          "part_number": "FL-1714",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "PS-1872",
+          "pressure_rating_psi": 600
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "EMB-DWG-0008.pdf",
+      "doc_type": "engineering_drawing",
+      "project": "Ember",
+      "doc_date": "2021-12-26",
+      "components": [
+        {
+          "part_number": "PS-1872",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "BV-2895",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "BV-8888",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "FL-1714",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "PV-1247",
+          "pressure_rating_psi": 900
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "EMB-INS-0001.pdf",
+      "doc_type": "inspection_report",
+      "project": "Ember",
+      "doc_date": "2024-09-18",
+      "components": [
+        {
+          "part_number": "BV-2895",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "PV-1247",
+          "pressure_rating_psi": 900
+        },
+        {
+          "part_number": "FL-8650",
+          "pressure_rating_psi": 2500
+        },
+        {
+          "part_number": "PS-1872",
+          "pressure_rating_psi": 150
+        }
+      ],
+      "anomalies": [
+        "rating_conflict:PS-1872"
+      ],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "EMB-INS-0002.pdf",
+      "doc_type": "inspection_report",
+      "project": "Ember",
+      "doc_date": "2023-12-17",
+      "components": [
+        {
+          "part_number": "FL-8650",
+          "pressure_rating_psi": 150
+        },
+        {
+          "part_number": "RV-9954",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "BV-2073",
+          "pressure_rating_psi": 300
+        }
+      ],
+      "anomalies": [
+        "rating_conflict:FL-8650"
+      ],
+      "layout": "standard",
+      "split": "heldout"
+    },
+    {
+      "filename": "EMB-INS-0003.pdf",
+      "doc_type": "inspection_report",
+      "project": "Ember",
+      "doc_date": "2024-05-31",
+      "components": [
+        {
+          "part_number": "FL-8650",
+          "pressure_rating_psi": 2500
+        },
+        {
+          "part_number": "RV-9954",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "FL-2385",
+          "pressure_rating_psi": 300
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "EMB-INS-0004.pdf",
+      "doc_type": "inspection_report",
+      "project": "Ember",
+      "doc_date": null,
+      "components": [
+        {
+          "part_number": "BV-2895",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "BV-8888",
+          "pressure_rating_psi": 600
+        }
+      ],
+      "anomalies": [],
+      "layout": "alternate",
+      "split": "train"
+    },
+    {
+      "filename": "EMB-INS-0005.pdf",
+      "doc_type": "inspection_report",
+      "project": "Ember",
+      "doc_date": "2022-10-28",
+      "components": [
+        {
+          "part_number": "BV-2895",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "RV-9954",
+          "pressure_rating_psi": 1500
+        },
+        {
+          "part_number": "BV-2073",
+          "pressure_rating_psi": 300
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "EMB-INS-0006.pdf",
+      "doc_type": "inspection_report",
+      "project": "Ember",
+      "doc_date": "2023-06-29",
+      "components": [
+        {
+          "part_number": "BV-2073",
+          "pressure_rating_psi": 300
+        },
+        {
+          "part_number": "PV-1247",
+          "pressure_rating_psi": 900
+        },
+        {
+          "part_number": "PS-1872",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "FL-1714",
+          "pressure_rating_psi": 600
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "heldout"
+    },
+    {
+      "filename": "EMB-INS-0007.pdf",
+      "doc_type": "inspection_report",
+      "project": "Ember",
+      "doc_date": "2023-04-21",
+      "components": [
+        {
+          "part_number": "BV-2073",
+          "pressure_rating_psi": 300
+        },
+        {
+          "part_number": "FL-1714",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "FL-8650",
+          "pressure_rating_psi": 2500
+        }
+      ],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "EMB-INS-0008.pdf",
+      "doc_type": "inspection_report",
+      "project": "Ember",
+      "doc_date": null,
+      "components": [
+        {
+          "part_number": "FL-2385",
+          "pressure_rating_psi": 300
+        },
+        {
+          "part_number": "BV-8888",
+          "pressure_rating_psi": 600
+        },
+        {
+          "part_number": "HX-7438",
+          "pressure_rating_psi": 150
+        },
+        {
+          "part_number": "FL-1714",
+          "pressure_rating_psi": 600
+        }
+      ],
+      "anomalies": [],
+      "layout": "alternate",
+      "split": "train"
+    },
+    {
+      "filename": "EMB-MEM-01.txt",
+      "doc_type": "project_memo",
+      "project": "Ember",
+      "doc_date": "2022-03-28",
+      "components": [],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "EMB-MEM-02.txt",
+      "doc_type": "project_memo",
+      "project": "Ember",
+      "doc_date": "2023-12-13",
+      "components": [],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "EMB-MEM-03.txt",
+      "doc_type": "project_memo",
+      "project": "Ember",
+      "doc_date": "2024-06-29",
+      "components": [],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "heldout"
+    },
+    {
+      "filename": "EMB-MEM-04.txt",
+      "doc_type": "project_memo",
+      "project": "Ember",
+      "doc_date": "2024-02-20",
+      "components": [],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "EMB-REV-01.md",
+      "doc_type": "revision_history",
+      "project": "Ember",
+      "doc_date": "2022-11-23",
+      "components": [],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "heldout"
+    },
+    {
+      "filename": "EMB-REV-02.md",
+      "doc_type": "revision_history",
+      "project": "Ember",
+      "doc_date": "2024-09-23",
+      "components": [],
+      "anomalies": [],
+      "layout": "standard",
+      "split": "train"
+    },
+    {
+      "filename": "EMB-STP-01.png",
+      "doc_type": "other",
+      "project": "Ember",
+      "doc_date": null,
+      "components": [],
+      "anomalies": [],
+      "layout": "image",
+      "split": "train"
+    },
+    {
+      "filename": "EMB-STP-02.png",
+      "doc_type": "other",
+      "project": "Ember",
+      "doc_date": null,
+      "components": [],
+      "anomalies": [],
+      "layout": "image",
+      "split": "heldout"
+    },
+    {
+      "filename": "EMB-STP-03.png",
+      "doc_type": "other",
+      "project": "Ember",
+      "doc_date": null,
+      "components": [],
+      "anomalies": [],
+      "layout": "image",
+      "split": "train"
+    }
+  ],
+  "anomalies": [
+    {
+      "kind": "rating_conflict",
+      "project": "Alpha",
+      "part_number": "BV-7891",
+      "values_psi": [
+        600,
+        1500
+      ],
+      "documents": [
+        "ALP-INS-0001.pdf",
+        "ALP-DWG-0005.pdf",
+        "ALP-DWG-0006.pdf",
+        "ALP-DWG-0008.pdf",
+        "ALP-BOM-02.csv"
+      ]
+    },
+    {
+      "kind": "rating_conflict",
+      "project": "Alpha",
+      "part_number": "RV-6577",
+      "values_psi": [
+        150,
+        1500
+      ],
+      "documents": [
+        "ALP-INS-0002.pdf",
+        "ALP-DWG-0001.pdf",
+        "ALP-DWG-0003.pdf",
+        "ALP-DWG-0005.pdf",
+        "ALP-DWG-0007.pdf"
+      ]
+    },
+    {
+      "kind": "injection",
+      "project": "Alpha",
+      "documents": [
+        "ALP-MEM-04.txt"
+      ]
+    },
+    {
+      "kind": "rating_conflict",
+      "project": "Borealis",
+      "part_number": "PV-5595",
+      "values_psi": [
+        300,
+        1500
+      ],
+      "documents": [
+        "BOR-INS-0001.pdf",
+        "BOR-DWG-0001.pdf",
+        "BOR-DWG-0002.pdf",
+        "BOR-DWG-0004.pdf",
+        "BOR-DWG-0005.pdf",
+        "BOR-DWG-0006.pdf",
+        "BOR-DWG-0008.pdf",
+        "BOR-CTR-001.pdf",
+        "BOR-CTR-002.pdf",
+        "BOR-BOM-01.csv",
+        "BOR-BOM-02.csv"
+      ]
+    },
+    {
+      "kind": "rating_conflict",
+      "project": "Borealis",
+      "part_number": "HX-2047",
+      "values_psi": [
+        600,
+        1500
+      ],
+      "documents": [
+        "BOR-INS-0002.pdf",
+        "BOR-DWG-0001.pdf",
+        "BOR-DWG-0007.pdf",
+        "BOR-DWG-0008.pdf",
+        "BOR-CTR-002.pdf",
+        "BOR-BOM-02.csv"
+      ]
+    },
+    {
+      "kind": "rating_conflict",
+      "project": "Cobalt",
+      "part_number": "FL-5958",
+      "values_psi": [
+        600,
+        1500
+      ],
+      "documents": [
+        "COB-INS-0001.pdf",
+        "COB-DWG-0002.pdf",
+        "COB-DWG-0006.pdf",
+        "COB-DWG-0007.pdf",
+        "COB-DWG-0008.pdf",
+        "COB-CTR-002.pdf",
+        "COB-BOM-01.csv"
+      ]
+    },
+    {
+      "kind": "rating_conflict",
+      "project": "Cobalt",
+      "part_number": "PV-9437",
+      "values_psi": [
+        600,
+        1500
+      ],
+      "documents": [
+        "COB-INS-0002.pdf",
+        "COB-DWG-0001.pdf",
+        "COB-DWG-0002.pdf",
+        "COB-DWG-0004.pdf",
+        "COB-DWG-0005.pdf",
+        "COB-DWG-0008.pdf",
+        "COB-CTR-001.pdf",
+        "COB-CTR-003.pdf",
+        "COB-BOM-01.csv",
+        "COB-BOM-02.csv"
+      ]
+    },
+    {
+      "kind": "injection",
+      "project": "Cobalt",
+      "documents": [
+        "COB-MEM-04.txt"
+      ]
+    },
+    {
+      "kind": "rating_conflict",
+      "project": "Driftwood",
+      "part_number": "HX-1475",
+      "values_psi": [
+        300,
+        1500
+      ],
+      "documents": [
+        "DRF-INS-0001.pdf",
+        "DRF-DWG-0004.pdf",
+        "DRF-DWG-0008.pdf",
+        "DRF-CTR-001.pdf",
+        "DRF-BOM-01.csv",
+        "DRF-BOM-02.csv"
+      ]
+    },
+    {
+      "kind": "rating_conflict",
+      "project": "Driftwood",
+      "part_number": "FL-9004",
+      "values_psi": [
+        600,
+        1500
+      ],
+      "documents": [
+        "DRF-INS-0002.pdf",
+        "DRF-DWG-0001.pdf",
+        "DRF-BOM-01.csv"
+      ]
+    },
+    {
+      "kind": "rating_conflict",
+      "project": "Ember",
+      "part_number": "PS-1872",
+      "values_psi": [
+        150,
+        600
+      ],
+      "documents": [
+        "EMB-INS-0001.pdf",
+        "EMB-DWG-0002.pdf",
+        "EMB-DWG-0003.pdf",
+        "EMB-DWG-0004.pdf",
+        "EMB-DWG-0005.pdf",
+        "EMB-DWG-0006.pdf",
+        "EMB-DWG-0007.pdf",
+        "EMB-DWG-0008.pdf",
+        "EMB-CTR-003.pdf"
+      ]
+    },
+    {
+      "kind": "rating_conflict",
+      "project": "Ember",
+      "part_number": "FL-8650",
+      "values_psi": [
+        150,
+        2500
+      ],
+      "documents": [
+        "EMB-INS-0002.pdf",
+        "EMB-DWG-0001.pdf",
+        "EMB-DWG-0002.pdf",
+        "EMB-DWG-0007.pdf",
+        "EMB-CTR-001.pdf",
+        "EMB-BOM-01.csv"
+      ]
+    }
+  ]
+}

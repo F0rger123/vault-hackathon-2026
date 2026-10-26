@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+
+# Node
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/next-env.d.ts
+*.tsbuildinfo
+
+# Runtime data: databases, stored originals, exports, tokens. Never commit.
+data/runtime/
+data/*.db
+*.db
+*.db-wal
+*.db-shm
+dev_tokens.json
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Local evaluation scratch output (committed results live in evaluation/results/)
+evaluation/scratch/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

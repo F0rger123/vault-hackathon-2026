@@ -1,0 +1,13 @@
+FROM python:3.11-slim
+WORKDIR /app
+RUN useradd --create-home --uid 10001 vault
+COPY pyproject.toml README.md ./
+COPY backend ./backend
+COPY cli ./cli
+COPY generator ./generator
+COPY evaluation ./evaluation
+RUN pip install --no-cache-dir . && mkdir -p /data && chown vault:vault /data
+USER vault
+ENV VAULT_DATA_DIR=/data
+EXPOSE 8000
+CMD ["uvicorn", "backend.main:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000"]
