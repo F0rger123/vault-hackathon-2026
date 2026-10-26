@@ -15,6 +15,7 @@ Nothing a model returns is executed; agents exchange only validated data through
 
 import logging
 import queue
+import sqlite3
 import threading
 import time
 from dataclasses import dataclass
@@ -193,8 +194,7 @@ class Orchestrator:
                             it = any_q.get_nowait()
                         except queue.Empty:
                             return
-                    self._process(c, lane, escalation, it, policy, examples)
-                # Cancelled: mark whatever this worker can still see as cancelled.
+                    self._process_safely(c, lane, escalation, it, policy, examples)
 
         threads = [
             threading.Thread(target=worker, args=(ln,), name=f"{ln.name}-{i}", daemon=True)
@@ -211,6 +211,15 @@ class Orchestrator:
                 conn.execute(
                     "UPDATE job_items SET status = 'cancelled' WHERE job_id = ? AND status = 'pending'", (self.job_id,)
                 )
+            # Reconcile: every item must end in a terminal state, so the job totals always add up.
+            lost = conn.execute(
+                "UPDATE job_items SET status = 'failed', error = 'not processed' "
+                "WHERE job_id = ? AND status IN ('pending', 'running')",
+                (self.job_id,),
+            ).rowcount
+            if lost:
+                conn.execute("UPDATE jobs SET failed = failed + ? WHERE id = ?", (lost, self.job_id))
+                self.event(conn, "coordinator", "reconcile", "error", lost=lost)
             j = conn.execute("SELECT * FROM jobs WHERE id = ?", (self.job_id,)).fetchone()
             if j["cancel_requested"]:
                 status = "cancelled"
@@ -225,6 +234,26 @@ class Orchestrator:
                 self.event(conn, "reviewer", "findings.analyse", "allowed", findings=n)
             self.event(conn, "coordinator", "finish", "allowed", status=status, done=j["done"], failed=j["failed"])
             conn.execute("UPDATE jobs SET status = ?, finished_at = ? WHERE id = ?", (status, now(), self.job_id))
+
+    def _process_safely(self, c, lane: Lane, escalation: Lane | None, it: dict, policy, examples) -> None:
+        """Run one item; retry when SQLite is momentarily locked; never let an item disappear."""
+        for attempt in range(1, 6):
+            try:
+                self._process(c, lane, escalation, it, policy, examples)
+                return
+            except sqlite3.OperationalError as exc:
+                if "locked" not in str(exc) or attempt == 5:
+                    break
+                time.sleep(0.05 * 2**attempt)
+            except Exception:
+                break
+        log.error("item %s could not be recorded after retries", it["id"])
+        for _ in range(10):  # the failure itself must be recorded, or job counts would be wrong
+            try:
+                self._fail_item(c, it["id"], it["document_id"], "internal error (storage busy)")
+                return
+            except sqlite3.OperationalError:
+                time.sleep(0.2)
 
     def _fail_item(self, c, item_id: int, document_id: int, error: str) -> None:
         c.execute("UPDATE job_items SET status = 'failed', error = ? WHERE id = ?", (error, item_id))

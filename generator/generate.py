@@ -7,7 +7,11 @@ Planted anomalies:
 - rating_conflict: a drawing and an inspection record disagree on a part's pressure rating.
 - injection: a memo contains instructions aimed at an AI system. VAULT must treat it as data.
 
-Usage: python -m generator.generate --out data/synthetic/v1 --seed 2026
+Usage:
+  python -m generator.generate --out data/synthetic/v1 --seed 2026          # the committed 150-file set
+  python -m generator.generate --out data/synthetic/scale --projects 100 --photos 3 --marked-fraction 0.1
+      # ~3,600 files: more projects, phone-style photos of inspection sheets, documents with
+      # sensitivity markings (ITAR/EXPORT CONTROLLED) and a personnel roster with personal data.
 """
 
 import argparse
@@ -19,7 +23,7 @@ from dataclasses import dataclass, field
 from datetime import date, timedelta
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 from reportlab.lib.pagesizes import landscape, letter
 from reportlab.pdfgen import canvas
 
@@ -213,7 +217,107 @@ def _stamp_png(path: Path, text: str, sub: str, rng: random.Random) -> None:
     img.save(path, format="PNG", optimize=False)
 
 
-def generate(out: Path, seed: int = 2026) -> dict:
+PROJECT_WORDS = [
+    "Aurora",
+    "Basalt",
+    "Cinder",
+    "Delta",
+    "Equinox",
+    "Fjord",
+    "Granite",
+    "Halcyon",
+    "Ion",
+    "Juniper",
+    "Kestrel",
+    "Lumen",
+    "Meridian",
+    "Nimbus",
+    "Obsidian",
+    "Pinnacle",
+    "Quartz",
+    "Riptide",
+    "Sierra",
+    "Tundra",
+    "Umbra",
+    "Vector",
+    "Willow",
+    "Xenon",
+    "Yarrow",
+    "Zephyr",
+    "Anvil",
+    "Beacon",
+    "Cascade",
+    "Dune",
+    "Ember",
+    "Flint",
+    "Glacier",
+    "Harbor",
+    "Iris",
+    "Jasper",
+    "Keystone",
+    "Lagoon",
+    "Mesa",
+    "Nova",
+    "Onyx",
+    "Prairie",
+    "Quill",
+    "Ridge",
+    "Summit",
+    "Talon",
+    "Upland",
+    "Vale",
+    "Wren",
+    "Yukon",
+]
+
+
+def make_projects(n: int) -> list[tuple[str, str]]:
+    """The 5 original projects, then deterministic fictional names with unique 3-letter codes."""
+    projects = list(PROJECTS[:n])
+    codes = {c for _, c in projects}
+    i = 0
+    while len(projects) < n:
+        word = PROJECT_WORDS[i % len(PROJECT_WORDS)]
+        name = word if i < len(PROJECT_WORDS) else f"{word}-{i // len(PROJECT_WORDS) + 1}"
+        code = (
+            (word[:2] + "QXZVKJ"[i // len(PROJECT_WORDS) % 6]).upper() if i >= len(PROJECT_WORDS) else word[:3].upper()
+        )
+        n2 = 0
+        while code in codes:
+            n2 += 1
+            code = f"{word[0].upper()}{n2:02d}"
+        codes.add(code)
+        projects.append((name, code))
+        i += 1
+    return projects
+
+
+def _photo_jpg(path: Path, lines: list[str], rng: random.Random) -> None:
+    """A phone photo of a paper form: skewed, slightly blurred, noisy, JPEG-compressed."""
+    paper = Image.new("RGB", (1100, 1400), (246, 244, 236))
+    draw = ImageDraw.Draw(paper)
+    font = ImageFont.load_default(size=30)
+    y = 80
+    for line in lines:
+        draw.text((70, y), line, fill=(30, 30, 35), font=font)
+        y += 52
+    draw.rectangle((50, 50, 1050, y + 30), outline=(90, 90, 90), width=3)
+    paper = paper.rotate(rng.uniform(-7, 7), expand=True, fillcolor=(60, 56, 50))
+    canvas = Image.new("RGB", (paper.width + 120, paper.height + 120), (60, 56, 50))
+    canvas.paste(paper, (60 + rng.randrange(-30, 30), 60 + rng.randrange(-30, 30)))
+    canvas = canvas.filter(ImageFilter.GaussianBlur(radius=rng.uniform(0.6, 1.4)))
+    noise = Image.effect_noise(canvas.size, rng.uniform(18, 30)).convert("RGB")
+    canvas = Image.blend(canvas, noise, 0.08).resize((canvas.width // 2, canvas.height // 2))
+    canvas.save(path, format="JPEG", quality=68)
+
+
+def generate(
+    out: Path,
+    seed: int = 2026,
+    projects: list[tuple[str, str]] | None = None,
+    photos: int = 0,
+    marked_fraction: float = 0.0,
+) -> dict:
     rng = random.Random(seed)
     out.mkdir(parents=True, exist_ok=True)
     files = out / "files"
@@ -222,7 +326,7 @@ def generate(out: Path, seed: int = 2026) -> dict:
     anomalies: list[dict] = []
     counter = 0
 
-    for project, code in PROJECTS:
+    for project, code in projects or PROJECTS:
         parts: list[Part] = []
         used = set()
         while len(parts) < 10:
@@ -388,6 +492,61 @@ def generate(out: Path, seed: int = 2026) -> dict:
             _stamp_png(files / fname, text, f"{project} document control  {_date(rng).isoformat()}", rng)
             docs.append(Doc(fname, "other", project, None, layout="image"))
 
+        # Scale-only extras use their own RNG so the default 150-file set stays byte-identical.
+        xrng = random.Random(f"{seed}-{code}")
+        for n in range(1, photos + 1):
+            d = _date(xrng)
+            rows = [(p, p.rating) for p in xrng.sample(parts, 3)]
+            lines = [
+                "INSPECTION REPORT",
+                f"Report No. {code}-PHO-{n:03d}",
+                f"Project: {project}",
+                f"Date: {d.isoformat()}",
+                f"Inspector: {xrng.choice(PEOPLE)}",
+                "",
+            ]
+            lines += [f"{p.number} {p.description} tested at {t} psi - PASS" for p, t in rows]
+            fname = f"{code}-PHO-{n:03d}.jpg"
+            _photo_jpg(files / fname, lines, xrng)
+            docs.append(
+                Doc(
+                    fname,
+                    "inspection_report",
+                    project,
+                    d.isoformat(),
+                    [{"part_number": p.number, "pressure_rating_psi": t} for p, t in rows],
+                    layout="photo",
+                )
+            )
+        for n in range(1, round(30 * marked_fraction) + 1):
+            d = _date(xrng)
+            p = xrng.choice(parts)
+            body = [
+                "EXPORT CONTROLLED - ITAR. Technical data. Not for release to foreign persons.",
+                f"TECHNICAL DATA SHEET {code}-TDS-{n:02d}",
+                f"Project: {project}    Date: {d.isoformat()}",
+                f"{p.number} {p.description} {p.material} rated {p.rating} psi",
+                "Design margins and qualification test procedures are summarised in annex B.",
+            ]
+            fname = f"{code}-TDS-{n:02d}.txt"
+            (files / fname).write_text("\n".join(body) + "\n", encoding="utf-8", newline="\n")
+            docs.append(
+                Doc(
+                    fname,
+                    "other",
+                    project,
+                    d.isoformat(),
+                    [{"part_number": p.number, "pressure_rating_psi": p.rating}],
+                    anomalies=["restricted_marking"],
+                )
+            )
+        if marked_fraction:
+            roster = ["PERSONNEL ROSTER (fictional)", f"Project: {project}", ""]
+            roster += [f"{name}  {name.split()[-1].lower()}@{code.lower()}.example.invalid" for name in PEOPLE[:4]]
+            fname = f"{code}-PER-01.txt"
+            (files / fname).write_text("\n".join(roster) + "\n", encoding="utf-8", newline="\n")
+            docs.append(Doc(fname, "other", project, None, anomalies=["personal_data"]))
+
     # Link each rating conflict to the drawings that show the true rating.
     for a in anomalies:
         if a["kind"] != "rating_conflict":
@@ -403,7 +562,7 @@ def generate(out: Path, seed: int = 2026) -> dict:
         x.split = "heldout" if i % 10 in (2, 5, 8) else "train"
 
     manifest = {
-        "generator": "vault-synthetic-v1",
+        "generator": "vault-synthetic-v1" if not (photos or marked_fraction or projects) else "vault-synthetic-scale",
         "seed": seed,
         "fictional": True,
         "documents": [x.__dict__ for x in sorted(docs, key=lambda x: x.filename)],
@@ -417,8 +576,12 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--out", type=Path, default=Path("data/synthetic/v1"))
     ap.add_argument("--seed", type=int, default=2026)
+    ap.add_argument("--projects", type=int, default=5, help="number of fictional projects (~30 files each)")
+    ap.add_argument("--photos", type=int, default=0, help="phone-style JPEG photos per project")
+    ap.add_argument("--marked-fraction", type=float, default=0.0, help="adds ITAR-marked sheets and a roster")
     args = ap.parse_args()
-    m = generate(args.out, args.seed)
+    projects = None if args.projects == 5 else make_projects(args.projects)
+    m = generate(args.out, args.seed, projects, args.photos, args.marked_fraction)
     print(f"wrote {len(m['documents'])} files and {len(m['anomalies'])} planted anomalies to {args.out}")
 
 

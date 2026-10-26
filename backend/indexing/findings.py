@@ -45,47 +45,78 @@ def analyse_collection(conn: sqlite3.Connection, collection_id: int) -> int:
     ).fetchall()
     ratings: dict[str, dict[float, list[tuple[int, str]]]] = defaultdict(lambda: defaultdict(list))
     filenames = {}
+    projects: dict[int, str | None] = {}
     for r in rows:
         data = loads(r["data"], {})
         doc = conn.execute("SELECT filename FROM documents WHERE id = ?", (r["document_id"],)).fetchone()
         filenames[r["document_id"]] = doc["filename"]
+        projects[r["document_id"]] = (r["project"] or "").strip().casefold() or None
         for comp in data.get("components", []):
             psi = comp.get("pressure_rating_psi")
             if comp.get("part_number") and psi is not None:
                 ratings[comp["part_number"]][float(psi)].append((r["document_id"], r["doc_type"] or "other"))
 
-    findings = []
-    for part, by_value in sorted(ratings.items()):
-        if len(by_value) < 2:
-            continue
-        evidence = []
-        for value, docs in sorted(by_value.items()):
+    def build_evidence(part: str, docs_by_value: dict[float, list[tuple[int, str]]]) -> list[dict]:
+        out = []
+        for value, docs in sorted(docs_by_value.items()):
             for doc_id, doc_type in docs:
                 loc = _locate(conn, doc_id, part, value)
-                evidence.append(
+                out.append(
                     {
                         "document_id": doc_id,
                         "filename": filenames[doc_id],
                         "doc_type": doc_type,
                         "value": value,
+                        "project": projects[doc_id],
                         "page": loc["page"] if loc else None,
                         "quote": loc["quote"] if loc else None,
                         "verified": bool(loc),
                     }
                 )
-        values = ", ".join(f"{v:g} psi" for v in sorted(by_value))
+        return out
+
+    def add(kind: str, part: str, summary: str, evidence: list[dict]) -> None:
         status = "verified" if all(e["verified"] for e in evidence) else "needs_review"
-        findings.append(
-            (
-                collection_id,
-                "rating_conflict",
-                part,
-                f"{part} has conflicting pressure ratings across {len(evidence)} documents: {values}",
-                status,
-                dumps(evidence),
-                now(),
-            )
-        )
+        findings.append((collection_id, kind, part, summary, status, dumps(evidence), now()))
+
+    findings: list[tuple] = []
+    for part, by_value in sorted(ratings.items()):
+        if len(by_value) < 2:
+            continue
+        # Group by project. Documents whose project is unknown join the group only when exactly one project
+        # uses this part, so they cannot create false conflicts between unrelated projects.
+        by_project: dict[str | None, dict[float, list[tuple[int, str]]]] = defaultdict(lambda: defaultdict(list))
+        for value, docs in by_value.items():
+            for doc_id, doc_type in docs:
+                by_project[projects[doc_id]][value].append((doc_id, doc_type))
+        named = {k: v for k, v in by_project.items() if k}
+        unknown = by_project.get(None, {})
+        groups = named or {None: unknown}
+        for project, group in groups.items():
+            merged: dict[float, list[tuple[int, str]]] = defaultdict(list)
+            for src in (group, unknown if project and len(named) == 1 else {}):
+                for value, docs in src.items():
+                    merged[value].extend(docs)
+            if len(merged) > 1:
+                values = ", ".join(f"{v:g} psi" for v in sorted(merged))
+                evidence = build_evidence(part, merged)
+                add(
+                    "rating_conflict",
+                    part,
+                    f"{part} has conflicting pressure ratings across {len(evidence)} documents: {values}",
+                    evidence,
+                )
+        if len(named) > 1:
+            per_project = {p: set(g) for p, g in named.items()}
+            if len(set().union(*per_project.values())) > 1 and len({frozenset(v) for v in per_project.values()}) > 1:
+                values = ", ".join(f"{v:g} psi" for v in sorted(by_value))
+                # Same part number used by different projects with different ratings: a numbering collision.
+                add(
+                    "part_number_collision",
+                    part,
+                    f"{part} is used in {len(named)} projects with different pressure ratings: {values}",
+                    build_evidence(part, by_value),
+                )
 
     with transaction(conn):
         conn.execute("DELETE FROM findings WHERE collection_id = ?", (collection_id,))
