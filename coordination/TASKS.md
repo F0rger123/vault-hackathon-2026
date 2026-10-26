@@ -23,10 +23,10 @@ Last updated: 2026-10-26 evening (Luke's agent, solo mode). Baseline commit: `73
 | F07 Teaching & Corrections | 5 | 3 | 0 | 0 | 1 | 1 | 0 | 0 |
 | F08 Actions & Organization | 5 | 3 | 0 | 0 | 0 | 2 | 0 | 0 |
 | F09 Security | 9 | 6 | 0 | 0 | 2 | 1 | 0 | 0 |
-| F10 User Interface | 10 | 0 | 1 | 0 | 8 | 1 | 0 | 0 |
+| F10 User Interface | 10 | 0 | 9 | 0 | 0 | 1 | 0 | 0 |
 | F11 Synthetic Data & Evaluation | 7 | 4 | 0 | 1 | 1 | 1 | 0 | 0 |
 | F12 Deployment & Submission | 8 | 1 | 2 | 0 | 1 | 2 | 2 | 0 |
-| **Total** | **89** | **47** | **7** | **1** | **14** | **16** | **4** | **0** |
+| **Total** | **89** | **47** | **15** | **1** | **6** | **16** | **4** | **0** |
 
 **Recorded evidence used below**
 
@@ -797,14 +797,14 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 
 #### F10.1 — App shell, navigation and sign-in
 - **Description:** Layout with sidebar navigation (Dashboard, Import, Library, Intelligence, Processing, Actions, Security, Settings), token sign-in, sign-out, role display.
-- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** READY · **Dependencies:** F01.4
+- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** REVIEW · **Dependencies:** F01.4
 - **Scope:** `frontend/src/app/layout.tsx`, shared components; endpoints `GET /me`.
 - **Expected behavior:** Unauthenticated users see sign-in; 401 anywhere returns to sign-in.
 - **Acceptance criteria:** Keyboard navigable; works at 375 px width; role shown.
 - **Required tests:** Playwright e2e: sign in with demo analyst token, see dashboard; bad token shows error.
 - **Blockers:** none
 - **Related PR/commit:** —
-- **Verification evidence:** —
+- **Verification evidence:** — Built in solo mode on branch `luke/F05-agent-orchestrator`: lint, typegen + tsc and build pass; each screen checked against the live API with screenshots in `docs/screenshots/`. Browser e2e tests (F11.5) still missing.
 
 #### F10.2 — Dashboard
 - **Description:** Replace the scaffold dashboard with the final design: stats, active jobs, recent findings, recent audit (admin), provider privacy status.
@@ -815,84 +815,84 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 - **Required tests:** Playwright e2e with seeded demo data.
 - **Blockers:** Scaffold built by Luke's agent; needs Franco's redesign and a browser check.
 - **Related PR/commit:** scaffold in `7390fac`
-- **Verification evidence:** `E-FE-1` (build only).
+- **Verification evidence:** `E-FE-1` (build only). Built in solo mode on branch `luke/F05-agent-orchestrator`: lint, typegen + tsc and build pass; each screen checked against the live API with screenshots in `docs/screenshots/`. Browser e2e tests (F11.5) still missing.
 
 #### F10.3 — Import screen with inventory and estimate
 - **Description:** Create/select collection, drag-and-drop upload, show accepted/rejected with reasons, inventory, run estimate, then confirm processing.
-- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** READY · **Dependencies:** F10.1
+- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** REVIEW · **Dependencies:** F10.1
 - **Scope:** `POST /collections`, `POST /collections/{id}/documents`, `GET /collections/{id}/inventory`, `POST /collections/{id}/estimate`, `POST /jobs`.
 - **Expected behavior:** Remote providers show a clear "data will leave this machine" confirmation and send `confirm_remote: true` only after the user agrees.
 - **Acceptance criteria:** Upload of the synthetic folder works; estimate shows low/high seconds and its basis; 409 handled as a confirmation prompt.
 - **Required tests:** Playwright e2e: upload 5 files, run heuristic estimate, start job.
 - **Blockers:** none
 - **Related PR/commit:** —
-- **Verification evidence:** —
+- **Verification evidence:** — Built in solo mode on branch `luke/F05-agent-orchestrator`: lint, typegen + tsc and build pass; each screen checked against the live API with screenshots in `docs/screenshots/`. Browser e2e tests (F11.5) still missing.
 
 #### F10.4 — Library (collection browser)
 - **Description:** Paged document table with filters (type, project, date, part number) and metadata.
-- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** READY · **Dependencies:** F10.1
+- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** REVIEW · **Dependencies:** F10.1
 - **Scope:** `GET /documents`, `GET /search` (filters with empty `q`).
 - **Expected behavior:** Filters update the list; selecting a row opens the document viewer.
 - **Acceptance criteria:** 150 synthetic docs browsable; filters return correct subsets.
 - **Required tests:** Playwright e2e filter test.
 - **Blockers:** none
 - **Related PR/commit:** —
-- **Verification evidence:** —
+- **Verification evidence:** — Built in solo mode on branch `luke/F05-agent-orchestrator`: lint, typegen + tsc and build pass; each screen checked against the live API with screenshots in `docs/screenshots/`. Browser e2e tests (F11.5) still missing.
 
 #### F10.5 — Document viewer
 - **Description:** Show page text, the original file (PDF/image inline), extracted fields, provider/model/locality and injection warnings.
-- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** READY · **Dependencies:** F10.4
+- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** REVIEW · **Dependencies:** F10.4
 - **Scope:** `GET /documents/{id}`, `GET /documents/{id}/pages/{n}`, `GET /documents/{id}/original` (fetch with Authorization header, then object URL).
 - **Expected behavior:** Injection-flagged documents show a visible warning; heuristic extractions are labelled "rule-based, not AI".
 - **Acceptance criteria:** Drawings, CSV, Markdown and PNG all display.
 - **Required tests:** Playwright e2e opening one of each type.
 - **Blockers:** none
 - **Related PR/commit:** —
-- **Verification evidence:** —
+- **Verification evidence:** — Built in solo mode on branch `luke/F05-agent-orchestrator`: lint, typegen + tsc and build pass; each screen checked against the live API with screenshots in `docs/screenshots/`. Browser e2e tests (F11.5) still missing.
 
 #### F10.6 — Evidence viewer for findings
 - **Description:** Side-by-side evidence for each finding: document, page, quoted line, value, verified badge; click to open that page.
-- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** READY · **Dependencies:** F10.5
+- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** REVIEW · **Dependencies:** F10.5
 - **Scope:** `GET /collections/{id}/findings`, document/page endpoints.
 - **Expected behavior:** Conflicting values are visually contrasted; quotes highlighted in page text.
 - **Acceptance criteria:** All 10 planted conflicts navigable to their source pages.
 - **Required tests:** Playwright e2e.
 - **Blockers:** none
 - **Related PR/commit:** —
-- **Verification evidence:** —
+- **Verification evidence:** — Built in solo mode on branch `luke/F05-agent-orchestrator`: lint, typegen + tsc and build pass; each screen checked against the live API with screenshots in `docs/screenshots/`. Browser e2e tests (F11.5) still missing.
 
 #### F10.7 — Processing view
 - **Description:** Job list and detail with progress, item status counts, errors, workers, provider, cancel button.
-- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** READY · **Dependencies:** F10.1
+- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** REVIEW · **Dependencies:** F10.1
 - **Scope:** `GET /jobs`, `GET /jobs/{id}`, `POST /jobs/{id}/cancel`, `GET /system/hardware`.
 - **Expected behavior:** Polls every 1–3 s while a job runs; viewer role sees no cancel button (server still enforces).
 - **Acceptance criteria:** Cancel works; failed items show safe error text.
 - **Required tests:** Playwright e2e.
 - **Blockers:** none
 - **Related PR/commit:** —
-- **Verification evidence:** —
+- **Verification evidence:** — Built in solo mode on branch `luke/F05-agent-orchestrator`: lint, typegen + tsc and build pass; each screen checked against the live API with screenshots in `docs/screenshots/`. Browser e2e tests (F11.5) still missing.
 
 #### F10.8 — Actions: proposals and approvals
 - **Description:** Create a proposal (pattern picker), before/after preview tree, approve/reject (admin), result with export folder.
-- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** READY · **Dependencies:** F10.1
+- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** REVIEW · **Dependencies:** F10.1
 - **Scope:** `POST /proposals`, `GET /proposals`, `GET /proposals/{id}`, `POST /proposals/{id}/approve`, `POST /proposals/{id}/reject`.
 - **Expected behavior:** Analyst can create but sees approve disabled; if forced, the 403 is shown as "Only administrators can approve".
 - **Acceptance criteria:** Full create → preview → approve flow with admin token; 409 handled.
 - **Required tests:** Playwright e2e with analyst and admin tokens.
 - **Blockers:** none
 - **Related PR/commit:** —
-- **Verification evidence:** —
+- **Verification evidence:** — Built in solo mode on branch `luke/F05-agent-orchestrator`: lint, typegen + tsc and build pass; each screen checked against the live API with screenshots in `docs/screenshots/`. Browser e2e tests (F11.5) still missing.
 
 #### F10.9 — Security and audit view
 - **Description:** Provider list with local/remote and privacy text, remote-inference switch (admin), audit table filterable by outcome.
-- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** READY · **Dependencies:** F10.1
+- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** REVIEW · **Dependencies:** F10.1
 - **Scope:** `GET /system/providers`, `PUT /settings/remote-inference`, `GET /audit`.
 - **Expected behavior:** Denied events are prominent (needed for the demo's blocked-action segment).
 - **Acceptance criteria:** A viewer's denied upload attempt appears in the audit view within one refresh.
 - **Required tests:** Playwright e2e.
 - **Blockers:** none
 - **Related PR/commit:** —
-- **Verification evidence:** —
+- **Verification evidence:** — Built in solo mode on branch `luke/F05-agent-orchestrator`: lint, typegen + tsc and build pass; each screen checked against the live API with screenshots in `docs/screenshots/`. Browser e2e tests (F11.5) still missing.
 
 #### F10.10 — Intelligence (natural-language investigation) screen
 - **Description:** Question box, answer with inline citations, evidence panel.

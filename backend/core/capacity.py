@@ -58,6 +58,8 @@ class CapacityPlan:
 
 def static_ceiling(hw: HardwareProfile, model: str, locality: str, remote_rpm: int = 3000) -> tuple[int, str]:
     """Upper bound on concurrent lanes before measuring anything."""
+    if model.startswith("regex-"):
+        return min(64, hw.logical_cores * 2), "rule-based baseline (not a model); limited by CPU cores"
     if locality == "remote":
         # Assume ~10 s per request; stay well under the provider's requests-per-minute limit.
         cap = max(1, min(64, remote_rpm // 6 // 10))

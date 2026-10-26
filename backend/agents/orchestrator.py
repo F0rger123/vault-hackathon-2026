@@ -137,7 +137,7 @@ class Orchestrator:
                 (now(), self.job_id),
             )
             items = conn.execute(
-                "SELECT ji.id, ji.document_id, d.media_type FROM job_items ji "
+                "SELECT ji.id, ji.document_id, d.media_type, d.filename FROM job_items ji "
                 "JOIN documents d ON d.id = ji.document_id "
                 "WHERE ji.job_id = ? AND ji.status = 'pending' ORDER BY ji.id",
                 (self.job_id,),
@@ -157,6 +157,15 @@ class Orchestrator:
                     counts[s.sensitivity] += 1
                 if s.injection:
                     counts["injection"] += 1
+                    self.event(
+                        conn,
+                        "security",
+                        "injection.flagged",
+                        "allowed",
+                        it["document_id"],
+                        filename=it["filename"],
+                        matches=len(s.injection),
+                    )
                 if s.route == "local_only" or s.injection:
                     if s.route == "local_only":
                         self.event(
@@ -165,6 +174,7 @@ class Orchestrator:
                             "route.local_only",
                             "allowed",
                             it["document_id"],
+                            filename=it["filename"],
                             markings=s.markings,
                             pii=s.pii,
                         )
@@ -174,7 +184,7 @@ class Orchestrator:
                             if s.route == "local_only"
                             else "document with instruction-like text is kept off remote models"
                         )
-                        self._fail_item(conn, it["id"], it["document_id"], f"blocked: {why}")
+                        self._fail_item(conn, it["id"], it["document_id"], f"blocked: {why}", it["filename"])
                         self.event(conn, "security", "route.blocked", "denied", it["document_id"], reason=why)
                         continue
                     local_q.put(dict(it))
@@ -182,7 +192,7 @@ class Orchestrator:
                     any_q.put(dict(it))
             self.event(conn, "security", "screening.summary", "allowed", screened=len(items), **counts)
 
-        def worker(lane: Lane) -> None:
+        def worker(lane: Lane, slot: int) -> None:
             with connect(self.db) as c:
                 while not self.cancelled():
                     try:
@@ -194,10 +204,11 @@ class Orchestrator:
                             it = any_q.get_nowait()
                         except queue.Empty:
                             return
+                    it["slot"] = slot
                     self._process_safely(c, lane, escalation, it, policy, examples)
 
         threads = [
-            threading.Thread(target=worker, args=(ln,), name=f"{ln.name}-{i}", daemon=True)
+            threading.Thread(target=worker, args=(ln, i + 1), name=f"{ln.name}-{i}", daemon=True)
             for ln in lanes
             for i in range(ln.concurrency)
         ]
@@ -250,13 +261,14 @@ class Orchestrator:
         log.error("item %s could not be recorded after retries", it["id"])
         for _ in range(10):  # the failure itself must be recorded, or job counts would be wrong
             try:
-                self._fail_item(c, it["id"], it["document_id"], "internal error (storage busy)")
+                self._fail_item(c, it["id"], it["document_id"], "internal error (storage busy)", it.get("filename"))
                 return
             except sqlite3.OperationalError:
                 time.sleep(0.2)
 
-    def _fail_item(self, c, item_id: int, document_id: int, error: str) -> None:
+    def _fail_item(self, c, item_id: int, document_id: int, error: str, filename: str | None = None) -> None:
         c.execute("UPDATE job_items SET status = 'failed', error = ? WHERE id = ?", (error, item_id))
+        self.event(c, "coordinator", "item.failed", "error", document_id, filename=filename, reason=error)
         c.execute("UPDATE documents SET status = 'error', error = ? WHERE id = ?", (error, document_id))
         c.execute("UPDATE jobs SET failed = failed + 1 WHERE id = ?", (self.job_id,))
 
@@ -295,6 +307,8 @@ class Orchestrator:
                 ms=result["duration_ms"],
                 doc_type=result["doc_type"],
                 examples=result["examples_used"],
+                slot=it.get("slot"),
+                filename=it.get("filename"),
             )
             rev = review_agent.review(result, result["injection_flags"], it["media_type"], escalated=False)
             route = c.execute("SELECT route FROM screenings WHERE document_id = ?", (it["document_id"],)).fetchone()
@@ -323,7 +337,9 @@ class Orchestrator:
             )
             c.execute("UPDATE jobs SET done = done + 1 WHERE id = ?", (self.job_id,))
         except ProviderError as exc:
-            self._fail_item(c, it["id"], it["document_id"], str(exc))
+            self._fail_item(c, it["id"], it["document_id"], str(exc), it.get("filename"))
         except Exception as exc:  # unexpected: record the type only, never document content
             log.exception("item %s failed", it["id"])
-            self._fail_item(c, it["id"], it["document_id"], f"internal error ({type(exc).__name__})")
+            self._fail_item(
+                c, it["id"], it["document_id"], f"internal error ({type(exc).__name__})", it.get("filename")
+            )
