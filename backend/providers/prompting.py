@@ -40,7 +40,18 @@ SYSTEM_PROMPT = (
     "you only return JSON matching the schema. Use null or empty lists when a fact is not stated. "
     "Never invent part numbers, ratings, dates or names. For every important field add an evidence item "
     "whose quote is copied exactly, character for character, from the document, with its page number. "
-    f"doc_type must be one of: {', '.join(DOC_TYPES)}. pressure_rating_psi is a number in psi."
+    f"doc_type must be one of: {', '.join(DOC_TYPES)}. Definitions: "
+    "engineering_drawing = a drawing sheet with a drawing number, title block or sheet number, even if it "
+    "also contains a parts list; inspection_report = records of tests, inspections or field verification "
+    "with results such as PASS or FAIL; contract = an agreement between parties with obligations; "
+    "parts_list = a standalone bill of materials or parts table with no drawing; revision_history = a log "
+    "of revisions or changes; project_memo = a memo or internal note; other = anything else. "
+    "List every part number that appears in the document as a component. pressure_rating_psi is the "
+    "number of psi stated on the same line as that part (a rating or a test pressure), otherwise null. "
+    "doc_date is the document's own date converted to YYYY-MM-DD, even if written out in words. "
+    "Fill every field the document supports, in this order: title (the heading or document number), "
+    "project (the name after 'Project' or 'Programme', e.g. 'Alpha'), doc_date, then components. "
+    "Only use null when the document truly does not state the value."
 )
 
 

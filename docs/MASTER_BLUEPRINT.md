@@ -118,7 +118,7 @@ See `docs/LONG_TERM_ROADMAP.md`. None of it is in scope before November 4.
 - **Privacy:** no outbound inference by default. The local provider refuses a non-local Ollama URL.
 - **Integrity:** originals are content-addressed and read-only. Exports are copies.
 - **Traceability:** every extraction records the provider, model, locality, policy version and duration.
-- **Performance:** an MVP target, not a guarantee. On the dev laptop, 150 documents in under 30 minutes with local Llama 3 8B. To be confirmed by the full run, which is pending.
+- **Performance:** an MVP target, not a guarantee. On the dev laptop, 150 documents in under 30 minutes with local Llama 3 8B. Measured: 6.8 minutes for 150 documents with prompt v3 (10.9 minutes with v1).
 - **Portability:** Windows, Linux and Docker. No GPU required; the heuristic provider and CPU inference still work.
 - **Recoverability:** job state lives in SQLite, and unfinished jobs resume on startup.
 
@@ -355,7 +355,7 @@ See `docs/EVALUATION_PLAN.md`.
 |---|---|---|
 | Heuristic, 150 docs, 4 workers | About 2 s wall time end to end (CLI) | Baseline |
 | Ollama `llama3:latest`, 3-doc sample | Median 7,718 ms/doc; p90 37,992 ms/doc | p90 includes first-call model load |
-| Ollama `llama3:latest`, full 150 docs | **Pending** | Run in progress |
+| Ollama `llama3:latest`, full 150 docs | Measured | Measured 2026-10-26 (prompt v3): held-out doc_type 0.956, project 0.889, date 0.917, part recall 1.000, rating accuracy 0.797; 10/10 planted conflicts, 0 false; 6.8 min for 150 docs with 2 workers. v1 and v2 results in `evaluation/results/SUMMARY.md`. |
 | Meta Model API `muse-spark-1.3` | **Pending** | Needs an API key |
 
 ## 36. Testing

@@ -10,7 +10,7 @@ Rule: show only features that really work, on fictional data. If something is no
 | 1:15–1:55 | Investigation | Search "PV-5595"; finding "conflicting pressure ratings: 300 psi vs 1500 psi"; evidence lines from the drawing and the field inspection; open original PDF | "VAULT found that the field inspection tested this valve at a different pressure than the drawing specifies, and shows both sources." | Backend ready; evidence viewer pending (F10) |
 | 1:55–2:20 | Proposal and approval | Proposal "organize by project / type / year"; preview tree; admin approves; export folder of copies | "Nothing moves without approval, and the originals are never touched." | Backend ready; Actions UI pending |
 | 2:20–2:45 | Security | Viewer tries to upload → blocked; audit log shows the denial; injected memo flagged and ignored | "Permissions are enforced on the server and every denial is recorded. A planted malicious instruction was flagged as data, not obeyed." | Backend ready (tests S1, S3); audit UI pending |
-| 2:45–3:00 | Results and future | Evaluation table (real numbers), privacy architecture diagram | "Measured on held-out data, all local by default. Next: vision for scanned stamps, enterprise identity, scale-out workers." | Numbers pending full model run |
+| 2:45–3:00 | Results and future | Evaluation table (real numbers), privacy architecture diagram | "Measured on held-out data, all local by default. Next: vision for scanned stamps, enterprise identity, scale-out workers." | Numbers available: `evaluation/results/SUMMARY.md` |
 
 ## Production notes
 

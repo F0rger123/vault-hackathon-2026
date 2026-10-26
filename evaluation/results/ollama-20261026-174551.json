@@ -1,0 +1,81 @@
+{
+  "provider": "ollama",
+  "model": "llama3:latest",
+  "collection": "demo-ollama-v2",
+  "documents_scored": 150,
+  "generated_at": "2026-10-26T17:45:51",
+  "splits": {
+    "heldout": {
+      "doc_type": {
+        "correct": 43,
+        "total": 45,
+        "rate": 0.956
+      },
+      "project": {
+        "correct": 0,
+        "total": 45,
+        "rate": 0.0
+      },
+      "doc_date": {
+        "correct": 0,
+        "total": 36,
+        "rate": 0.0
+      },
+      "evidence_verified_docs": {
+        "correct": 45,
+        "total": 45,
+        "rate": 1.0
+      },
+      "part_recall": {
+        "correct": 118,
+        "total": 118,
+        "rate": 1.0
+      },
+      "rating_accuracy": {
+        "correct": 79,
+        "total": 118,
+        "rate": 0.669
+      }
+    },
+    "train": {
+      "doc_type": {
+        "correct": 103,
+        "total": 105,
+        "rate": 0.981
+      },
+      "project": {
+        "correct": 1,
+        "total": 105,
+        "rate": 0.01
+      },
+      "doc_date": {
+        "correct": 0,
+        "total": 89,
+        "rate": 0.0
+      },
+      "part_recall": {
+        "correct": 279,
+        "total": 279,
+        "rate": 1.0
+      },
+      "rating_accuracy": {
+        "correct": 214,
+        "total": 279,
+        "rate": 0.767
+      },
+      "evidence_verified_docs": {
+        "correct": 104,
+        "total": 105,
+        "rate": 0.99
+      }
+    }
+  },
+  "conflicts": {
+    "planted": 10,
+    "found": 6,
+    "true_positive": 6,
+    "recall": 0.6,
+    "precision": 1.0,
+    "note": "findings reflect the most recent processing run of the collection"
+  }
+}

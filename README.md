@@ -77,7 +77,7 @@ Built and tested today, on the first day of the event:
 | Area | State | Evidence |
 |---|---|---|
 | Ingestion, hashing, read-only originals, page text | Working | integration test, 150-file dataset |
-| Local Meta model (Llama 3 8B via Ollama) | Working, quality tuning needed | 3-document benchmark; full run in progress |
+| Local Meta model (Llama 3 8B via Ollama) | Working | held-out doc type 0.956, 10/10 conflicts, 6.8 min per 150 docs ([results](evaluation/results/SUMMARY.md)) |
 | Meta Model API (Muse Spark) | Code written, not yet run | waiting for an API key |
 | Bounded parallel jobs, retries, cancel, resume | Working | integration tests |
 | Cross-document conflicts with verified evidence | Working | 10 of 10 planted conflicts found, 0 false (heuristic baseline) |

@@ -6,27 +6,27 @@ This file is the single source of truth for what is planned, in progress, and ve
 
 **Priorities:** `P0` essential MVP, `P1` important, `P2` stretch, `FUTURE` post-hackathon.
 
-**Rule:** a task is not `DONE` because code was written. `DONE` requires the Definition of Done in `AGENTS.md`, including green CI on GitHub. As of 2026-10-26 no GitHub Actions run has been confirmed, so nothing is `DONE` yet.
+**Rule:** a task is not `DONE` because code was written. `DONE` requires the Definition of Done in `AGENTS.md`, including green CI on GitHub. CI went green on 2026-10-26 (`E-CI-1`); VERIFIED tasks on `main` become `DONE` after Luke reviews them.
 
 ## Progress dashboard
 
-Last updated: 2026-10-26 (Luke's agent). Baseline commit: `7390fac`.
+Last updated: 2026-10-26 (Luke's agent). Baseline commit: `7390fac`; latest evidence through `05075ae` and the prompt-v3 commit.
 
 | Feature | Subtasks | VERIFIED | REVIEW | IN_PROGRESS | READY | BACKLOG | BLOCKED | DEFERRED |
 |---|---|---|---|---|---|---|---|---|
-| F01 Project Foundation | 7 | 4 | 2 | 1 | 0 | 0 | 0 | 0 |
+| F01 Project Foundation | 7 | 7 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F02 File Ingestion | 7 | 5 | 0 | 0 | 0 | 2 | 0 | 0 |
 | F03 Hardware & Collection Analysis | 5 | 4 | 1 | 0 | 0 | 0 | 0 | 0 |
-| F04 AI Model System | 9 | 3 | 2 | 0 | 2 | 1 | 1 | 0 |
+| F04 AI Model System | 9 | 3 | 3 | 0 | 1 | 1 | 1 | 0 |
 | F05 Parallel Processing | 6 | 5 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F06 Search & Investigation | 6 | 3 | 0 | 0 | 0 | 3 | 0 | 0 |
 | F07 Teaching & Corrections | 4 | 2 | 0 | 0 | 1 | 1 | 0 | 0 |
 | F08 Actions & Organization | 5 | 3 | 0 | 0 | 0 | 2 | 0 | 0 |
 | F09 Security | 8 | 5 | 0 | 0 | 2 | 1 | 0 | 0 |
 | F10 User Interface | 10 | 0 | 1 | 0 | 8 | 1 | 0 | 0 |
-| F11 Synthetic Data & Evaluation | 6 | 3 | 0 | 0 | 2 | 1 | 0 | 0 |
-| F12 Deployment & Submission | 8 | 0 | 2 | 1 | 1 | 2 | 2 | 0 |
-| **Total** | **81** | **37** | **8** | **2** | **16** | **15** | **3** | **0** |
+| F11 Synthetic Data & Evaluation | 6 | 3 | 0 | 1 | 1 | 1 | 0 | 0 |
+| F12 Deployment & Submission | 8 | 1 | 2 | 0 | 1 | 2 | 2 | 0 |
+| **Total** | **81** | **41** | **7** | **1** | **14** | **15** | **3** | **0** |
 
 **Recorded evidence used below**
 
@@ -35,7 +35,11 @@ Last updated: 2026-10-26 (Luke's agent). Baseline commit: `7390fac`.
 - `E-FE-1`: `npm run lint`, `npx tsc --noEmit`, `npm run build` in `frontend/` → all succeeded (Next.js 16.4.3), 2026-10-26.
 - `E-DET-1`: generator run twice with seed 2026; SHA-256 of all 151 output files identical. Regenerated after forcing LF line endings; `.gitattributes` stores text as LF and PDFs/PNGs as binary. Linux re-check runs in CI (not yet observed).
 - `E-EVAL-1` (heuristic baseline, 150 docs, local): doc_type accuracy train 0.914 / held-out 0.889; project 0.848 / 0.800; doc_date 1.000 / 1.000; part recall 1.000 / 1.000; rating accuracy 0.849 / 0.847; planted rating conflicts found 10/10 (precision 1.000, recall 1.000). Result file: `evaluation/results/heuristic-*.json`.
-- `E-LLM-1` (local Meta Llama 3 8B, `llama3:latest` via Ollama 0.32.1, RTX 5070 Laptop 8 GB): 3-document benchmark, median 7,718 ms/doc, p90 37,992 ms (first call includes model load). Output passed schema validation and all quotes verified, but quality was weak: 1 of 3 doc types wrong (drawing classified as `parts_list`), no pressure ratings or dates extracted. A full 150-document run was started on 2026-10-26; results not yet recorded.
+- `E-LLM-1` (local Meta Llama 3 8B, `llama3:latest` via Ollama 0.32.1, RTX 5070 Laptop 8 GB): 3-document benchmark, median 7,718 ms/doc, p90 37,992 ms (first call includes model load). Output passed schema validation and all quotes verified, but quality was weak: 1 of 3 doc types wrong (drawing classified as `parts_list`), no pressure ratings or dates extracted. Full 150-document runs followed; see `E-LLM-2`.
+- `E-LLM-2` (full 150-document runs, `llama3:latest`, 2 workers, 2026-10-26; details in `evaluation/results/SUMMARY.md`): held-out scores for prompt v1 / v2 / v3: doc_type 0.822 / 0.956 / 0.956; project 0.533 / 0.000 / 0.889; doc_date 0.222 / 0.000 / 0.917; part recall 0.669 / 1.000 / 1.000; rating accuracy 0.291 / 0.669 / 0.797; planted conflicts found 8 / 6 / 10 of 10 with 0 false positives; wall time 10.9 / 6.9 / 6.8 min. Prompt v3 is committed in `backend/providers/prompting.py`.
+- `E-CI-1`: GitHub Actions run 40405500963 on commit `7ab3266`: backend (ruff, pytest, bandit, dataset determinism excluding PNG), frontend (lint, typegen + tsc, build) and dependency-audit all succeeded.
+- `E-DOCKER-1`: `docker compose build` built `vault-hackathon-2026-backend` (322 MB) and `-frontend` (996 MB); backend container run read-only on 127.0.0.1:8001 returned `{"status":"ok"}` on `/api/v1/health` and 401 on `/api/v1/documents` without a token. Full `docker compose up` with the frontend not yet exercised.
+- `E-GH-1`: labels created (owner:luke, owner:franco, P0–P2, task, blocker, needs-luke) and issues #1–#25 opened for every READY, REVIEW, IN_PROGRESS and BLOCKED task.
 - `E-REPO-1`: `gh repo view` → https://github.com/F0rger123/vault-hackathon-2026, visibility PUBLIC, default branch `main`.
 
 ---
@@ -88,36 +92,36 @@ Last updated: 2026-10-26 (Luke's agent). Baseline commit: `7390fac`.
 
 #### F01.5 — Continuous integration
 - **Description:** GitHub Actions for backend lint/tests/bandit/dataset determinism, frontend lint/types/build, report-only dependency audit.
-- **Priority:** P0 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F01.1
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F01.1
 - **Scope:** `.github/workflows/ci.yml`.
 - **Expected behavior:** Every push to `main` and every PR runs all jobs.
 - **Acceptance criteria:** First run on GitHub is green for `backend` and `frontend`; `dependency-audit` results reviewed.
 - **Required tests:** observe the Actions run.
 - **Blockers:** First run not yet observed.
 - **Related PR/commit:** `7390fac`
-- **Verification evidence:** Pending.
+- **Verification evidence:** Pending. `E-CI-1`.
 
 #### F01.6 — Shared agent instructions and coordination files
 - **Description:** `AGENTS.md`, `CLAUDE.md`, `docs/AI_GUIDE.md`, `llms.txt`, and everything in `coordination/`.
-- **Priority:** P0 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F01.1
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F01.1
 - **Scope:** Documentation only.
 - **Expected behavior:** A fresh agent session can resume work from the repository alone.
 - **Acceptance criteria:** Franco's agent completes onboarding from `HANDOFF_FRANCO.md` without asking Luke for missing information.
 - **Required tests:** Franco's first session (onboarding dry run).
 - **Blockers:** Franco has not started.
 - **Related PR/commit:** pending (next docs commit)
-- **Verification evidence:** Pending.
+- **Verification evidence:** Pending. Coordination set committed in `05075ae`.
 
 #### F01.7 — Issue templates, PR template, GitHub labels and issues
 - **Description:** Templates exist; labels and one issue per READY task still need creating.
-- **Priority:** P1 · **Owner:** luke · **Status:** IN_PROGRESS · **Dependencies:** F01.1, F01.6
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F01.1, F01.6
 - **Scope:** `.github/ISSUE_TEMPLATE/`, `.github/pull_request_template.md`, `gh issue create`.
 - **Expected behavior:** Each READY task for Franco has a GitHub issue titled with its task ID.
 - **Acceptance criteria:** Issues exist for all READY F10 tasks; labels `luke`, `franco`, `P0`, `P1`, `blocker` exist.
 - **Required tests:** `gh issue list`.
 - **Blockers:** none
 - **Related PR/commit:** templates in `7390fac`
-- **Verification evidence:** Templates committed; issues pending.
+- **Verification evidence:** Templates committed; issues pending. `E-GH-1`.
 
 ---
 
@@ -257,7 +261,7 @@ Last updated: 2026-10-26 (Luke's agent). Baseline commit: `7390fac`.
 - **Required tests:** integration test asserting the stored comparison.
 - **Blockers:** The full 150-document Ollama run (started 2026-10-26) must finish first.
 - **Related PR/commit:** —
-- **Verification evidence:** Pending.
+- **Verification evidence:** Pending. Calibration point: estimate 1,007–4,956 s vs actual 654 s (v1) and 408 s (v3); the 3-doc sample included model load, so estimates ran high.
 
 ---
 
@@ -309,14 +313,14 @@ Last updated: 2026-10-26 (Luke's agent). Baseline commit: `7390fac`.
 
 #### F04.5 — Extraction quality tuning for local Llama
 - **Description:** Improve prompt, add few-shot examples and per-type hints so `llama3` 8B extracts ratings, dates and correct document types.
-- **Priority:** P0 · **Owner:** luke · **Status:** READY · **Dependencies:** F04.2, F11.4
+- **Priority:** P0 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F04.2, F11.4
 - **Scope:** `backend/providers/prompting.py`; evaluation runs on the held-out split only.
 - **Expected behavior:** Measurable improvement over the first run on held-out data.
 - **Acceptance criteria:** Held-out doc_type accuracy and rating accuracy reported before and after; improvement recorded honestly even if small.
 - **Required tests:** `python -m evaluation.run_eval --provider ollama` before/after.
 - **Blockers:** none
 - **Related PR/commit:** —
-- **Verification evidence:** Baseline weakness recorded in `E-LLM-1`.
+- **Verification evidence:** Baseline weakness recorded in `E-LLM-1`. `E-LLM-2`: prompt v3 lifts held-out doc_type to 0.956 and conflict recall to 10/10.
 
 #### F04.6 — Muse Glimmer 30B local test
 - **Description:** Try `muse-glimmer:30b` (Apache-2.0, text + image) through Ollama with CPU/GPU split.
@@ -856,14 +860,14 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 
 #### F11.4 — Full local Meta model evaluation
 - **Description:** Evaluate `llama3:latest` on all 150 documents and record results next to the heuristic baseline.
-- **Priority:** P0 · **Owner:** luke · **Status:** READY · **Dependencies:** F11.3, F04.2
+- **Priority:** P0 · **Owner:** luke · **Status:** IN_PROGRESS · **Dependencies:** F11.3, F04.2
 - **Scope:** `evaluation/results/ollama-*.json`; summary in `docs/EVALUATION_PLAN.md`.
 - **Expected behavior:** Honest numbers, including where the model is worse than the baseline.
 - **Acceptance criteria:** Report committed.
 - **Required tests:** `python -m evaluation.run_eval --collection demo-ollama --provider ollama`.
 - **Blockers:** Full run in progress since 2026-10-26.
 - **Related PR/commit:** —
-- **Verification evidence:** —
+- **Verification evidence:** — `E-LLM-2` (on the tuning dataset; a fresh-seed run is still needed).
 
 #### F11.5 — End-to-end browser tests
 - **Description:** Playwright tests for the main demo flow against a locally seeded backend.
@@ -911,18 +915,18 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 - **Required tests:** manual build and smoke test.
 - **Blockers:** Only `docker compose config` validated so far.
 - **Related PR/commit:** `7390fac`
-- **Verification evidence:** `docker compose config -q` succeeded 2026-10-26.
+- **Verification evidence:** `docker compose config -q` succeeded 2026-10-26. `E-DOCKER-1`.
 
 #### F12.3 — Public README and documentation set
 - **Description:** README with banner, screenshots of real pages using synthetic data, Mermaid diagrams in plain English, "AI agents: start here" block; `docs/` complete.
-- **Priority:** P0 · **Owner:** luke · **Status:** IN_PROGRESS · **Dependencies:** F10.2
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F10.2
 - **Scope:** `README.md`, `docs/`.
 - **Expected behavior:** A judge understands the project in two minutes.
 - **Acceptance criteria:** Screenshots of at least dashboard, import, library, evidence, approvals, audit.
 - **Required tests:** link check.
 - **Blockers:** Screenshots need finished UI.
 - **Related PR/commit:** —
-- **Verification evidence:** —
+- **Verification evidence:** — README with banner and screenshots committed in `4c321b8`.
 
 #### F12.4 — Hackathon compliance verification
 - **Description:** Read official rules and the participant guide while logged in; update `docs/HACKATHON_COMPLIANCE.md` from unverified to verified.

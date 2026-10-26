@@ -43,7 +43,7 @@ All numbers below were measured on 2026-10-26 on the dev laptop.
 | Model | Status | Notes |
 |---|---|---|
 | `llama3:latest` (Ollama, local), 3-document sample | Measured | Median 7,718 ms/doc; p90 37,992 ms/doc (includes model load). Quality on the sample was weak: one drawing misclassified, ratings and date missed. |
-| `llama3:latest`, full 150 documents | **pending** | Run in progress |
+| `llama3:latest`, full 150 documents | Measured | Measured 2026-10-26 (prompt v3): held-out doc_type 0.956, project 0.889, date 0.917, part recall 1.000, rating accuracy 0.797; 10/10 planted conflicts, 0 false; 6.8 min for 150 docs with 2 workers. v1 and v2 results in `evaluation/results/SUMMARY.md`. |
 | `muse-spark-1.3` (Meta Model API) | **pending** | Needs a key and Luke's approval to spend |
 | `muse-glimmer:30b` (Ollama, local) | **pending** | Needs an 18 GB download and Luke's approval |
 
