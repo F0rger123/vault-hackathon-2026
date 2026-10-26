@@ -25,9 +25,10 @@ jobs:
       - name: Bandit
         run: bandit -q -c pyproject.toml -r backend cli -ll
       - name: Dataset is deterministic
+        # PNG stamps are excluded: their pixels depend on the Pillow/FreeType build, not on the seed.
         run: |
           python -m generator.generate --out /tmp/regen --seed 2026
-          diff <(cd data/synthetic/v1 && find . -type f | sort | xargs sha256sum) <(cd /tmp/regen && find . -type f | sort | xargs sha256sum)
+          diff <(cd data/synthetic/v1 && find . -type f ! -name '*.png' | sort | xargs sha256sum) <(cd /tmp/regen && find . -type f ! -name '*.png' | sort | xargs sha256sum)
 
   frontend:
     runs-on: ubuntu-latest
@@ -43,7 +44,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
       - run: npm run lint
-      - run: npx tsc --noEmit
+      - run: npx next typegen && npx tsc --noEmit
       - run: npm run build
 
   dependency-audit:
@@ -54,5 +55,5 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: pip install -e . pip-audit && pip-audit
+      - run: pip install -U pip setuptools && pip install -e . pip-audit && pip-audit --skip-editable
       - run: cd frontend && npm audit --audit-level=high

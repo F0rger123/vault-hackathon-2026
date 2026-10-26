@@ -204,11 +204,9 @@ def _stamp_png(path: Path, text: str, sub: str, rng: random.Random) -> None:
     draw = ImageDraw.Draw(img)
     color = (180, 20, 30) if "REJECT" in text else (20, 90, 160)
     draw.rounded_rectangle((90, 90, 550, 270), radius=18, outline=color, width=8)
-    try:
-        font = ImageFont.truetype("arial.ttf", 54)
-        small = ImageFont.truetype("arial.ttf", 22)
-    except OSError:
-        font = small = ImageFont.load_default()
+    # Pillow's bundled font, so output does not depend on fonts installed on the machine.
+    font = ImageFont.load_default(size=54)
+    small = ImageFont.load_default(size=22)
     draw.text((120, 120), text, fill=color, font=font)
     draw.text((120, 205), sub, fill=color, font=small)
     img = img.rotate(rng.uniform(-8, 8), fillcolor=(250, 248, 240))
