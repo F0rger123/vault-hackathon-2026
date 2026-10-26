@@ -150,31 +150,37 @@ def process(
     collection: str = typer.Option("default"),
     provider: str | None = None,
     workers: int | None = None,
+    lane: list[str] = typer.Option(None, help="Model lane as provider:slots, repeatable, e.g. --lane ollama:2"),
+    escalate: str | None = typer.Option(None, help="Provider for the review agent's escalations"),
     confirm_remote: bool = False,
 ):
-    """Process every document in a collection with a bounded worker pool, showing progress."""
+    """Process a collection with the coordinator agent: security screening, model lanes, review."""
     s, cm = _db()
     with cm as conn:
         eff = effective_settings(conn, s)
-        prov = get_provider(provider or eff.provider, eff)
-        info = prov.info()
-        if info.locality == "remote" and not confirm_remote:
-            typer.echo("this provider sends document text off this machine; pass --confirm-remote", err=True)
-            raise typer.Exit(2)
-        if not info.available:
-            typer.echo(f"provider unavailable: {info.detail}", err=True)
-            raise typer.Exit(1)
+        specs = []
+        for item in lane or [f"{provider or eff.provider}:{workers or 0}"]:
+            name, _, slots = item.partition(":")
+            prov = get_provider(name, eff)
+            info = prov.info()
+            if info.locality == "remote" and not (confirm_remote and eff.allow_remote_inference):
+                typer.echo(
+                    f"{name} sends document text off this machine; needs VAULT_ALLOW_REMOTE_INFERENCE=true "
+                    "and --confirm-remote",
+                    err=True,
+                )
+                raise typer.Exit(2)
+            if not info.available:
+                typer.echo(f"provider {name} unavailable: {info.detail}", err=True)
+                raise typer.Exit(1)
+            n = int(slots or 0) or recommend_workers(profile_hardware(s.data_dir), info.locality, info.name)[0]
+            specs.append({"provider": info.name, "concurrency": n})
         cid = _collection_id(conn, collection)
-        w = workers or recommend_workers(profile_hardware(s.data_dir), info.locality, info.name)[0]
-        job_id = create_process_job(conn, cid, info.name, w, None)
-        audit.record(
-            conn,
-            ACTOR,
-            "job.create",
-            "allowed",
-            target=f"job:{job_id}",
-            detail={"provider": info.name, "model": info.model, "workers": w},
+        job_id = create_process_job(
+            conn, cid, specs[0]["provider"], specs[0]["concurrency"], None, lanes=specs, escalate_provider=escalate
         )
+        audit.record(conn, ACTOR, "job.create", "allowed", target=f"job:{job_id}", detail={"lanes": specs})
+        typer.echo("lanes: " + ", ".join(f"{x['provider']} x{x['concurrency']}" for x in specs))
     runner = JobRunner(s)
     runner.start(job_id)
     started = time.time()
@@ -196,6 +202,48 @@ def process(
         typer.echo("\ncancel requested; waiting for running items to finish")
         runner.wait(job_id)
     typer.echo("")
+
+
+@app.command()
+def calibrate(provider: str | None = None, sample: int = 8, levels: str = "1,2,4,8"):
+    """Measure this machine's real throughput at increasing concurrency and recommend lane slots."""
+    from backend.core.capacity import CapacityPlan, static_ceiling
+    from backend.core.capacity import calibrate as run_calibration
+    from backend.workers.processing import load_pages
+
+    s, cm = _db()
+    with cm as conn:
+        eff = effective_settings(conn, s)
+        prov = get_provider(provider or eff.provider, eff)
+        info = prov.info()
+        if not info.available or info.locality == "remote":
+            typer.echo("calibrate runs on local providers only from the CLI", err=True)
+            raise typer.Exit(1)
+        rows = conn.execute(
+            "SELECT id, filename FROM documents WHERE media_type NOT LIKE 'image/%' ORDER BY RANDOM() LIMIT ?",
+            (sample,),
+        ).fetchall()
+        docs = [(r["filename"], load_pages(conn, r["id"])) for r in rows]
+    if len(docs) < 2:
+        typer.echo("ingest at least 2 text documents first", err=True)
+        raise typer.Exit(1)
+    hw = profile_hardware(s.data_dir)
+    ceiling, reason = static_ceiling(hw, info.model, info.locality)
+    prov.extract(docs[0][1], docs[0][0], [])
+    results, best = run_calibration(
+        lambda i: prov.extract(docs[i][1], docs[i][0], []), len(docs), ceiling, tuple(int(x) for x in levels.split(","))
+    )
+    plan = CapacityPlan(
+        info.name,
+        info.model,
+        info.locality,
+        ceiling,
+        reason,
+        results,
+        best,
+        next(r.docs_per_minute for r in results if r.concurrency == best),
+    )
+    typer.echo(json.dumps(plan.to_dict(), indent=2))
 
 
 @app.command()

@@ -41,7 +41,9 @@ class HeuristicProvider(Provider):
             detail="Deterministic baseline, not an AI model.",
         )
 
-    def extract(self, pages: list[str], filename: str, policy_rules: list[dict]) -> Extraction:
+    def extract(
+        self, pages: list[str], filename: str, policy_rules: list[dict], examples: list[dict] | None = None
+    ) -> Extraction:
         text = "\n".join(pages)
         low = text.lower()
         evidence: list[EvidenceQuote] = []

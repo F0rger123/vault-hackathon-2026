@@ -20,11 +20,34 @@ class EstimateRequest(BaseModel):
     confirm_remote: bool = False
 
 
+ProviderName = Literal["ollama", "meta_api", "heuristic"]
+
+
+class LaneSpec(BaseModel):
+    provider: ProviderName
+    concurrency: int = Field(default=1, ge=1, le=64)
+
+
 class JobCreate(BaseModel):
     collection_id: int
-    provider: Literal["ollama", "meta_api", "heuristic"] | None = None
-    workers: int | None = Field(default=None, ge=1, le=32)
+    provider: ProviderName | None = None
+    workers: int | None = Field(default=None, ge=1, le=64)
+    lanes: list[LaneSpec] | None = Field(default=None, max_length=8, description="Run several model lanes at once")
+    escalate_provider: ProviderName | None = None
     confirm_remote: bool = False
+
+
+class CalibrateRequest(BaseModel):
+    provider: ProviderName | None = None
+    sample_size: int = Field(default=8, ge=2, le=40)
+    max_concurrency: int = Field(default=8, ge=1, le=64)
+    confirm_remote: bool = False
+
+
+class ExampleCreate(BaseModel):
+    document_id: int
+    labels: dict[str, str | float | None] = Field(description="Correct values, e.g. {'doc_type': 'contract'}")
+    note: str = Field(default="", max_length=500)
 
 
 class ProposalCreate(BaseModel):

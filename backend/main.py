@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from backend.api.routes import VERSION, router
+from backend.api.routes_agents import router as agents_router
 from backend.core.config import Settings, get_settings
 from backend.storage.db import migrate
 from backend.workers.jobs import JobRunner
@@ -43,6 +44,7 @@ def create_app(settings: Settings | None = None, resume_jobs: bool = True) -> Fa
         return JSONResponse(status_code=500, content={"detail": "internal error"})
 
     app.include_router(router)
+    app.include_router(agents_router)
     if resume_jobs:
         app.state.runner.resume_unfinished()
     return app

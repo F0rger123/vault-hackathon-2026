@@ -451,18 +451,36 @@ def create_job(
     p: Principal = Depends(require("jobs:create")),
 ) -> dict:
     _collection(conn, body.collection_id)
-    _, info = _provider(conn, settings, body.provider, body.confirm_remote, p.username)
-    hw = profile_hardware(settings.data_dir)
-    recommended, _reason = recommend_workers(hw, info.locality, info.name)
-    workers = min(body.workers or settings.max_workers or recommended, 32)
-    job_id = create_process_job(conn, body.collection_id, info.name, workers, p.user_id)
+    if body.lanes:
+        lanes = []
+        for spec in body.lanes:
+            _, info = _provider(conn, settings, spec.provider, body.confirm_remote, p.username)
+            lanes.append(
+                {"provider": info.name, "concurrency": spec.concurrency, "model": info.model, "locality": info.locality}
+            )
+    else:
+        _, info = _provider(conn, settings, body.provider, body.confirm_remote, p.username)
+        recommended, _reason = recommend_workers(profile_hardware(settings.data_dir), info.locality, info.name)
+        workers = min(body.workers or settings.max_workers or recommended, 64)
+        lanes = [{"provider": info.name, "concurrency": workers, "model": info.model, "locality": info.locality}]
+    if body.escalate_provider:
+        _provider(conn, settings, body.escalate_provider, body.confirm_remote, p.username)
+    job_id = create_process_job(
+        conn,
+        body.collection_id,
+        lanes[0]["provider"],
+        lanes[0]["concurrency"],
+        p.user_id,
+        lanes=[{"provider": ln["provider"], "concurrency": ln["concurrency"]} for ln in lanes],
+        escalate_provider=body.escalate_provider,
+    )
     audit.record(
         conn,
         p.username,
         "job.create",
         "allowed",
         target=f"job:{job_id}",
-        detail={"provider": info.name, "model": info.model, "locality": info.locality, "workers": workers},
+        detail={"lanes": lanes, "escalate_provider": body.escalate_provider},
     )
     request.app.state.runner.start(job_id)
     return _job(conn, job_id)
