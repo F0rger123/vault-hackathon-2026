@@ -1,0 +1,34 @@
+# VAULT
+
+> Private, local-first multimodal document intelligence and workflow platform built for the Meta Global AI Developer Hackathon 2026. VAULT ingests engineering drawings, inspection reports, contracts and images, uses Meta models (local Llama via Ollama, or the Meta Model API when an administrator allows it) to classify and extract facts, finds conflicts between documents with verified source evidence, and requires human approval before any file organisation. Python/FastAPI/SQLite backend, Next.js frontend, CLI. All sample data is fictional.
+
+If a person gave you this link and wants to understand, install or try VAULT, start with the AI guide. If you are developing VAULT, start with AGENTS.md.
+
+## Start here
+
+- [AI guide (plain-English walkthrough for assistants)](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/docs/AI_GUIDE.md): what VAULT is, questions to ask, setup with checks, usage, what never to do
+- [AGENTS.md (rules for coding agents)](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/AGENTS.md): session startup, ownership, definition of done, security rules
+- [README](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/README.md): project overview
+
+## Design
+
+- [Master blueprint](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/docs/MASTER_BLUEPRINT.md): complete engineering source of truth
+- [Architecture](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/docs/ARCHITECTURE.md)
+- [Model strategy](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/docs/MODEL_STRATEGY.md): Meta model providers, local vs hosted, privacy
+- [Security](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/docs/SECURITY.md) and [threat model](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/docs/THREAT_MODEL.md)
+
+## Coordination
+
+- [API contract](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/coordination/API_CONTRACT.md): every HTTP endpoint, permission and response shape
+- [Task roadmap](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/coordination/TASKS.md): F01–F12 features with status and evidence
+- [Frontend handoff](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/coordination/HANDOFF_FRANCO.md): setup and first tasks for the UI developer
+- [Decisions](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/coordination/DECISIONS.md)
+- [Blockers](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/coordination/BLOCKERS.md)
+
+## Optional
+
+- [Hackathon compliance](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/docs/HACKATHON_COMPLIANCE.md)
+- [Dataset strategy](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/docs/DATASET_STRATEGY.md)
+- [Evaluation plan](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/docs/EVALUATION_PLAN.md)
+- [Deployment](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/docs/DEPLOYMENT.md)
+- [Third-party notices](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/THIRD_PARTY_NOTICES.md)

@@ -1,0 +1,980 @@
+# VAULT Task Roadmap
+
+This file is the single source of truth for what is planned, in progress, and verified. Every task has a permanent ID. IDs are never reused or renumbered; retired tasks move to `DEFERRED`.
+
+**Statuses:** `BACKLOG` (not ready), `READY` (dependencies met, can start), `IN_PROGRESS`, `REVIEW` (code exists, awaiting test, review or a live check), `VERIFIED` (acceptance criteria checked locally with recorded evidence), `DONE` (verified, merged to `main`, CI green on GitHub), `BLOCKED`, `DEFERRED`.
+
+**Priorities:** `P0` essential MVP, `P1` important, `P2` stretch, `FUTURE` post-hackathon.
+
+**Rule:** a task is not `DONE` because code was written. `DONE` requires the Definition of Done in `AGENTS.md`, including green CI on GitHub. As of 2026-10-26 no GitHub Actions run has been confirmed, so nothing is `DONE` yet.
+
+## Progress dashboard
+
+Last updated: 2026-10-26 (Luke's agent). Baseline commit: `7390fac`.
+
+| Feature | Subtasks | VERIFIED | REVIEW | IN_PROGRESS | READY | BACKLOG | BLOCKED | DEFERRED |
+|---|---|---|---|---|---|---|---|---|
+| F01 Project Foundation | 7 | 4 | 2 | 1 | 0 | 0 | 0 | 0 |
+| F02 File Ingestion | 7 | 5 | 0 | 0 | 0 | 2 | 0 | 0 |
+| F03 Hardware & Collection Analysis | 5 | 4 | 1 | 0 | 0 | 0 | 0 | 0 |
+| F04 AI Model System | 9 | 3 | 2 | 0 | 2 | 1 | 1 | 0 |
+| F05 Parallel Processing | 6 | 5 | 0 | 0 | 0 | 1 | 0 | 0 |
+| F06 Search & Investigation | 6 | 3 | 0 | 0 | 0 | 3 | 0 | 0 |
+| F07 Teaching & Corrections | 4 | 2 | 0 | 0 | 1 | 1 | 0 | 0 |
+| F08 Actions & Organization | 5 | 3 | 0 | 0 | 0 | 2 | 0 | 0 |
+| F09 Security | 8 | 5 | 0 | 0 | 2 | 1 | 0 | 0 |
+| F10 User Interface | 10 | 0 | 1 | 0 | 8 | 1 | 0 | 0 |
+| F11 Synthetic Data & Evaluation | 6 | 3 | 0 | 0 | 2 | 1 | 0 | 0 |
+| F12 Deployment & Submission | 8 | 0 | 2 | 1 | 1 | 2 | 2 | 0 |
+| **Total** | **81** | **37** | **8** | **2** | **16** | **15** | **3** | **0** |
+
+**Recorded evidence used below**
+
+- `E-TEST-1`: `pytest -p no:warnings` → 26 passed (unit, integration, security) on Windows 11, Python 3.11.9, 2026-10-26, commit `7390fac`.
+- `E-LINT-1`: `ruff check .` and `ruff format --check .` → all checks passed; `bandit -q -c pyproject.toml -r backend cli -ll` → no medium/high findings (B608 skipped with documented justification), 2026-10-26.
+- `E-FE-1`: `npm run lint`, `npx tsc --noEmit`, `npm run build` in `frontend/` → all succeeded (Next.js 16.4.3), 2026-10-26.
+- `E-DET-1`: generator run twice with seed 2026; SHA-256 of all 151 output files identical. Regenerated after forcing LF line endings; `.gitattributes` stores text as LF and PDFs/PNGs as binary. Linux re-check runs in CI (not yet observed).
+- `E-EVAL-1` (heuristic baseline, 150 docs, local): doc_type accuracy train 0.914 / held-out 0.889; project 0.848 / 0.800; doc_date 1.000 / 1.000; part recall 1.000 / 1.000; rating accuracy 0.849 / 0.847; planted rating conflicts found 10/10 (precision 1.000, recall 1.000). Result file: `evaluation/results/heuristic-*.json`.
+- `E-LLM-1` (local Meta Llama 3 8B, `llama3:latest` via Ollama 0.32.1, RTX 5070 Laptop 8 GB): 3-document benchmark, median 7,718 ms/doc, p90 37,992 ms (first call includes model load). Output passed schema validation and all quotes verified, but quality was weak: 1 of 3 doc types wrong (drawing classified as `parts_list`), no pressure ratings or dates extracted. A full 150-document run was started on 2026-10-26; results not yet recorded.
+- `E-REPO-1`: `gh repo view` → https://github.com/F0rger123/vault-hackathon-2026, visibility PUBLIC, default branch `main`.
+
+---
+
+## F01 — Project Foundation
+
+#### F01.1 — Public GitHub repository
+- **Description:** Create the public repository `vault-hackathon-2026` under Luke's account and push the initial foundation.
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** none
+- **Scope:** `gh repo create`, `main` branch, `.gitignore`, `.gitattributes`, `.env.example`.
+- **Expected behavior:** Repository is public, `main` is the default branch, no secrets or runtime data are committed.
+- **Acceptance criteria:** URL resolves; secret scan of the staged tree finds no tokens; `data/runtime/`, `.env`, `.venv/` are ignored.
+- **Required tests:** `gh repo view --json url,visibility`; `git grep` secret pattern scan.
+- **Blockers:** none
+- **Related PR/commit:** `7390fac`
+- **Verification evidence:** `E-REPO-1`; staged-tree scan matched only the deliberate fake key `LLM_supersecret` in `tests/security/test_security.py`.
+
+#### F01.2 — Backend scaffold (FastAPI, Python 3.11)
+- **Description:** App factory, configuration via `VAULT_*` environment variables, modular packages (`api`, `core`, `ingest`, `workers`, `providers`, `indexing`, `security`, `storage`).
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F01.1
+- **Scope:** `backend/main.py`, `backend/core/config.py`, `pyproject.toml`.
+- **Expected behavior:** `uvicorn backend.main:create_app --factory` serves `/api/v1/health`.
+- **Acceptance criteria:** Health returns `{"status":"ok"}`; unhandled errors return a generic 500 without exception text.
+- **Required tests:** integration flow health check; `test_unhandled_errors_do_not_leak_details`.
+- **Blockers:** none
+- **Related PR/commit:** `7390fac`
+- **Verification evidence:** `E-TEST-1`.
+
+#### F01.3 — Database and migrations (SQLite + FTS5)
+- **Description:** Versioned, ordered migrations; WAL mode; per-thread connections.
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F01.2
+- **Scope:** `backend/storage/db.py` (migrations 1 and 2: core schema, corrections and policies).
+- **Expected behavior:** `migrate()` is idempotent and records `schema_version`.
+- **Acceptance criteria:** Fresh database reaches version 2; re-running applies nothing.
+- **Required tests:** every API test creates a fresh database through `create_app`.
+- **Blockers:** none
+- **Related PR/commit:** `7390fac`
+- **Verification evidence:** `E-TEST-1`.
+
+#### F01.4 — Frontend scaffold (Next.js 16, TypeScript, Tailwind 4)
+- **Description:** Initial dashboard page, design tokens, typed API client.
+- **Priority:** P0 · **Owner:** luke (handed to franco) · **Status:** VERIFIED · **Dependencies:** F01.2
+- **Scope:** `frontend/src/app/page.tsx`, `frontend/src/lib/api.ts`, `frontend/src/app/globals.css`.
+- **Expected behavior:** Token sign-in, stats, provider privacy badge, findings with evidence, collections, jobs with progress bars.
+- **Acceptance criteria:** Lint, type check and production build pass.
+- **Required tests:** `npm run lint`, `npx tsc --noEmit`, `npm run build`.
+- **Blockers:** Live rendering against a running backend not yet checked with a browser.
+- **Related PR/commit:** `7390fac`
+- **Verification evidence:** `E-FE-1`.
+
+#### F01.5 — Continuous integration
+- **Description:** GitHub Actions for backend lint/tests/bandit/dataset determinism, frontend lint/types/build, report-only dependency audit.
+- **Priority:** P0 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F01.1
+- **Scope:** `.github/workflows/ci.yml`.
+- **Expected behavior:** Every push to `main` and every PR runs all jobs.
+- **Acceptance criteria:** First run on GitHub is green for `backend` and `frontend`; `dependency-audit` results reviewed.
+- **Required tests:** observe the Actions run.
+- **Blockers:** First run not yet observed.
+- **Related PR/commit:** `7390fac`
+- **Verification evidence:** Pending.
+
+#### F01.6 — Shared agent instructions and coordination files
+- **Description:** `AGENTS.md`, `CLAUDE.md`, `docs/AI_GUIDE.md`, `llms.txt`, and everything in `coordination/`.
+- **Priority:** P0 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F01.1
+- **Scope:** Documentation only.
+- **Expected behavior:** A fresh agent session can resume work from the repository alone.
+- **Acceptance criteria:** Franco's agent completes onboarding from `HANDOFF_FRANCO.md` without asking Luke for missing information.
+- **Required tests:** Franco's first session (onboarding dry run).
+- **Blockers:** Franco has not started.
+- **Related PR/commit:** pending (next docs commit)
+- **Verification evidence:** Pending.
+
+#### F01.7 — Issue templates, PR template, GitHub labels and issues
+- **Description:** Templates exist; labels and one issue per READY task still need creating.
+- **Priority:** P1 · **Owner:** luke · **Status:** IN_PROGRESS · **Dependencies:** F01.1, F01.6
+- **Scope:** `.github/ISSUE_TEMPLATE/`, `.github/pull_request_template.md`, `gh issue create`.
+- **Expected behavior:** Each READY task for Franco has a GitHub issue titled with its task ID.
+- **Acceptance criteria:** Issues exist for all READY F10 tasks; labels `luke`, `franco`, `P0`, `P1`, `blocker` exist.
+- **Required tests:** `gh issue list`.
+- **Blockers:** none
+- **Related PR/commit:** templates in `7390fac`
+- **Verification evidence:** Templates committed; issues pending.
+
+---
+
+## F02 — File Ingestion
+
+#### F02.1 — Multi-file upload endpoint
+- **Description:** `POST /collections/{id}/documents` accepts up to 500 files per request.
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F01.3, F09.1
+- **Scope:** `backend/api/routes.py::upload`, `backend/ingest/service.py`.
+- **Expected behavior:** Returns `accepted` and `rejected` lists; rejected files carry a safe reason; every call is audited.
+- **Acceptance criteria:** 150 synthetic files accepted with no rejections.
+- **Required tests:** `test_full_vertical_slice`.
+- **Blockers:** none
+- **Related PR/commit:** `7390fac`
+- **Verification evidence:** `E-TEST-1`.
+
+#### F02.2 — Content validation and limits
+- **Description:** Magic-byte type detection, extension must match content, size limit, filename sanitisation.
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F02.1
+- **Scope:** `backend/security/files.py`.
+- **Expected behavior:** Executables, disguised files and oversized files are rejected before storage.
+- **Acceptance criteria:** Security tests S5, S6, S7 pass.
+- **Required tests:** `test_s5_*`, `test_s6_*`, `test_s7_*`, unit tests in `tests/unit/test_core.py`.
+- **Blockers:** none
+- **Related PR/commit:** `7390fac`
+- **Verification evidence:** `E-TEST-1`.
+
+#### F02.3 — SHA-256 hashing, de-duplication, read-only originals
+- **Description:** Originals are stored content-addressed under `data/runtime/originals/ab/<sha256>` and marked read-only.
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F02.1
+- **Scope:** `store_original`, `ingest_bytes`.
+- **Expected behavior:** Re-uploading the same bytes to a collection returns `duplicate: true`; originals never change.
+- **Acceptance criteria:** Duplicate flag set on re-upload; hashes of all originals identical before and after an approved export.
+- **Required tests:** `test_full_vertical_slice`, `test_s2_*`.
+- **Blockers:** none
+- **Related PR/commit:** `7390fac`
+- **Verification evidence:** `E-TEST-1`.
+
+#### F02.4 — PDF and text page extraction
+- **Description:** pypdf text per page; text files split into 4,000-character pages; encrypted and malformed PDFs rejected.
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F02.2
+- **Scope:** `extract_pages`.
+- **Expected behavior:** Pages are stored and indexed in FTS5.
+- **Acceptance criteria:** Search finds text from PDFs, CSV and Markdown files; malformed PDF returns "PDF could not be parsed".
+- **Required tests:** `test_full_vertical_slice`, `test_s8_*`.
+- **Blockers:** none
+- **Related PR/commit:** `7390fac`
+- **Verification evidence:** `E-TEST-1`.
+
+#### F02.5 — Image intake (metadata only)
+- **Description:** PNG/JPEG are decoded and verified; dimensions recorded as a placeholder page. Visual content is not yet analysed (see F04.7, F02.6).
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F02.2
+- **Scope:** image branch of `extract_pages`.
+- **Expected behavior:** Images ingest without error and are clearly marked "visual content not yet analysed".
+- **Acceptance criteria:** 15 synthetic stamp images ingest.
+- **Required tests:** `test_full_vertical_slice`.
+- **Blockers:** none
+- **Related PR/commit:** `7390fac`
+- **Verification evidence:** `E-TEST-1`.
+
+#### F02.6 — OCR for scanned PDFs and images
+- **Description:** Extract text from image-only pages (local OCR such as Tesseract, or a vision-capable Meta model through F04.7).
+- **Priority:** P1 · **Owner:** luke · **Status:** BACKLOG · **Dependencies:** F02.4, F04.7
+- **Scope:** new OCR step in ingestion; licence check for any OCR engine.
+- **Expected behavior:** Scanned pages become searchable; OCR output is labelled with its engine.
+- **Acceptance criteria:** Stamp text on at least 12 of 15 synthetic stamps is recovered.
+- **Required tests:** unit test on a generated scanned page; evaluation metric for stamp text.
+- **Blockers:** Engine choice (install footprint on Windows) not decided.
+- **Related PR/commit:** —
+- **Verification evidence:** —
+
+#### F02.7 — Path import for large server-side collections
+- **Description:** Admin imports a directory inside `VAULT_IMPORT_ROOTS`; progress reporting for long imports.
+- **Priority:** P1 · **Owner:** luke · **Status:** BACKLOG · **Dependencies:** F02.1
+- **Scope:** `POST /collections/{id}/import-path` exists and enforces containment (S7). Missing: running as a background job with progress and resume.
+- **Expected behavior:** A 10,000-file directory imports as a job with live progress.
+- **Acceptance criteria:** Import job visible in `/jobs`; cancel works.
+- **Required tests:** integration test with a generated directory.
+- **Blockers:** none
+- **Related PR/commit:** containment in `7390fac`
+- **Verification evidence:** Containment covered by `test_s7_*`.
+
+---
+
+## F03 — Hardware & Collection Analysis
+
+#### F03.1 — CPU, RAM, disk and GPU detection
+- **Description:** psutil for CPU/RAM/disk; `nvidia-smi` for NVIDIA GPUs; graceful when no GPU.
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F01.2
+- **Scope:** `backend/core/hardware.py::profile_hardware`, `GET /system/hardware`, `vault hardware`.
+- **Expected behavior:** Reports measured values only.
+- **Acceptance criteria:** On Luke's laptop, reports the RTX 5070 Laptop GPU (8,151 MiB) and ~31 GB RAM; on a machine without `nvidia-smi`, `gpus` is empty.
+- **Required tests:** `test_recommend_workers_without_gpu`; manual `vault hardware`.
+- **Blockers:** none
+- **Related PR/commit:** `7390fac`
+- **Verification evidence:** `E-TEST-1`; manual run on Luke's machine 2026-10-26.
+
+#### F03.2 — Collection inventory
+- **Description:** Counts, bytes and pages by media type plus recommended workers.
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F02.1, F03.1
+- **Scope:** `GET /collections/{id}/inventory`.
+- **Expected behavior:** Totals match the uploaded collection.
+- **Acceptance criteria:** Sum of documents equals the 150 uploaded files.
+- **Required tests:** `test_full_vertical_slice`.
+- **Blockers:** none
+- **Related PR/commit:** `7390fac`
+- **Verification evidence:** `E-TEST-1`.
+
+#### F03.3 — Representative sample benchmark
+- **Description:** Really processes a random sample with the chosen provider and times it.
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F03.2, F04.1
+- **Scope:** `POST /collections/{id}/estimate`, `vault estimate`.
+- **Expected behavior:** Timings come from real processing; sample extractions are saved.
+- **Acceptance criteria:** Heuristic and Ollama benchmarks both return measured timings.
+- **Required tests:** `test_full_vertical_slice` (heuristic); manual Ollama run.
+- **Blockers:** none
+- **Related PR/commit:** `7390fac`
+- **Verification evidence:** `E-TEST-1`, `E-LLM-1`.
+
+#### F03.4 — Runtime estimate with uncertainty and concurrency recommendation
+- **Description:** Low bound from median, high bound from p90; worker count from cores, free RAM and provider type.
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F03.3
+- **Scope:** `estimate_runtime`, `recommend_workers`.
+- **Expected behavior:** The estimate states its basis ("measured N sample documents on this machine").
+- **Acceptance criteria:** Unit tests for the formula and for no-GPU machines pass.
+- **Required tests:** `test_estimate_uses_measurements`, `test_recommend_workers_without_gpu`.
+- **Blockers:** none
+- **Related PR/commit:** `7390fac`
+- **Verification evidence:** `E-TEST-1`; Ollama estimate 1,007–4,956 s for 150 docs with 2 workers (`E-LLM-1`).
+
+#### F03.5 — Estimate calibration against actual runs
+- **Description:** Compare the estimate with the real duration of the following full job and record the error.
+- **Priority:** P1 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F03.4, F05.1
+- **Scope:** store estimate per collection; report "estimated vs actual" on job completion.
+- **Expected behavior:** Users see how accurate past estimates were on this machine.
+- **Acceptance criteria:** One recorded calibration for heuristic and one for Ollama.
+- **Required tests:** integration test asserting the stored comparison.
+- **Blockers:** The full 150-document Ollama run (started 2026-10-26) must finish first.
+- **Related PR/commit:** —
+- **Verification evidence:** Pending.
+
+---
+
+## F04 — AI Model System
+
+#### F04.1 — Provider abstraction and registry
+- **Description:** `Provider` interface returning a validated `Extraction`; `ProviderInfo` exposes name, model, locality, is_ai_model, tasks, privacy, availability.
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F01.2
+- **Scope:** `backend/providers/`.
+- **Expected behavior:** Providers get page text only, no tools, no filesystem.
+- **Acceptance criteria:** `GET /system/providers` lists `ollama`, `meta_api`, `heuristic` with privacy text.
+- **Required tests:** `test_s9_*`, `test_ollama_unreachable_is_reported_not_crashing`.
+- **Blockers:** none
+- **Related PR/commit:** `7390fac`
+- **Verification evidence:** `E-TEST-1`.
+
+#### F04.2 — Local Meta model through Ollama
+- **Description:** Local inference with `llama3:latest` (Meta Llama 3 8B) using Ollama structured JSON output; refuses non-local Ollama URLs.
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F04.1
+- **Scope:** `OllamaProvider`.
+- **Expected behavior:** Extraction runs entirely on the local machine.
+- **Acceptance criteria:** Real extraction of sample documents completes and passes schema validation.
+- **Required tests:** manual `vault estimate --provider ollama`; `test_s4_*` for URL restriction.
+- **Blockers:** none
+- **Related PR/commit:** `7390fac`
+- **Verification evidence:** `E-LLM-1`.
+
+#### F04.3 — Meta Model API provider (remote)
+- **Description:** `https://api.meta.ai/v1/chat/completions`, `muse-spark-1.3`, JSON-schema response format, Bearer key.
+- **Priority:** P0 · **Owner:** luke · **Status:** BLOCKED · **Dependencies:** F04.1, F09.5
+- **Scope:** `MetaModelAPIProvider`.
+- **Expected behavior:** Only runs when remote inference is enabled and the request confirms it.
+- **Acceptance criteria:** One live extraction on a synthetic document succeeds; token usage recorded.
+- **Required tests:** manual live call; `test_s4_*` for gating.
+- **Blockers:** No Meta Model API key yet (see `BLOCKERS.md` B2).
+- **Related PR/commit:** `7390fac`
+- **Verification evidence:** Gating verified by `E-TEST-1`; live call pending.
+
+#### F04.4 — Structured extraction schema and output validation
+- **Description:** Pydantic `Extraction` schema; malformed or out-of-schema output rejected; extra fields dropped; invalid dates nulled.
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F04.1
+- **Scope:** `backend/providers/schema.py`, `llm._parse`.
+- **Expected behavior:** Nothing unvalidated reaches the database.
+- **Acceptance criteria:** S10 passes.
+- **Required tests:** `test_s10_*`, `test_inline_schema_has_no_refs`.
+- **Blockers:** none
+- **Related PR/commit:** `7390fac`
+- **Verification evidence:** `E-TEST-1`.
+
+#### F04.5 — Extraction quality tuning for local Llama
+- **Description:** Improve prompt, add few-shot examples and per-type hints so `llama3` 8B extracts ratings, dates and correct document types.
+- **Priority:** P0 · **Owner:** luke · **Status:** READY · **Dependencies:** F04.2, F11.4
+- **Scope:** `backend/providers/prompting.py`; evaluation runs on the held-out split only.
+- **Expected behavior:** Measurable improvement over the first run on held-out data.
+- **Acceptance criteria:** Held-out doc_type accuracy and rating accuracy reported before and after; improvement recorded honestly even if small.
+- **Required tests:** `python -m evaluation.run_eval --provider ollama` before/after.
+- **Blockers:** none
+- **Related PR/commit:** —
+- **Verification evidence:** Baseline weakness recorded in `E-LLM-1`.
+
+#### F04.6 — Muse Glimmer 30B local test
+- **Description:** Try `muse-glimmer:30b` (Apache-2.0, text + image) through Ollama with CPU/GPU split.
+- **Priority:** P1 · **Owner:** luke · **Status:** READY · **Dependencies:** F04.2
+- **Scope:** configuration only (`VAULT_OLLAMA_MODEL`), plus measured benchmark.
+- **Expected behavior:** Either it runs at a usable speed on 8 GB VRAM + 31 GB RAM, or we document that it does not.
+- **Acceptance criteria:** Benchmark numbers recorded in `docs/MODEL_STRATEGY.md`.
+- **Required tests:** `vault estimate --provider ollama --sample 3`.
+- **Blockers:** ~18 GB download needs Luke's approval (`BLOCKERS.md` B5).
+- **Related PR/commit:** —
+- **Verification evidence:** —
+
+#### F04.7 — Image and stamp understanding with a vision-capable Meta model
+- **Description:** Send images (and image-only PDF pages) to Muse Spark (API) or Muse Glimmer (local) to read stamps and classify diagrams.
+- **Priority:** P1 · **Owner:** luke · **Status:** BACKLOG · **Dependencies:** F04.3 or F04.6
+- **Scope:** image input path in providers; schema field `stamps`.
+- **Expected behavior:** Stamp images get `stamps` populated, labelled with the provider.
+- **Acceptance criteria:** Stamp text accuracy measured on the 15 synthetic stamps.
+- **Required tests:** evaluation metric for stamps.
+- **Blockers:** Depends on API key or Glimmer download.
+- **Related PR/commit:** —
+- **Verification evidence:** —
+
+#### F04.8 — Privacy disclosure per provider
+- **Description:** Every extraction stores provider, model and locality; UI and API show whether data left the machine.
+- **Priority:** P0 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F04.1
+- **Scope:** `extractions.locality`, `ProviderInfo.privacy`, dashboard badge.
+- **Expected behavior:** A user can tell for each document which model processed it and where.
+- **Acceptance criteria:** Document detail shows provider/model/locality; dashboard badge shows the default provider's locality.
+- **Required tests:** integration assertion on `extraction.provider`; UI check pending.
+- **Blockers:** UI not checked in a browser yet.
+- **Related PR/commit:** `7390fac`
+- **Verification evidence:** API part covered by `E-TEST-1`.
+
+#### F04.9 — Response caching for repeated development runs
+- **Description:** Cache model responses by (document SHA-256, provider, model, prompt version, policy version) to avoid paying twice.
+- **Priority:** P1 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F04.3
+- **Scope:** provider wrapper; cache table.
+- **Expected behavior:** Re-processing an unchanged document with the same settings makes no model call.
+- **Acceptance criteria:** Second run of a job makes zero provider calls.
+- **Required tests:** unit test with a counting fake provider.
+- **Blockers:** Design to be finalised; matters most once paid API calls start.
+- **Related PR/commit:** —
+- **Verification evidence:** —
+
+---
+
+## F05 — Parallel Processing
+
+#### F05.1 — Durable job and job-item records
+- **Description:** Jobs and items persisted in SQLite with status, attempts, errors and durations.
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F01.3
+- **Scope:** `backend/workers/jobs.py`, `POST /jobs`, `GET /jobs`, `GET /jobs/{id}`.
+- **Expected behavior:** Job state survives restarts.
+- **Acceptance criteria:** Job completes with `done == total`.
+- **Required tests:** `test_full_vertical_slice`.
+- **Blockers:** none
+- **Related PR/commit:** `7390fac`
+- **Verification evidence:** `E-TEST-1`.
+
+#### F05.2 — Bounded worker pool
+- **Description:** ThreadPoolExecutor sized by request, `VAULT_MAX_WORKERS` or the hardware recommendation, capped at 32.
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F05.1, F03.4
+- **Scope:** `JobRunner._run`.
+- **Expected behavior:** Never more concurrent items than `workers`.
+- **Acceptance criteria:** 150 docs processed with 4 workers in tests; 2 workers with Ollama.
+- **Required tests:** `test_full_vertical_slice`.
+- **Blockers:** none
+- **Related PR/commit:** `7390fac`
+- **Verification evidence:** `E-TEST-1`.
+
+#### F05.3 — Retries with backoff
+- **Description:** Provider errors retried up to `VAULT_JOB_MAX_ATTEMPTS` with exponential backoff; unexpected errors not retried.
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F05.1
+- **Scope:** `work()` in `JobRunner`.
+- **Expected behavior:** Failed items record a safe error message; job ends `completed_with_errors` or `failed`.
+- **Acceptance criteria:** Code path reviewed; S4 confirms provider failure returns 503 before a job starts.
+- **Required tests:** Add a dedicated flaky-provider test (tracked in F05.6).
+- **Blockers:** none
+- **Related PR/commit:** `7390fac`
+- **Verification evidence:** `E-TEST-1` (indirect).
+
+#### F05.4 — Cancellation
+- **Description:** Cooperative cancel; pending items skipped and marked `cancelled`.
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F05.1
+- **Scope:** `POST /jobs/{id}/cancel`; Ctrl+C in `vault process`.
+- **Expected behavior:** Running items finish; no new items start.
+- **Acceptance criteria:** `cancel_requested == 1` and final status `cancelled` or `completed`.
+- **Required tests:** `test_cancel_job`.
+- **Blockers:** none
+- **Related PR/commit:** `7390fac`
+- **Verification evidence:** `E-TEST-1`.
+
+#### F05.5 — Resume after restart
+- **Description:** On startup, items stuck in `running` return to `pending` and queued/running jobs restart.
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F05.1
+- **Scope:** `JobRunner.resume_unfinished`.
+- **Expected behavior:** Killing the server mid-job and restarting completes the job.
+- **Acceptance criteria:** Manual kill/restart test.
+- **Required tests:** Automated restart test still to add (F05.6).
+- **Blockers:** none
+- **Related PR/commit:** `7390fac`
+- **Verification evidence:** Code path exercised by `create_app(resume_jobs=True)` default; dedicated test pending.
+
+#### F05.6 — Worker robustness tests and resource limits
+- **Description:** Tests for retries, resume and failure accounting; per-worker memory guard; progress events.
+- **Priority:** P1 · **Owner:** luke · **Status:** BACKLOG · **Dependencies:** F05.3, F05.5
+- **Scope:** `tests/integration/test_workers.py`; optional psutil memory check before starting an item.
+- **Expected behavior:** Faults are counted correctly and the job never hangs.
+- **Acceptance criteria:** Flaky provider succeeds on retry; always-failing provider marks items failed; restart resumes.
+- **Required tests:** as described.
+- **Blockers:** none
+- **Related PR/commit:** —
+- **Verification evidence:** —
+
+---
+
+## F06 — Search & Investigation
+
+#### F06.1 — Full-text index with page references
+- **Description:** FTS5 over page text with snippets and page numbers; user input reduced to quoted terms.
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F02.4
+- **Scope:** `backend/indexing/search.py`, `GET /search`, `vault search`.
+- **Expected behavior:** Results include filename, page, snippet with `[[match]]` markers.
+- **Acceptance criteria:** Searching a planted part number returns at least two documents with page numbers; FTS operators cannot be injected.
+- **Required tests:** `test_full_vertical_slice`, `test_fts_query_neutralises_operators`, `test_s8_*`.
+- **Blockers:** none
+- **Related PR/commit:** `7390fac`
+- **Verification evidence:** `E-TEST-1`.
+
+#### F06.2 — Structured filters
+- **Description:** Filter by collection, document type, project, date range and part number.
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F06.1, F04.4
+- **Scope:** `search()` parameters.
+- **Expected behavior:** Filters use the latest extraction per document.
+- **Acceptance criteria:** `doc_type=engineering_drawing` returns only drawings.
+- **Required tests:** `test_full_vertical_slice`.
+- **Blockers:** none
+- **Related PR/commit:** `7390fac`
+- **Verification evidence:** `E-TEST-1`.
+
+#### F06.3 — Cross-document rating conflicts with evidence
+- **Description:** Group extracted components by part number; flag differing pressure ratings; locate each quote in the source page.
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F04.4
+- **Scope:** `backend/indexing/findings.py`, `GET /collections/{id}/findings`, `vault findings`.
+- **Expected behavior:** Finding is `verified` only when every quote was found verbatim.
+- **Acceptance criteria:** All 10 planted conflicts found, no false positives.
+- **Required tests:** `test_full_vertical_slice`.
+- **Blockers:** none
+- **Related PR/commit:** `7390fac`
+- **Verification evidence:** `E-TEST-1`, `E-EVAL-1`.
+
+#### F06.4 — Natural-language investigation
+- **Description:** Turn a question ("Which parts from Project Alpha have conflicting ratings?") into structured search + findings, then have a Meta model write an answer that cites only retrieved evidence.
+- **Priority:** P0 · **Owner:** luke · **Status:** BACKLOG · **Dependencies:** F06.2, F06.3, F04.2
+- **Scope:** new endpoint `POST /investigations` (contract to be added to `API_CONTRACT.md` before Franco builds UI for it).
+- **Expected behavior:** Every sentence in the answer links to a document/page; uncited claims are marked as interpretation.
+- **Acceptance criteria:** 5 scripted demo questions answered with citations that verify.
+- **Required tests:** integration test with heuristic retrieval plus a fake model; manual run with Ollama.
+- **Blockers:** none
+- **Related PR/commit:** —
+- **Verification evidence:** —
+
+#### F06.5 — Additional relationship checks
+- **Description:** Same part number with different descriptions or materials across projects; contract quantities vs parts lists.
+- **Priority:** P1 · **Owner:** luke · **Status:** BACKLOG · **Dependencies:** F06.3, F11.1
+- **Scope:** new finding kinds; generator must plant them first.
+- **Expected behavior:** New kinds appear with evidence like rating conflicts.
+- **Acceptance criteria:** Planted cases found with precision ≥ 0.9.
+- **Required tests:** evaluation run.
+- **Blockers:** none
+- **Related PR/commit:** —
+- **Verification evidence:** —
+
+#### F06.6 — Semantic (embedding) retrieval
+- **Description:** Local embeddings for fuzzy queries alongside FTS5.
+- **Priority:** P2 · **Owner:** luke · **Status:** BACKLOG · **Dependencies:** F06.1
+- **Scope:** sqlite-vec or similar; licence check.
+- **Expected behavior:** Synonym queries ("pressure class" for "rated") find matches.
+- **Acceptance criteria:** Measured recall improvement on a small query set.
+- **Required tests:** evaluation query set.
+- **Blockers:** none
+- **Related PR/commit:** —
+- **Verification evidence:** —
+
+---
+
+## F07 — Teaching & Corrections
+
+#### F07.1 — Human corrections
+- **Description:** Record a corrected `doc_type` or `project` for a document with old value, new value, user and note.
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F04.4
+- **Scope:** `POST /documents/{id}/corrections`.
+- **Expected behavior:** Correction is audited.
+- **Acceptance criteria:** Returns old and new values.
+- **Required tests:** `test_correction_creates_versioned_policy`.
+- **Blockers:** none
+- **Related PR/commit:** `7390fac`
+- **Verification evidence:** `E-TEST-1`.
+
+#### F07.2 — Versioned policies and reprocessing
+- **Description:** A correction with `when_contains` publishes a new policy version; rules are applied after extraction and shown to the model as guidance. No model weights are trained.
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F07.1
+- **Scope:** `policies` table, `apply_policy`, `GET /policies`.
+- **Expected behavior:** Reprocessing applies the latest policy and records `policy_version` on each extraction.
+- **Acceptance criteria:** "Field Verification Record" document moves from `other` to `inspection_report` after the rule; `policy_version == 2`.
+- **Required tests:** `test_correction_creates_versioned_policy`.
+- **Blockers:** none
+- **Related PR/commit:** `7390fac`
+- **Verification evidence:** `E-TEST-1`.
+
+#### F07.3 — Measured improvement on held-out data
+- **Description:** Create rules from training-split corrections only, then report held-out accuracy before and after.
+- **Priority:** P0 · **Owner:** luke · **Status:** READY · **Dependencies:** F07.2, F11.4
+- **Scope:** evaluation script option `--policy`.
+- **Expected behavior:** Honest before/after numbers, including no improvement if that is the result.
+- **Acceptance criteria:** Report committed to `evaluation/results/`.
+- **Required tests:** evaluation run.
+- **Blockers:** none
+- **Related PR/commit:** —
+- **Verification evidence:** —
+
+#### F07.4 — Example-based teaching for new markings
+- **Description:** User uploads example stamps/markings; examples are passed as few-shot images to a vision-capable model.
+- **Priority:** P2 · **Owner:** luke · **Status:** BACKLOG · **Dependencies:** F04.7
+- **Scope:** examples table, prompt assembly.
+- **Expected behavior:** New marking recognised on held-out images.
+- **Acceptance criteria:** Measured accuracy on held-out stamp images.
+- **Required tests:** evaluation run.
+- **Blockers:** Vision model access.
+- **Related PR/commit:** —
+- **Verification evidence:** —
+
+---
+
+## F08 — Actions & Organization
+
+#### F08.1 — Organization proposals
+- **Description:** Build a copy plan from a folder pattern using only `{project}`, `{doc_type}`, `{year}`.
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F04.4
+- **Scope:** `backend/workers/proposals.py`, `POST /proposals`, `GET /proposals`, `GET /proposals/{id}`.
+- **Expected behavior:** Proposal starts `pending` and lists every document's target path.
+- **Acceptance criteria:** Plan covers all documents; patterns with `..` or unknown fields return 400.
+- **Required tests:** `test_full_vertical_slice`, `test_s7_*`.
+- **Blockers:** none
+- **Related PR/commit:** `7390fac`
+- **Verification evidence:** `E-TEST-1`.
+
+#### F08.2 — Approval and rejection
+- **Description:** Only `admin` can approve or reject; a decided proposal cannot be decided again.
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F08.1, F09.1
+- **Scope:** `POST /proposals/{id}/approve`, `POST /proposals/{id}/reject`.
+- **Expected behavior:** Analyst approval returns 403 and is audited; second approval returns 409.
+- **Acceptance criteria:** S2 passes.
+- **Required tests:** `test_s2_*`, `test_full_vertical_slice`.
+- **Blockers:** none
+- **Related PR/commit:** `7390fac`
+- **Verification evidence:** `E-TEST-1`.
+
+#### F08.3 — Non-destructive export
+- **Description:** Approved plan copies originals into `data/runtime/exports/proposal-<id>/`; name collisions get suffixes.
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F08.2
+- **Scope:** `execute_proposal`.
+- **Expected behavior:** Originals unchanged; every path built through `safe_join`.
+- **Acceptance criteria:** Export has 150 files; original hashes identical before and after.
+- **Required tests:** `test_full_vertical_slice`.
+- **Blockers:** none
+- **Related PR/commit:** `7390fac`
+- **Verification evidence:** `E-TEST-1`.
+
+#### F08.4 — Natural-language organization requests
+- **Description:** A Meta model turns "Organize by department then date" into an allowed pattern; the user still previews and approves.
+- **Priority:** P1 · **Owner:** luke · **Status:** BACKLOG · **Dependencies:** F08.1, F04.2
+- **Scope:** model output validated against the pattern whitelist.
+- **Expected behavior:** Invalid model output is rejected, never executed.
+- **Acceptance criteria:** 5 sample instructions map to valid patterns.
+- **Required tests:** unit tests with a fake provider.
+- **Blockers:** none
+- **Related PR/commit:** —
+- **Verification evidence:** —
+
+#### F08.5 — Export to a searchable database file
+- **Description:** Export extractions as CSV/SQLite for downstream tools.
+- **Priority:** P2 · **Owner:** luke · **Status:** BACKLOG · **Dependencies:** F08.3
+- **Scope:** new proposal kind.
+- **Expected behavior:** Same approval flow.
+- **Acceptance criteria:** File opens and matches extraction counts.
+- **Required tests:** integration test.
+- **Blockers:** none
+- **Related PR/commit:** —
+- **Verification evidence:** —
+
+---
+
+## F09 — Security
+
+#### F09.1 — Authentication and role-based authorization
+- **Description:** Random bearer tokens stored as SHA-256 hashes; roles viewer/analyst/admin; permission checks on the server for every route except `/health`.
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F01.3
+- **Scope:** `backend/security/auth.py`, `backend/api/deps.py`.
+- **Expected behavior:** Missing/invalid token → 401; missing permission → 403; both audited.
+- **Acceptance criteria:** S1 passes.
+- **Required tests:** `test_s1_*`.
+- **Blockers:** none
+- **Related PR/commit:** `7390fac`
+- **Verification evidence:** `E-TEST-1`.
+
+#### F09.2 — Audit log
+- **Description:** Append-only `audit_log` with actor, action, target, outcome, detail; forbidden keys (token, text, content, api_key, password) stripped.
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F09.1
+- **Scope:** `backend/security/audit.py`, `GET /audit`.
+- **Expected behavior:** Allowed and denied actions both recorded.
+- **Acceptance criteria:** Upload, job, proposal create/approve and denials appear.
+- **Required tests:** `test_full_vertical_slice`, `test_s1_*`, `test_s9_*`.
+- **Blockers:** none
+- **Related PR/commit:** `7390fac`
+- **Verification evidence:** `E-TEST-1`.
+
+#### F09.3 — Prompt-injection containment
+- **Description:** Document text fenced as data; injection phrases flagged; model output is schema-only and never executed.
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F04.4
+- **Scope:** `backend/providers/prompting.py`.
+- **Expected behavior:** Injected memo is flagged, nothing is deleted, proposed or sent.
+- **Acceptance criteria:** S3 passes.
+- **Required tests:** `test_s3_*`, `test_injection_detection_and_prompt_fencing`.
+- **Blockers:** Re-run S3 with a real model once F04.5 lands (heuristic used in CI).
+- **Related PR/commit:** `7390fac`
+- **Verification evidence:** `E-TEST-1`.
+
+#### F09.4 — Path traversal and filesystem containment
+- **Description:** `safe_join`/`contained` on every server path; filename sanitisation; path import limited to `VAULT_IMPORT_ROOTS`.
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F02.2
+- **Scope:** `backend/security/files.py`.
+- **Expected behavior:** `..`, absolute paths and drive letters rejected.
+- **Acceptance criteria:** S7 passes.
+- **Required tests:** `test_s7_*`, `test_safe_join_blocks_escape`.
+- **Blockers:** none
+- **Related PR/commit:** `7390fac`
+- **Verification evidence:** `E-TEST-1`.
+
+#### F09.5 — Outbound inference controls
+- **Description:** Remote inference needs both an admin switch (`VAULT_ALLOW_REMOTE_INFERENCE` or `PUT /settings/remote-inference`) and per-request `confirm_remote=true`; local Ollama provider refuses non-local hosts.
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F04.1
+- **Scope:** `_provider()` in routes, `OllamaProvider.__init__`.
+- **Expected behavior:** 403 when disabled, 409 without confirmation, 503 when unavailable.
+- **Acceptance criteria:** S4 passes.
+- **Required tests:** `test_s4_*`.
+- **Blockers:** none
+- **Related PR/commit:** `7390fac`
+- **Verification evidence:** `E-TEST-1`.
+
+#### F09.6 — Dependency and static scanning
+- **Description:** Bandit and ruff security rules in CI; pip-audit and npm audit report-only; evaluate Semgrep and Trivy.
+- **Priority:** P1 · **Owner:** luke · **Status:** READY · **Dependencies:** F01.5
+- **Scope:** CI workflow; triage results in `docs/SECURITY.md`.
+- **Expected behavior:** Known vulnerabilities are listed with a decision.
+- **Acceptance criteria:** First audit results triaged; Trivy image scan run once Docker builds.
+- **Required tests:** CI run.
+- **Blockers:** none
+- **Related PR/commit:** bandit/ruff in `7390fac`
+- **Verification evidence:** `E-LINT-1` (bandit, ruff only).
+
+#### F09.7 — Controlled security verification against the running app
+- **Description:** OWASP ZAP baseline scan against the local stack and manual abuse cases through the UI.
+- **Priority:** P1 · **Owner:** franco · **Status:** READY · **Dependencies:** F01.2, F01.4
+- **Scope:** Only `127.0.0.1` targets we run ourselves.
+- **Expected behavior:** Findings filed as GitHub issues labelled `security`.
+- **Acceptance criteria:** ZAP report summarised in `docs/SECURITY.md` with actual outcomes.
+- **Required tests:** ZAP baseline scan.
+- **Blockers:** none
+- **Related PR/commit:** —
+- **Verification evidence:** —
+
+#### F09.8 — Token lifecycle
+- **Description:** Token revocation endpoint, expiry, and CLI listing.
+- **Priority:** P1 · **Owner:** luke · **Status:** BACKLOG · **Dependencies:** F09.1
+- **Scope:** `api_tokens.revoked` exists; endpoints missing.
+- **Expected behavior:** Revoked token returns 401 immediately.
+- **Acceptance criteria:** Test revokes and re-checks.
+- **Required tests:** security test.
+- **Blockers:** none
+- **Related PR/commit:** —
+- **Verification evidence:** —
+
+---
+
+## F10 — User Interface (Franco)
+
+All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each needs a branch `franco/F10.x-short-name`, a PR, and screenshots in the PR description using synthetic data only.
+
+#### F10.1 — App shell, navigation and sign-in
+- **Description:** Layout with sidebar navigation (Dashboard, Import, Library, Intelligence, Processing, Actions, Security, Settings), token sign-in, sign-out, role display.
+- **Priority:** P0 · **Owner:** franco · **Status:** READY · **Dependencies:** F01.4
+- **Scope:** `frontend/src/app/layout.tsx`, shared components; endpoints `GET /me`.
+- **Expected behavior:** Unauthenticated users see sign-in; 401 anywhere returns to sign-in.
+- **Acceptance criteria:** Keyboard navigable; works at 375 px width; role shown.
+- **Required tests:** Playwright e2e: sign in with demo analyst token, see dashboard; bad token shows error.
+- **Blockers:** none
+- **Related PR/commit:** —
+- **Verification evidence:** —
+
+#### F10.2 — Dashboard
+- **Description:** Replace the scaffold dashboard with the final design: stats, active jobs, recent findings, recent audit (admin), provider privacy status.
+- **Priority:** P0 · **Owner:** franco · **Status:** REVIEW · **Dependencies:** F10.1
+- **Scope:** `frontend/src/app/page.tsx`; endpoints `/stats`, `/system/providers`, `/collections`, `/jobs`, `/collections/{id}/findings`.
+- **Expected behavior:** Updates while jobs run.
+- **Acceptance criteria:** Matches design; no console errors; numbers match the API.
+- **Required tests:** Playwright e2e with seeded demo data.
+- **Blockers:** Scaffold built by Luke's agent; needs Franco's redesign and a browser check.
+- **Related PR/commit:** scaffold in `7390fac`
+- **Verification evidence:** `E-FE-1` (build only).
+
+#### F10.3 — Import screen with inventory and estimate
+- **Description:** Create/select collection, drag-and-drop upload, show accepted/rejected with reasons, inventory, run estimate, then confirm processing.
+- **Priority:** P0 · **Owner:** franco · **Status:** READY · **Dependencies:** F10.1
+- **Scope:** `POST /collections`, `POST /collections/{id}/documents`, `GET /collections/{id}/inventory`, `POST /collections/{id}/estimate`, `POST /jobs`.
+- **Expected behavior:** Remote providers show a clear "data will leave this machine" confirmation and send `confirm_remote: true` only after the user agrees.
+- **Acceptance criteria:** Upload of the synthetic folder works; estimate shows low/high seconds and its basis; 409 handled as a confirmation prompt.
+- **Required tests:** Playwright e2e: upload 5 files, run heuristic estimate, start job.
+- **Blockers:** none
+- **Related PR/commit:** —
+- **Verification evidence:** —
+
+#### F10.4 — Library (collection browser)
+- **Description:** Paged document table with filters (type, project, date, part number) and metadata.
+- **Priority:** P0 · **Owner:** franco · **Status:** READY · **Dependencies:** F10.1
+- **Scope:** `GET /documents`, `GET /search` (filters with empty `q`).
+- **Expected behavior:** Filters update the list; selecting a row opens the document viewer.
+- **Acceptance criteria:** 150 synthetic docs browsable; filters return correct subsets.
+- **Required tests:** Playwright e2e filter test.
+- **Blockers:** none
+- **Related PR/commit:** —
+- **Verification evidence:** —
+
+#### F10.5 — Document viewer
+- **Description:** Show page text, the original file (PDF/image inline), extracted fields, provider/model/locality and injection warnings.
+- **Priority:** P0 · **Owner:** franco · **Status:** READY · **Dependencies:** F10.4
+- **Scope:** `GET /documents/{id}`, `GET /documents/{id}/pages/{n}`, `GET /documents/{id}/original` (fetch with Authorization header, then object URL).
+- **Expected behavior:** Injection-flagged documents show a visible warning; heuristic extractions are labelled "rule-based, not AI".
+- **Acceptance criteria:** Drawings, CSV, Markdown and PNG all display.
+- **Required tests:** Playwright e2e opening one of each type.
+- **Blockers:** none
+- **Related PR/commit:** —
+- **Verification evidence:** —
+
+#### F10.6 — Evidence viewer for findings
+- **Description:** Side-by-side evidence for each finding: document, page, quoted line, value, verified badge; click to open that page.
+- **Priority:** P0 · **Owner:** franco · **Status:** READY · **Dependencies:** F10.5
+- **Scope:** `GET /collections/{id}/findings`, document/page endpoints.
+- **Expected behavior:** Conflicting values are visually contrasted; quotes highlighted in page text.
+- **Acceptance criteria:** All 10 planted conflicts navigable to their source pages.
+- **Required tests:** Playwright e2e.
+- **Blockers:** none
+- **Related PR/commit:** —
+- **Verification evidence:** —
+
+#### F10.7 — Processing view
+- **Description:** Job list and detail with progress, item status counts, errors, workers, provider, cancel button.
+- **Priority:** P0 · **Owner:** franco · **Status:** READY · **Dependencies:** F10.1
+- **Scope:** `GET /jobs`, `GET /jobs/{id}`, `POST /jobs/{id}/cancel`, `GET /system/hardware`.
+- **Expected behavior:** Polls every 1–3 s while a job runs; viewer role sees no cancel button (server still enforces).
+- **Acceptance criteria:** Cancel works; failed items show safe error text.
+- **Required tests:** Playwright e2e.
+- **Blockers:** none
+- **Related PR/commit:** —
+- **Verification evidence:** —
+
+#### F10.8 — Actions: proposals and approvals
+- **Description:** Create a proposal (pattern picker), before/after preview tree, approve/reject (admin), result with export folder.
+- **Priority:** P0 · **Owner:** franco · **Status:** READY · **Dependencies:** F10.1
+- **Scope:** `POST /proposals`, `GET /proposals`, `GET /proposals/{id}`, `POST /proposals/{id}/approve`, `POST /proposals/{id}/reject`.
+- **Expected behavior:** Analyst can create but sees approve disabled; if forced, the 403 is shown as "Only administrators can approve".
+- **Acceptance criteria:** Full create → preview → approve flow with admin token; 409 handled.
+- **Required tests:** Playwright e2e with analyst and admin tokens.
+- **Blockers:** none
+- **Related PR/commit:** —
+- **Verification evidence:** —
+
+#### F10.9 — Security and audit view
+- **Description:** Provider list with local/remote and privacy text, remote-inference switch (admin), audit table filterable by outcome.
+- **Priority:** P0 · **Owner:** franco · **Status:** READY · **Dependencies:** F10.1
+- **Scope:** `GET /system/providers`, `PUT /settings/remote-inference`, `GET /audit`.
+- **Expected behavior:** Denied events are prominent (needed for the demo's blocked-action segment).
+- **Acceptance criteria:** A viewer's denied upload attempt appears in the audit view within one refresh.
+- **Required tests:** Playwright e2e.
+- **Blockers:** none
+- **Related PR/commit:** —
+- **Verification evidence:** —
+
+#### F10.10 — Intelligence (natural-language investigation) screen
+- **Description:** Question box, answer with inline citations, evidence panel.
+- **Priority:** P0 · **Owner:** franco · **Status:** BACKLOG · **Dependencies:** F06.4
+- **Scope:** Endpoint not yet defined; start with `GET /search` + findings until F06.4 lands.
+- **Expected behavior:** Citations open the document viewer at the cited page.
+- **Acceptance criteria:** Defined when F06.4's contract is published.
+- **Required tests:** Playwright e2e.
+- **Blockers:** F06.4.
+- **Related PR/commit:** —
+- **Verification evidence:** —
+
+---
+
+## F11 — Synthetic Data & Evaluation
+
+#### F11.1 — Deterministic synthetic dataset v1
+- **Description:** 150 fictional files across 5 projects: 40 drawings, 40 inspection records, 15 contracts, 10 parts lists, 10 revision histories, 20 memos, 15 stamp images; alternate layouts.
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** none
+- **Scope:** `generator/generate.py`, `data/synthetic/v1/`.
+- **Expected behavior:** Same seed produces identical bytes on every OS.
+- **Acceptance criteria:** Determinism check passes locally and in CI.
+- **Required tests:** CI job "Dataset is deterministic".
+- **Blockers:** CI run not yet observed.
+- **Related PR/commit:** `7390fac`
+- **Verification evidence:** `E-DET-1`.
+
+#### F11.2 — Ground-truth manifest and planted anomalies
+- **Description:** `manifest.json` with per-file type, project, date, components, split, plus 10 rating conflicts and 2 prompt-injection memos.
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F11.1
+- **Scope:** manifest generation.
+- **Expected behavior:** Tests and evaluation read ground truth from the manifest only.
+- **Acceptance criteria:** Integration test confirms planted conflicts equal found conflicts.
+- **Required tests:** `test_full_vertical_slice`, `test_s3_*`.
+- **Blockers:** none
+- **Related PR/commit:** `7390fac`
+- **Verification evidence:** `E-TEST-1`.
+
+#### F11.3 — Evaluation harness
+- **Description:** Score latest extractions per provider against the manifest, per split.
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F11.2
+- **Scope:** `evaluation/run_eval.py`.
+- **Expected behavior:** JSON report with doc_type, project, date, part recall, rating accuracy, evidence verification, conflict precision/recall.
+- **Acceptance criteria:** Heuristic report produced.
+- **Required tests:** manual run; unit test for scoring still to add.
+- **Blockers:** none
+- **Related PR/commit:** `7390fac`
+- **Verification evidence:** `E-EVAL-1`.
+
+#### F11.4 — Full local Meta model evaluation
+- **Description:** Evaluate `llama3:latest` on all 150 documents and record results next to the heuristic baseline.
+- **Priority:** P0 · **Owner:** luke · **Status:** READY · **Dependencies:** F11.3, F04.2
+- **Scope:** `evaluation/results/ollama-*.json`; summary in `docs/EVALUATION_PLAN.md`.
+- **Expected behavior:** Honest numbers, including where the model is worse than the baseline.
+- **Acceptance criteria:** Report committed.
+- **Required tests:** `python -m evaluation.run_eval --collection demo-ollama --provider ollama`.
+- **Blockers:** Full run in progress since 2026-10-26.
+- **Related PR/commit:** —
+- **Verification evidence:** —
+
+#### F11.5 — End-to-end browser tests
+- **Description:** Playwright tests for the main demo flow against a locally seeded backend.
+- **Priority:** P1 · **Owner:** franco · **Status:** READY · **Dependencies:** F10.1
+- **Scope:** `tests/e2e/`.
+- **Expected behavior:** One command seeds data, starts both servers and runs the flow.
+- **Acceptance criteria:** Runs locally on Windows and macOS; optional CI job.
+- **Required tests:** itself.
+- **Blockers:** none
+- **Related PR/commit:** —
+- **Verification evidence:** —
+
+#### F11.6 — Dataset v2 (scanned pages, more anomaly kinds)
+- **Description:** Add rasterised/scanned PDFs, duplicate part numbers with conflicting descriptions, contract quantity mismatches.
+- **Priority:** P1 · **Owner:** luke · **Status:** BACKLOG · **Dependencies:** F11.1
+- **Scope:** generator v2 with its own manifest; v1 stays frozen.
+- **Expected behavior:** Deterministic like v1.
+- **Acceptance criteria:** Determinism check passes.
+- **Required tests:** CI determinism job for v2.
+- **Blockers:** none
+- **Related PR/commit:** —
+- **Verification evidence:** —
+
+---
+
+## F12 — Deployment & Submission
+
+#### F12.1 — Command-line interface
+- **Description:** `vault init`, `token`, `ingest`, `hardware`, `providers`, `estimate`, `process`, `search`, `findings`, `serve`.
+- **Priority:** P0 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F01.2
+- **Scope:** `cli/main.py`.
+- **Expected behavior:** Works against the local database without the server running.
+- **Acceptance criteria:** Manual end-to-end run on the synthetic dataset succeeded; automated CLI test missing.
+- **Required tests:** add `tests/integration/test_cli.py` using Typer's runner.
+- **Blockers:** none
+- **Related PR/commit:** `7390fac`
+- **Verification evidence:** Manual run 2026-10-26: 150 ingested, heuristic job completed in ~2 s, 10 findings printed.
+
+#### F12.2 — Docker Compose deployment
+- **Description:** Backend and frontend images, ports bound to 127.0.0.1, read-only backend container, optional Ollama profile.
+- **Priority:** P0 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F01.2, F01.4
+- **Scope:** `docker-compose.yml`, `Dockerfile.backend`, `frontend/Dockerfile`.
+- **Expected behavior:** `docker compose up --build` gives a working stack talking to host Ollama.
+- **Acceptance criteria:** Both images build; health check passes; dashboard loads.
+- **Required tests:** manual build and smoke test.
+- **Blockers:** Only `docker compose config` validated so far.
+- **Related PR/commit:** `7390fac`
+- **Verification evidence:** `docker compose config -q` succeeded 2026-10-26.
+
+#### F12.3 — Public README and documentation set
+- **Description:** README with banner, screenshots of real pages using synthetic data, Mermaid diagrams in plain English, "AI agents: start here" block; `docs/` complete.
+- **Priority:** P0 · **Owner:** luke · **Status:** IN_PROGRESS · **Dependencies:** F10.2
+- **Scope:** `README.md`, `docs/`.
+- **Expected behavior:** A judge understands the project in two minutes.
+- **Acceptance criteria:** Screenshots of at least dashboard, import, library, evidence, approvals, audit.
+- **Required tests:** link check.
+- **Blockers:** Screenshots need finished UI.
+- **Related PR/commit:** —
+- **Verification evidence:** —
+
+#### F12.4 — Hackathon compliance verification
+- **Description:** Read official rules and the participant guide while logged in; update `docs/HACKATHON_COMPLIANCE.md` from unverified to verified.
+- **Priority:** P0 · **Owner:** luke · **Status:** BLOCKED · **Dependencies:** none
+- **Scope:** documentation.
+- **Expected behavior:** Every submission requirement has a source.
+- **Acceptance criteria:** No requirement left marked "unverified" by Nov 2.
+- **Required tests:** checklist review.
+- **Blockers:** Participant guide is behind login (`BLOCKERS.md` B1).
+- **Related PR/commit:** —
+- **Verification evidence:** —
+
+#### F12.5 — Project licence decision
+- **Description:** Choose whether to add an open-source licence and which one.
+- **Priority:** P0 · **Owner:** luke · **Status:** BLOCKED · **Dependencies:** F12.4
+- **Scope:** `LICENSE`, `THIRD_PARTY_NOTICES.md`.
+- **Expected behavior:** Licence matches event rules and dependency licences.
+- **Acceptance criteria:** Luke's decision recorded in `DECISIONS.md`.
+- **Required tests:** none
+- **Blockers:** Luke's decision (`BLOCKERS.md` B3).
+- **Related PR/commit:** —
+- **Verification evidence:** —
+
+#### F12.6 — Demo environment and seed script
+- **Description:** One script that resets a demo database, creates demo users, ingests the dataset and pre-processes it.
+- **Priority:** P0 · **Owner:** luke · **Status:** READY · **Dependencies:** F12.1
+- **Scope:** `scripts/demo_reset.ps1` and `scripts/demo_reset.sh`.
+- **Expected behavior:** Demo can be rehearsed repeatedly from a clean state.
+- **Acceptance criteria:** Runs in under 2 minutes with heuristic, documented duration with Ollama.
+- **Required tests:** run twice.
+- **Blockers:** none
+- **Related PR/commit:** —
+- **Verification evidence:** —
+
+#### F12.7 — Demo video (~3 minutes)
+- **Description:** Record and edit the video following `docs/DEMO_STORYBOARD.md`; only working features shown.
+- **Priority:** P0 · **Owner:** luke (franco supports) · **Status:** BACKLOG · **Dependencies:** F10.2–F10.9, F06.4, F12.6
+- **Scope:** recording, editing, upload.
+- **Expected behavior:** Shows real Meta model processing, a planted discrepancy with evidence, an approval, and a blocked action with its audit entry.
+- **Acceptance criteria:** Length matches verified rule; link works when logged out.
+- **Required tests:** watch-through checklist.
+- **Blockers:** Schedule: recording Nov 3.
+- **Related PR/commit:** —
+- **Verification evidence:** —
+
+#### F12.8 — Final submission
+- **Description:** Submit before Nov 4, 9:00 PM ET; confirm receipt.
+- **Priority:** P0 · **Owner:** luke · **Status:** BACKLOG · **Dependencies:** F12.3, F12.4, F12.7
+- **Scope:** `docs/SUBMISSION_CHECKLIST.md`.
+- **Expected behavior:** Submitted with repository URL, video link and all required fields.
+- **Acceptance criteria:** Confirmation received and screenshot saved (no personal data in the repo).
+- **Required tests:** checklist.
+- **Blockers:** none
+- **Related PR/commit:** —
+- **Verification evidence:** —
