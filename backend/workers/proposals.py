@@ -85,4 +85,4 @@ def execute_proposal(conn: sqlite3.Connection, settings: Settings, proposal_id: 
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(source, target)
         copied += 1
-    return {"export_dir": str(export_root.relative_to(settings.data_dir)), "copied": copied}
+    return {"export_dir": export_root.relative_to(settings.data_dir).as_posix(), "copied": copied}

@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="300" viewBox="0 0 1200 300" role="img" aria-labelledby="t d">
+  <title id="t">VAULT</title>
+  <desc id="d">VAULT banner: a stack of documents being scanned, with matching evidence lines highlighted.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0d1117"/>
+      <stop offset="1" stop-color="#151b23"/>
+    </linearGradient>
+    <linearGradient id="scan" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5b8cff" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#5b8cff" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#5b8cff" stop-opacity="0"/>
+    </linearGradient>
+    <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse">
+      <path d="M24 0H0V24" fill="none" stroke="#2a3340" stroke-width="0.6"/>
+    </pattern>
+    <clipPath id="docs"><rect x="760" y="40" width="360" height="220" rx="10"/></clipPath>
+  </defs>
+  <rect width="1200" height="300" fill="url(#bg)"/>
+  <rect width="1200" height="300" fill="url(#grid)" opacity="0.6"/>
+
+  <!-- Document stack -->
+  <g clip-path="url(#docs)">
+    <rect x="760" y="40" width="360" height="220" fill="#0d1117"/>
+    <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12" fill="#8b95a5">
+      <rect x="780" y="58" width="150" height="190" rx="6" fill="#151b23" stroke="#2a3340"/>
+      <text x="792" y="80" fill="#e6e9ee">DWG-0005</text>
+      <text x="792" y="102">Project: Alpha</text>
+      <text x="792" y="124">PARTS LIST</text>
+      <rect x="786" y="134" width="138" height="18" rx="3" fill="#3fb97b" opacity="0.18"/>
+      <text x="792" y="147" fill="#3fb97b">BV-7891 1500 psi</text>
+      <text x="792" y="170">FL-5958 600 psi</text>
+      <text x="792" y="192">HX-2047 300 psi</text>
+      <rect x="950" y="58" width="150" height="190" rx="6" fill="#151b23" stroke="#2a3340"/>
+      <text x="962" y="80" fill="#e6e9ee">INS-0001</text>
+      <text x="962" y="102">Inspection</text>
+      <text x="962" y="124">Item results</text>
+      <rect x="956" y="134" width="138" height="18" rx="3" fill="#e0a43a" opacity="0.2"/>
+      <text x="962" y="147" fill="#e0a43a">BV-7891 600 psi</text>
+      <text x="962" y="170">PV-5595 PASS</text>
+      <text x="962" y="192">RV-6577 PASS</text>
+    </g>
+    <rect x="760" y="-60" width="360" height="60" fill="url(#scan)">
+      <animate attributeName="y" values="-60;260;-60" dur="6s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+  <path d="M924 143 C 940 128, 940 128, 956 143" fill="none" stroke="#5b8cff" stroke-width="2" stroke-dasharray="4 4">
+    <animate attributeName="stroke-dashoffset" values="16;0" dur="1.2s" repeatCount="indefinite"/>
+  </path>
+
+  <!-- Wordmark -->
+  <g font-family="Geist, 'Segoe UI', system-ui, sans-serif">
+    <text x="80" y="140" font-size="88" font-weight="700" fill="#e6e9ee" letter-spacing="6">VAULT</text>
+    <text x="84" y="182" font-size="22" fill="#8b95a5">Private, local-first document intelligence</text>
+    <g font-size="15">
+      <rect x="84" y="208" width="182" height="30" rx="15" fill="#3fb97b" opacity="0.16"/>
+      <text x="100" y="228" fill="#3fb97b">Runs on your hardware</text>
+      <rect x="278" y="208" width="200" height="30" rx="15" fill="#5b8cff" opacity="0.16"/>
+      <text x="294" y="228" fill="#5b8cff">Every claim has a source</text>
+      <rect x="490" y="208" width="218" height="30" rx="15" fill="#e0a43a" opacity="0.16"/>
+      <text x="506" y="228" fill="#e0a43a">Nothing moves without a yes</text>
+    </g>
+  </g>
+</svg>
