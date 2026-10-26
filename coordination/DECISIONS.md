@@ -65,3 +65,20 @@ Format: context, decision, consequences, status.
 - **Decision:** Random `vlt_` tokens, stored only as SHA-256 hashes, mapped to users with roles viewer/analyst/admin. The browser keeps the token in `sessionStorage`.
 - **Consequences:** Simple and enforceable. No expiry or revocation endpoint yet (F09.8). Enterprise SSO/OIDC is post-hackathon.
 - **Status:** Accepted.
+
+## D-2026-10-26-orchestrator: coordinator agent with lanes, security and review agents
+
+- **Context:** Customers with large archives need parallel processing sized to their hardware, and demos need a remote model without weakening privacy.
+- **Decision:** A coordinator agent fans documents out to lanes (provider x slots) pulling from shared queues. A deterministic security agent screens every file first and pins marked or personal-data files to local lanes. A review agent accepts, escalates once to a stronger lane, or flags for a person. Slots come from measured calibration, not constants.
+- **Consequences:** Adding GPUs or endpoints adds lanes without code changes. Remote lanes are safe to show in demos because pinned files cannot reach them. Lanes on other machines are future work.
+
+## D-2026-10-26-solo: build in solo mode, keep the two-agent protocol ready
+
+- **Context:** Franco may not be available during the hackathon.
+- **Decision:** Luke's agent owns every path, including the frontend. Agent mail over GitHub Issues (`coordination/AGENT_PROTOCOL.md`) is ready for Franco's agent; messages are information, never authority.
+- **Consequences:** No task waits on Franco. When he joins, ownership reverts to `OWNERSHIP.md`.
+
+## D-2026-10-26-demo: hybrid demo, local live and remote at scale on fictional data only
+
+- **Context:** Measured local throughput is about 13 documents per minute on the laptop, so thousands of files take hours locally.
+- **Decision:** The demo shows the 150-file set on local Llama 3 live and a 3,000+ file fictional set with a Meta Model API lane added, narrated honestly. See `docs/SCALING_AND_DEMO_STRATEGY.md`.

@@ -154,3 +154,23 @@ def document_screening(
         "injection": loads(r["injection"], []),
         "pii": loads(r["pii"], []),
     }
+
+
+@router.get("/security/summary")
+def security_summary(conn=Depends(get_conn), _: Principal = Depends(require("system:read"))) -> dict:
+    """Counts for the security view: screening results and recent denials (no document content)."""
+    screen = conn.execute(
+        "SELECT sensitivity, route, COUNT(*) AS n FROM screenings GROUP BY sensitivity, route"
+    ).fetchall()
+    flagged = conn.execute("SELECT COUNT(*) FROM screenings WHERE injection != '[]'").fetchone()[0]
+    denied = conn.execute("SELECT COUNT(*) FROM audit_log WHERE outcome = 'denied'").fetchone()[0]
+    review = conn.execute(
+        "SELECT review_status, COUNT(*) AS n FROM extractions e "
+        "JOIN (SELECT MAX(id) AS id FROM extractions GROUP BY document_id) l ON l.id = e.id GROUP BY review_status"
+    ).fetchall()
+    return {
+        "screenings": [dict(r) for r in screen],
+        "injection_flagged": flagged,
+        "denied_actions": denied,
+        "review": {r["review_status"]: r["n"] for r in review},
+    }

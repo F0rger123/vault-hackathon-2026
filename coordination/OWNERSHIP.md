@@ -2,6 +2,8 @@
 
 Ownership decides who edits a path by default and who must review changes to it. Changes outside your area go through a PR reviewed by the owner.
 
+**Current mode: solo (2026-10-26).** Luke's agent owns every path below, including the ones marked Franco, until Franco's agent announces itself through agent mail (`coordination/AGENT_PROTOCOL.md`). The table describes the two-agent split that applies from then on.
+
 | Path | Owner | Notes |
 |---|---|---|
 | `backend/**` | Luke | API, storage, ingestion, providers, workers, security |
