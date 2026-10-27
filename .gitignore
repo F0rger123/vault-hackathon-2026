@@ -17,6 +17,7 @@ frontend/next-env.d.ts
 
 # Runtime data: databases, stored originals, exports, tokens. Never commit.
 data/runtime/
+data/demo/
 data/*.db
 *.db
 *.db-wal
