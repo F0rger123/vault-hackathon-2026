@@ -179,16 +179,16 @@ function Board({ jobId }: { jobId: number }) {
         className="drafting-grid relative rounded-card border border-line p-3 sm:p-5"
       >
         <SheetCorner job={job.data} />
-        <div className="flex flex-col items-stretch lg:flex-row">
+        <div className="flex flex-col items-stretch xl:flex-row">
           <Station
             title="Coordinator"
             role="Plans the run and hands documents to lanes"
-            className="lg:w-48"
+            className="xl:w-40"
           >
             <CoordinatorBody job={job.data} model={model} />
           </Station>
           <Connector pulse={live(model.security.lastEventId) ? model.security.lastEventId : 0} />
-          <Station title="Security gate" role="Screens every document before a model sees it" className="lg:w-60">
+          <Station title="Security gate" role="Screens every document before a model sees it" className="xl:w-[200px]">
             <SecurityBody model={model} file={file} live={live} />
           </Station>
           <Connector pulse={latestLaneEvent(model, live)} />
@@ -203,7 +203,7 @@ function Board({ jobId }: { jobId: number }) {
             ))}
           </div>
           <Connector pulse={live(model.review.lastEventId) ? model.review.lastEventId : 0} />
-          <Station title="Reviewer" role="Accepts, escalates or flags each result for a person" className="lg:w-60">
+          <Station title="Reviewer" role="Accepts, escalates or flags each result for a person" className="xl:w-[200px]">
             <ReviewerBody model={model} file={file} live={live} />
           </Station>
         </div>
@@ -348,7 +348,7 @@ function Station({
   className?: string;
 }) {
   return (
-    <section aria-label={title} className={cx("min-w-0 shrink-0 self-stretch overflow-hidden rounded-card border border-line bg-panel shadow-panel lg:self-start", className)}>
+    <section aria-label={title} className={cx("min-w-0 shrink-0 self-stretch overflow-hidden rounded-card border border-line bg-panel shadow-panel xl:self-start", className)}>
       <header className="border-b border-line bg-raised/60 px-3.5 py-2.5">
         <h2 className="text-[15px] font-semibold">{title}</h2>
         <p className="text-xs leading-snug text-muted">{role}</p>
@@ -361,15 +361,15 @@ function Station({
 /** Flow line between stations. A dash travels along it only when a new event reaches the next stage. */
 function Connector({ pulse }: { pulse: number }) {
   return (
-    <div aria-hidden className="flex shrink-0 items-center justify-center py-1 text-line-strong lg:w-9 lg:self-start lg:pt-9 lg:py-0">
-      <svg viewBox="0 0 36 12" className="hidden h-3 w-9 lg:block">
+    <div aria-hidden className="flex shrink-0 items-center justify-center py-1 text-line-strong xl:w-9 xl:self-start xl:pt-9 xl:py-0">
+      <svg viewBox="0 0 36 12" className="hidden h-3 w-9 xl:block">
         <line x1="0" y1="6" x2="30" y2="6" stroke="currentColor" strokeWidth="1.2" />
         <path d="M29 2.5 35 6l-6 3.5z" fill="currentColor" />
         {pulse > 0 && (
           <line key={pulse} className="flow-pulse" x1="0" y1="6" x2="30" y2="6" stroke="var(--blue)" strokeWidth="2.4" strokeDasharray="6 18" />
         )}
       </svg>
-      <svg viewBox="0 0 12 28" className="h-7 w-3 lg:hidden">
+      <svg viewBox="0 0 12 28" className="h-7 w-3 xl:hidden">
         <line x1="6" y1="0" x2="6" y2="22" stroke="currentColor" strokeWidth="1.2" />
         <path d="M2.5 21 6 27l3.5-6z" fill="currentColor" />
         {pulse > 0 && (
@@ -478,9 +478,9 @@ function LaneTrack({
   return (
     <section
       aria-label={laneLabel(lane.lane)}
-      className={cx("min-w-0 overflow-hidden rounded-card border bg-panel shadow-panel", lane.blocked ? "border-dashed border-line" : "border-brass/40")}
+      className={cx("@container min-w-0 overflow-hidden rounded-card border bg-panel shadow-panel", lane.blocked ? "border-dashed border-line" : "border-brass/40")}
     >
-      <header className="flex items-start justify-between gap-3 border-b border-line px-3 py-2">
+      <header className="flex flex-col-reverse gap-2 border-b border-line bg-raised/60 px-3.5 py-2.5 @[320px]:flex-row @[320px]:items-start @[320px]:justify-between @[320px]:gap-3">
         <div className="min-w-0">
           <h3 className="text-[15px] font-semibold">
             {laneLabel(lane.lane)} <span className="font-normal">{providerLabel(lane.provider)}</span>
@@ -496,8 +496,8 @@ function LaneTrack({
           </div>
           {locality === "remote" && <p className="mt-1 text-xs text-amber">Document text leaves this machine on this lane.</p>}
         </div>
-        <div className="shrink-0 text-right">
-          <div className="text-2xl font-semibold tabular-nums leading-none">{rate === null ? "..." : rate.toFixed(1)}</div>
+        <div className="flex shrink-0 items-baseline gap-1.5 @[320px]:block @[320px]:text-right">
+          <div className="display text-2xl tabular-nums leading-none">{rate === null ? "..." : rate.toFixed(1)}</div>
           <div className="mt-1 text-xs text-muted">docs/min</div>
         </div>
       </header>
@@ -506,7 +506,7 @@ function LaneTrack({
       ) : (
         <div className="px-3 py-3">
           <ol
-            className={cx("grid gap-1.5", dense ? "grid-cols-[repeat(auto-fill,minmax(64px,1fr))]" : "grid-cols-[repeat(auto-fill,minmax(150px,1fr))]")}
+            className={cx("grid gap-1.5", dense ? "grid-cols-[repeat(auto-fill,minmax(64px,1fr))]" : "grid-cols-[repeat(auto-fill,minmax(130px,1fr))]")}
           >
             {lane.slotStates.map((s, i) => {
               const hit = s.last && live(s.last.id);
@@ -514,9 +514,9 @@ function LaneTrack({
                 <li
                   key={s.last ? `${i}-${s.last.id}` : `${i}-idle`}
                   className={cx(
-                    "min-w-0 border px-2 py-1.5",
-                    s.last ? "border-blue/50" : "border-dashed border-line",
-                    hit ? "slot-hit" : s.last ? "bg-blue/10" : "bg-paper",
+                    "min-w-0 rounded-control border px-2 py-1.5",
+                    s.last ? "border-brass/40" : "border-dashed border-line",
+                    hit ? "slot-hit" : s.last ? "bg-brass/10" : "bg-paper",
                   )}
                   title={s.last ? `${file(s.last.document_id)}: ${describeEvent(s.last, file)}` : undefined}
                 >
