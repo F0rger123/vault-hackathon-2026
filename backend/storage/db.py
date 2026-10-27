@@ -169,6 +169,40 @@ MIGRATIONS: list[str] = [
         created_at REAL NOT NULL
     );
     """,
+    # 3: multi-agent orchestration, security screening, teach-by-example
+    """
+    CREATE TABLE agent_events (
+        id INTEGER PRIMARY KEY,
+        job_id INTEGER NOT NULL REFERENCES jobs(id),
+        ts REAL NOT NULL,
+        agent TEXT NOT NULL,
+        document_id INTEGER,
+        action TEXT NOT NULL,
+        outcome TEXT NOT NULL,
+        detail TEXT NOT NULL DEFAULT '{}'
+    );
+    CREATE INDEX agent_events_job ON agent_events(job_id, id);
+    CREATE TABLE screenings (
+        document_id INTEGER PRIMARY KEY REFERENCES documents(id),
+        sensitivity TEXT NOT NULL CHECK (sensitivity IN ('none', 'internal', 'restricted')),
+        markings TEXT NOT NULL DEFAULT '[]',
+        injection TEXT NOT NULL DEFAULT '[]',
+        pii TEXT NOT NULL DEFAULT '[]',
+        route TEXT NOT NULL CHECK (route IN ('any', 'local_only')),
+        screened_at REAL NOT NULL
+    );
+    CREATE TABLE examples (
+        id INTEGER PRIMARY KEY,
+        document_id INTEGER NOT NULL REFERENCES documents(id),
+        labels TEXT NOT NULL,
+        note TEXT,
+        created_by INTEGER REFERENCES users(id),
+        created_at REAL NOT NULL,
+        UNIQUE (document_id)
+    );
+    ALTER TABLE extractions ADD COLUMN review_status TEXT NOT NULL DEFAULT 'unreviewed';
+    ALTER TABLE extractions ADD COLUMN lane TEXT;
+    """,
 ]
 
 

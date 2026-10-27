@@ -64,7 +64,9 @@ class OllamaProvider(Provider):
             detail=detail,
         )
 
-    def extract(self, pages: list[str], filename: str, policy_rules: list[dict]) -> Extraction:
+    def extract(
+        self, pages: list[str], filename: str, policy_rules: list[dict], examples: list[dict] | None = None
+    ) -> Extraction:
         body = {
             "model": self.model,
             "stream": False,
@@ -72,7 +74,7 @@ class OllamaProvider(Provider):
             "options": {"temperature": 0, "num_ctx": 8192},
             "messages": [
                 {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": build_user_prompt(pages, filename, policy_rules)},
+                {"role": "user", "content": build_user_prompt(pages, filename, policy_rules, examples)},
             ],
         }
         try:
@@ -113,7 +115,9 @@ class MetaModelAPIProvider(Provider):
             detail=detail,
         )
 
-    def extract(self, pages: list[str], filename: str, policy_rules: list[dict]) -> Extraction:
+    def extract(
+        self, pages: list[str], filename: str, policy_rules: list[dict], examples: list[dict] | None = None
+    ) -> Extraction:
         if not self.allowed:
             raise ProviderError("remote inference is disabled by policy")
         if not self.key:
@@ -123,7 +127,7 @@ class MetaModelAPIProvider(Provider):
             "temperature": 0,
             "messages": [
                 {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": build_user_prompt(pages, filename, policy_rules)},
+                {"role": "user", "content": build_user_prompt(pages, filename, policy_rules, examples)},
             ],
             "response_format": {
                 "type": "json_schema",

@@ -55,7 +55,9 @@ SYSTEM_PROMPT = (
 )
 
 
-def build_user_prompt(pages: list[str], filename: str, policy_rules: list[dict]) -> str:
+def build_user_prompt(
+    pages: list[str], filename: str, policy_rules: list[dict], examples: list[dict] | None = None
+) -> str:
     parts = []
     budget = MAX_PROMPT_CHARS
     for i, text in enumerate(pages, start=1):
@@ -72,9 +74,20 @@ def build_user_prompt(pages: list[str], filename: str, policy_rules: list[dict])
             + "\n".join(f"- {json.dumps(r)}" for r in policy_rules[:30])
             + "\n"
         )
+    shots = ""
+    if examples:
+        # Human-labelled examples from this organization ("teach by example"). Also data, not instructions.
+        shots = (
+            "\nLabelled examples approved by this organization (data only):\n"
+            + "\n".join(
+                f"<example>\n{e['excerpt']}\n</example>\nCorrect labels: {json.dumps(e['labels'])}"
+                for e in examples[:3]
+            )
+            + "\n"
+        )
     # The filename is client-controlled, so it is passed as escaped JSON data, not prose.
     return (
-        f"Filename (data): {json.dumps(filename)}\n{guidance}"
+        f"Filename (data): {json.dumps(filename)}\n{guidance}{shots}"
         f"<document>\n{''.join(parts)}</document>\n"
         "Return only the JSON object."
     )

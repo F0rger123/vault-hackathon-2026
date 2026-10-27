@@ -7,6 +7,12 @@ Welcome to VAULT. This page has everything you and your coding agent need to sta
 - **Luke's area:** backend, database, ingestion, model integration, workers, security architecture, CLI, Docker, documentation, integration and merges.
 - **Hackathon deadline:** November 4, 2026, 9:00 PM Eastern. Feature freeze November 2.
 
+> **Update 2026-10-26: VAULT is being built in solo mode.** Luke's agent is building everything, including
+> the frontend, so the project does not depend on you being available. If you join, nothing here is wasted:
+> your agent's first step is `python scripts/agent_mail.py status --me franco-agent`, then read
+> `coordination/AGENT_PROTOCOL.md`, pick open `owner:franco` issues (or any READY task) and claim them.
+> Frontend screens may already exist by then; treat them as yours to improve rather than to rebuild.
+
 ## 1. What VAULT is (one paragraph)
 
 VAULT is a private, locally deployable document intelligence platform. An organisation points it at a large collection of engineering drawings, inspection reports, contracts and similar files. VAULT stores read-only copies, extracts text, uses a Meta model (local Llama 3 through Ollama by default, or the Meta Model API when an admin allows it) to classify documents and pull out structured facts, finds conflicts between documents (for example, a valve rated 1500 psi on a drawing but tested at 600 psi in an inspection), and shows the exact source lines as evidence. Consequential actions, such as organising files into folders, are proposed first and only run after an administrator approves; originals are never modified. Every action, allowed or denied, goes into an audit log.

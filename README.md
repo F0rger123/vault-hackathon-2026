@@ -36,13 +36,17 @@ Document text stays on the machine unless an administrator deliberately turns on
 
 All data shown is fictional, produced by the project's own synthetic dataset generator.
 
-| Dashboard with verified findings | Phone |
+| Live run board: coordinator, security gate, model lanes, reviewer | Phone |
 |---|---|
-| <img src="docs/screenshots/dashboard.jpg" alt="VAULT dashboard listing pressure-rating conflicts with source quotes" width="640"> | <img src="docs/screenshots/dashboard-phone.jpg" alt="VAULT dashboard on a phone" width="220"> |
+| <img src="docs/screenshots/run-board.jpg" alt="Live run board showing documents flowing from the coordinator through the security gate to a local Llama lane and the reviewer" width="640"> | <img src="docs/screenshots/run-board-phone.jpg" alt="Run board on a phone" width="200"> |
 
-| Token sign-in | API (OpenAPI) |
+| Findings drawn as redlines, every quote checked | Set up a run: teach, check the machine, choose lanes |
 |---|---|
-| <img src="docs/screenshots/sign-in.jpg" alt="Sign-in screen asking for an API token" width="420"> | <img src="docs/screenshots/api-docs.jpg" alt="Interactive API documentation" width="420"> |
+| <img src="docs/screenshots/investigate.jpg" alt="Pressure-rating conflicts with verified quotes from drawings and inspection reports" width="420"> | <img src="docs/screenshots/setup.jpg" alt="Set-up steps for examples, hardware and model lanes" width="420"> |
+
+| Overview | Approvals | Security and audit |
+|---|---|---|
+| <img src="docs/screenshots/overview.jpg" alt="Overview with privacy posture and latest findings" width="280"> | <img src="docs/screenshots/approvals.jpg" alt="Organize proposal previewed as a folder tree awaiting approval" width="280"> | <img src="docs/screenshots/security.jpg" alt="Remote inference switch, screening summary and audit log" width="280"> |
 
 ## How it works
 
@@ -85,7 +89,8 @@ Built and tested today, on the first day of the event:
 | Corrections and versioned rules | Working | integration test |
 | Approval workflow and copy-only export | Working | integration and security tests |
 | Security cases S1–S10 | Passing | `tests/security` |
-| Dashboard | Scaffold | Franco takes over the UI |
+| Web interface: overview, set-up, live run board, investigate, approvals, security | Working | lint, type check and build pass; checked against the live API |
+| Coordinator, security and review agents with parallel model lanes | Working | `tests/integration/test_agents.py`; 3,700-file run |
 
 The heuristic baseline is a rule-based extractor kept for comparison and offline tests. It is labelled "not an AI model" everywhere it appears. Detailed plans live in [docs/MASTER_BLUEPRINT.md](docs/MASTER_BLUEPRINT.md) and [coordination/TASKS.md](coordination/TASKS.md).
 

@@ -1,48 +1,170 @@
 @import "tailwindcss";
 
-/* VAULT design tokens. Franco owns the visual system; extend tokens here rather than hard-coding colors. */
+/*
+  VAULT design tokens: engineering drawing sheet / records vault.
+  Components use these tokens only (bg-panel, text-ink, border-line, text-redline ...); never hard-coded hex.
+  Redline red is reserved for conflicts and denials.
+*/
 :root {
-  --canvas: #f6f7f9;
+  --paper: #eef2f3;
   --panel: #ffffff;
-  --line: #dde1e7;
-  --fg: #111827;
-  --muted: #5b6474;
-  --accent: #2f5bd3;
-  --ok: #157a4a;
-  --warn: #a15c07;
-  --bad: #b42318;
+  --ink: #14213d;
+  --muted: #5a6577;
+  --line: #c9d3da;
+  --line-strong: #14213d;
+  --blue: #1f5fad;
+  --on-blue: #ffffff;
+  --redline: #c8102e;
+  --amber: #b7791f;
+  --green: #2f7d4f;
+  --grid: color-mix(in srgb, #1f5fad 7%, transparent);
+  color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --canvas: #0d1117;
-    --panel: #151b23;
-    --line: #2a3340;
-    --fg: #e6e9ee;
-    --muted: #8b95a5;
-    --accent: #5b8cff;
-    --ok: #3fb97b;
-    --warn: #e0a43a;
-    --bad: #f0645a;
+    --paper: #0e1a2b;
+    --panel: #13243a;
+    --ink: #dce8f2;
+    --muted: #94a8bf;
+    --line: #2b4462;
+    --line-strong: #6f8fb3;
+    --blue: #6aa6ee;
+    --on-blue: #0e1a2b;
+    --redline: #ff6b7d;
+    --amber: #e7ae55;
+    --green: #62c78e;
+    --grid: color-mix(in srgb, #6aa6ee 8%, transparent);
+    color-scheme: dark;
   }
 }
 
 @theme inline {
-  --color-canvas: var(--canvas);
+  --color-paper: var(--paper);
   --color-panel: var(--panel);
-  --color-line: var(--line);
-  --color-fg: var(--fg);
+  --color-ink: var(--ink);
   --color-muted: var(--muted);
-  --color-accent: var(--accent);
-  --color-ok: var(--ok);
-  --color-warn: var(--warn);
-  --color-bad: var(--bad);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-blue: var(--blue);
+  --color-on-blue: var(--on-blue);
+  --color-redline: var(--redline);
+  --color-amber: var(--amber);
+  --color-green: var(--green);
+  --font-sans: var(--font-archivo), system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+}
+
+html,
+body {
+  background: var(--paper);
+  color: var(--ink);
 }
 
 body {
-  background: var(--canvas);
-  color: var(--fg);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--font-archivo), system-ui, sans-serif;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Visible keyboard focus everywhere. */
+:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--blue) 25%, transparent);
+}
+
+/* Drafting grid used on the live run board sheet. */
+.drafting-grid {
+  background-color: var(--panel);
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Motion happens only when a real event arrives; the element is re-keyed per event. */
+@keyframes slot-hit {
+  0% {
+    background-color: var(--blue);
+    color: var(--on-blue);
+  }
+  100% {
+    background-color: color-mix(in srgb, var(--blue) 10%, var(--panel));
+    color: var(--ink);
+  }
+}
+.slot-hit {
+  animation: slot-hit 1.4s ease-out both;
+}
+
+@keyframes tick-in {
+  0% {
+    background-color: color-mix(in srgb, var(--blue) 18%, transparent);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+.tick-in {
+  animation: tick-in 1.6s ease-out both;
+}
+
+@keyframes bump {
+  0% {
+    transform: translateY(-3px);
+    color: var(--blue);
+  }
+  100% {
+    transform: none;
+  }
+}
+.bump {
+  display: inline-block;
+  animation: bump 0.6s ease-out both;
+}
+
+@keyframes flow {
+  0% {
+    stroke-dashoffset: 24;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+.flow-pulse {
+  animation: flow 0.9s linear 2;
+}
+
+@keyframes drawer-in {
+  from {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+.drawer-in {
+  animation: drawer-in 0.18s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+mark {
+  background: color-mix(in srgb, var(--amber) 28%, transparent);
+  color: inherit;
+  padding: 0 1px;
 }
