@@ -65,11 +65,11 @@ export function FindingRedline({
   const hidden = groups.reduce((n, g) => n + Math.max(0, g.items.length - 2), 0);
   const docs = new Set(finding.evidence.map((e) => e.document_id)).size;
   return (
-    <article className="min-w-0 border border-line bg-panel">
+    <article className="min-w-0 overflow-hidden rounded-card border border-line border-l-2 border-l-redline bg-panel shadow-panel">
       <header className="flex flex-wrap items-start justify-between gap-2 border-b border-line px-4 py-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <h3 className="font-mono text-base font-medium">{finding.key}</h3>
+            <h3 className="font-mono text-[17px] font-medium tracking-tight">{finding.key}</h3>
             <span className="text-sm text-muted">{KIND_TEXT[finding.kind] ?? humanize(finding.kind)}</span>
           </div>
           <p className="mt-1 text-sm">

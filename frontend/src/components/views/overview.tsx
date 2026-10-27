@@ -7,7 +7,7 @@ import { useLoad } from "@/lib/use-load";
 import { FindingRedline } from "../finding-redline";
 import { useSession } from "../session";
 import { TitleBlock } from "../title-block";
-import { Empty, Figure, LoadError, Meter, Panel, Tag } from "../ui";
+import { cx, Empty, Figure, LoadError, Meter, Panel, Tag } from "../ui";
 
 export function OverviewView() {
   const { collection, stats } = useSession();
@@ -27,8 +27,8 @@ export function OverviewView() {
         description="What is in this vault, where its documents can go, and what the agents have found."
       />
 
-      <section aria-label="Collection figures" className="mb-6 border border-line bg-panel">
-        <div className="grid grid-cols-2 gap-px bg-line sm:grid-cols-4 xl:grid-cols-7">
+      <section aria-label="Collection figures" className="mb-8">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">
           {[
             ["Documents", stats ? formatNumber(stats.documents) : "..."],
             ["Processed", stats ? formatNumber(stats.processed) : "..."],
@@ -38,14 +38,22 @@ export function OverviewView() {
             ["Active runs", stats ? formatNumber(stats.jobs_active) : "..."],
             ["Waiting for approval", stats ? formatNumber(stats.proposals_pending) : "..."],
           ].map(([label, value], i, all) => (
-            <div key={label} className={i === all.length - 1 ? "col-span-2 bg-panel px-4 py-3 sm:col-span-1" : "bg-panel px-4 py-3"}>
+            <div
+              key={label}
+              className={cx(
+                "rounded-card border border-line bg-panel px-4 py-4 shadow-panel",
+                i === all.length - 1 && "col-span-2 sm:col-span-1",
+                label === "Findings" && "border-redline/30",
+                label === "Active runs" && "border-accent/40",
+              )}
+            >
               <Figure label={label} value={value} />
             </div>
           ))}
         </div>
       </section>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
         <div className="flex min-w-0 flex-col gap-6">
           <Panel
             title="Runs"
@@ -69,10 +77,10 @@ export function OverviewView() {
             </ul>
             {recent.length > 0 && (
               <>
-                <h3 className="mt-5 mb-2 text-sm font-semibold">Finished recently</h3>
+                <h3 className="mt-6 mb-2 text-[13px] font-medium text-muted">Finished recently</h3>
                 <ul className="border-t border-line text-sm">
                   {recent.map((j) => (
-                    <li key={j.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-line py-2">
+                    <li key={j.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-line py-2.5 last:border-b-0">
                       <Link href={`/run?job=${j.id}`} className="font-medium text-blue underline-offset-4 hover:underline">
                         Run {j.id}
                       </Link>
@@ -117,16 +125,16 @@ function RunRow({ job }: { job: Job }) {
   const lanes = job.params.lanes ?? (job.params.provider ? [{ provider: job.params.provider, concurrency: job.workers }] : []);
   const finished = job.done + job.failed;
   return (
-    <li className="border border-line px-4 py-3">
+    <li className="rounded-card border border-accent/30 bg-raised px-4 py-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <span aria-hidden className="h-2 w-2 rounded-full bg-blue" />
-          <span className="font-semibold">Run {job.id}</span>
+          <span aria-hidden className="live-dot h-2 w-2 rounded-full bg-accent text-accent" />
+          <span className="display text-[17px]">Run {job.id}</span>
           <span className="text-sm text-muted">{statusText(job.status)}</span>
         </div>
         <Link
           href={`/run?job=${job.id}`}
-          className="rounded-[3px] border border-blue px-3 py-1 text-sm font-medium text-blue hover:bg-blue/10"
+          className="rounded-control border border-accent bg-accent px-3.5 py-1.5 text-sm font-semibold text-on-accent hover:brightness-110"
         >
           Open the live board
         </Link>
@@ -157,10 +165,10 @@ function PrivacyPosture({
       <LoadError error={error} status={status} what="model providers" />
       {data && (
         <>
-          <div className="border-b border-line pb-4">
+          <div className={cx("-mx-5 -mt-5 mb-1 border-b border-line px-5 py-4", data.allow_remote_inference ? "bg-amber/10" : "bg-green/10")}>
             {data.allow_remote_inference ? (
               <>
-                <p className="font-semibold text-amber">Remote inference is on</p>
+                <p className="display text-[17px] text-amber">Remote inference is on</p>
                 <p className="mt-1 text-sm text-muted">
                   Lanes that use a remote model send document text off this machine. Documents with markings or
                   personal data still stay on local models.
@@ -168,7 +176,7 @@ function PrivacyPosture({
               </>
             ) : (
               <>
-                <p className="font-semibold text-green">Remote inference is off</p>
+                <p className="display text-[17px] text-green">Remote inference is off</p>
                 <p className="mt-1 text-sm text-muted">
                   Every document is read on this machine. Only an administrator can turn remote models on, on the
                   Security sheet.

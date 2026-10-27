@@ -1,17 +1,15 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { SHEET_COUNT, sheetNumber } from "./app-shell";
 import { useSession } from "./session";
 
 /**
- * Page header drawn as an engineering drawing title block: a thin ruled box with
- * the sheet name, the collection in view, the signed-in user and the sheet number.
+ * Page header: an expanded title with one line of context, the collection in view, and the page's actions.
+ * `href` is kept so callers stay unchanged; the header no longer prints a sheet number.
  */
 export function TitleBlock({
   title,
   description,
-  href,
   actions,
   collectionLabel,
 }: {
@@ -21,37 +19,20 @@ export function TitleBlock({
   actions?: ReactNode;
   collectionLabel?: string;
 }) {
-  const { me, collection } = useSession();
-  const sheet = sheetNumber(href);
+  const { collection } = useSession();
   return (
-    <header className="mb-6 border border-line-strong bg-panel">
-      <div className="grid grid-cols-2 md:grid-cols-[minmax(0,1fr)_auto_auto_auto]">
-        <div className="col-span-2 flex min-w-0 flex-wrap items-center justify-between gap-3 border-b border-line-strong px-4 py-3 md:col-span-1 md:border-b-0 md:border-r">
-          <div className="min-w-0">
-            <h1 className="text-xl font-semibold leading-tight sm:text-2xl">{title}</h1>
-            {description && <p className="mt-1 max-w-2xl text-sm text-muted">{description}</p>}
-          </div>
-          {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
-        </div>
-        <Cell label="Collection" className="border-r border-line-strong">
-          {collectionLabel ?? collection?.name ?? "None selected"}
-        </Cell>
-        <Cell label="Signed in as" className="md:border-r md:border-line-strong">
-          {me.username} <span className="text-muted">({me.role})</span>
-        </Cell>
-        <Cell label="Sheet" className="col-span-2 border-t border-line-strong md:col-span-1 md:border-t-0">
-          {sheet > 0 ? `${sheet} of ${SHEET_COUNT}` : "Detail"}
-        </Cell>
+    <header className="mb-8 flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
+      <div className="min-w-0 max-w-3xl">
+        <p className="mb-2 flex items-center gap-2 text-[13px] text-muted">
+          <svg aria-hidden viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.4">
+            <path d="M2.5 4.5h4l1.5 1.5h5.5v6.5h-11z" strokeLinejoin="round" />
+          </svg>
+          <span className="truncate">{collectionLabel ?? collection?.name ?? "No collection selected"}</span>
+        </p>
+        <h1 className="display text-balance text-[29px] leading-[1.1] sm:text-[35px]">{title}</h1>
+        {description && <div className="mt-2 text-[15px] leading-relaxed text-muted">{description}</div>}
       </div>
+      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </header>
-  );
-}
-
-function Cell({ label, children, className }: { label: string; children: ReactNode; className?: string }) {
-  return (
-    <div className={`min-w-0 px-4 py-2 md:max-w-64 md:py-3 ${className ?? ""}`}>
-      <div className="text-xs text-muted">{label}</div>
-      <div className="mt-0.5 truncate text-sm font-medium">{children}</div>
-    </div>
   );
 }

@@ -166,7 +166,7 @@ export function SessionGate({
     );
   if (state.phase === "signed_out") return <>{signIn({ onSignedIn: refresh, message: state.message })}</>;
   return (
-    <div className="mx-auto mt-24 max-w-md border border-line bg-panel p-6 text-sm" role="alert">
+    <div className="mx-auto mt-24 max-w-md rounded-card border border-line bg-panel p-6 text-sm" role="alert">
       <h1 className="text-lg font-semibold">VAULT can&apos;t reach its server</h1>
       <p className="mt-2 text-muted">{state.message}</p>
       <button className="mt-4 text-blue underline underline-offset-4" onClick={refresh}>

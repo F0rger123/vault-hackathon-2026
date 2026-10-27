@@ -7,9 +7,9 @@ export function cx(...parts: (string | false | null | undefined)[]): string {
 type Variant = "primary" | "secondary" | "danger" | "quiet";
 
 const VARIANTS: Record<Variant, string> = {
-  primary: "bg-blue text-on-blue border-blue hover:brightness-110",
-  secondary: "bg-panel text-ink border-line hover:border-ink",
-  danger: "bg-panel text-redline border-redline hover:bg-redline/10",
+  primary: "bg-accent text-on-accent border-accent font-semibold hover:brightness-110 active:brightness-95",
+  secondary: "bg-raised text-ink border-line-strong hover:border-muted hover:bg-panel",
+  danger: "bg-redline/10 text-redline border-redline/50 hover:bg-redline/20",
   quiet: "bg-transparent text-blue border-transparent hover:underline underline-offset-4 px-1",
 };
 
@@ -26,7 +26,7 @@ export function Button({
       disabled={rest.disabled || busy}
       aria-busy={busy || undefined}
       className={cx(
-        "inline-flex min-h-9 items-center justify-center gap-2 rounded-[3px] border px-3 py-1.5 text-sm font-medium transition-colors",
+        "inline-flex min-h-9 items-center justify-center gap-2 rounded-control border px-3.5 py-1.5 text-sm font-medium transition-[background-color,border-color,filter] duration-150",
         "disabled:cursor-not-allowed disabled:opacity-50",
         VARIANTS[variant],
         className,
@@ -53,32 +53,32 @@ export function Panel({
   id?: string;
 }) {
   return (
-    <section id={id} className={cx("min-w-0 border border-line bg-panel", className)}>
+    <section id={id} className={cx("min-w-0 rounded-card border border-line bg-panel shadow-panel", className)}>
       {title !== undefined && (
-        <header className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-line px-4 py-2.5">
-          <h2 className="text-[15px] font-semibold">{title}</h2>
+        <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-line px-5 py-3.5">
+          <h2 className="text-[15px] font-semibold tracking-[-0.005em]">{title}</h2>
           {aside && <div className="text-sm text-muted">{aside}</div>}
         </header>
       )}
-      <div className={cx("p-4", bodyClassName)}>{children}</div>
+      <div className={cx("p-5", bodyClassName)}>{children}</div>
     </section>
   );
 }
 
 type Tone = "neutral" | "blue" | "green" | "amber" | "red";
 const TONES: Record<Tone, string> = {
-  neutral: "border-line text-muted",
-  blue: "border-blue/50 text-blue",
-  green: "border-green/50 text-green",
-  amber: "border-amber/60 text-amber",
-  red: "border-redline/60 text-redline",
+  neutral: "border-line-strong/60 bg-raised text-muted",
+  blue: "border-blue/25 bg-blue/10 text-blue",
+  green: "border-green/25 bg-green/10 text-green",
+  amber: "border-amber/30 bg-amber/10 text-amber",
+  red: "border-redline/30 bg-redline/10 text-redline",
 };
 
 export function Tag({ tone = "neutral", children, className }: { tone?: Tone; children: ReactNode; className?: string }) {
   return (
     <span
       className={cx(
-        "inline-flex items-center gap-1 whitespace-nowrap rounded-[3px] border px-1.5 py-px text-xs font-medium",
+        "inline-flex items-center gap-1 whitespace-nowrap rounded-control border px-2 py-0.5 text-xs font-medium",
         TONES[tone],
         className,
       )}
@@ -119,7 +119,7 @@ export function Notice({
   return (
     <div
       role={tone === "error" || tone === "denied" ? "alert" : "status"}
-      className={cx("border border-line border-l-4 bg-panel px-3 py-2 text-sm", bar, className)}
+      className={cx("rounded-control border border-line border-l-4 bg-raised px-3.5 py-2.5 text-sm", bar, className)}
     >
       {children}
     </div>
@@ -143,7 +143,7 @@ export function LoadError({ error, status, what }: { error: string | null; statu
 }
 
 export function Empty({ children }: { children: ReactNode }) {
-  return <p className="border border-dashed border-line px-4 py-6 text-sm text-muted">{children}</p>;
+  return <p className="rounded-card border border-dashed border-line-strong px-5 py-8 text-center text-sm text-muted">{children}</p>;
 }
 
 export function Meter({ value, max, tone = "blue", label }: { value: number; max: number; tone?: "blue" | "green"; label: string }) {
@@ -155,9 +155,9 @@ export function Meter({ value, max, tone = "blue", label }: { value: number; max
       aria-valuemin={0}
       aria-valuemax={max}
       aria-valuenow={value}
-      className="h-2 w-full border border-line bg-paper"
+      className="h-1.5 w-full overflow-hidden rounded-full bg-raised ring-1 ring-line"
     >
-      <div className={cx("h-full transition-[width] duration-500", tone === "blue" ? "bg-blue" : "bg-green")} style={{ width: `${pct}%` }} />
+      <div className={cx("h-full rounded-full transition-[width] duration-500", tone === "blue" ? "bg-accent" : "bg-accent/70")} style={{ width: `${pct}%` }} />
     </div>
   );
 }
@@ -165,7 +165,7 @@ export function Meter({ value, max, tone = "blue", label }: { value: number; max
 export function Field({ label, hint, children, htmlFor }: { label: string; hint?: ReactNode; children: ReactNode; htmlFor?: string }) {
   return (
     <div className="flex min-w-0 flex-col gap-1">
-      <label htmlFor={htmlFor} className="text-sm font-medium">
+      <label htmlFor={htmlFor} className="text-[13px] font-medium text-ink">
         {label}
       </label>
       {children}
@@ -175,15 +175,15 @@ export function Field({ label, hint, children, htmlFor }: { label: string; hint?
 }
 
 export const inputClass =
-  "min-h-9 w-full min-w-0 rounded-[3px] border border-line bg-panel px-2.5 py-1.5 text-sm text-ink placeholder:text-muted focus-visible:border-blue";
+  "min-h-9 w-full min-w-0 rounded-control border border-line-strong bg-raised px-3 py-1.5 text-sm text-ink placeholder:text-muted hover:border-muted focus-visible:border-accent";
 
 export function Figure({ label, value, tone }: { label: string; value: ReactNode; tone?: "red" | "amber" | "green" }) {
   return (
     <div className="min-w-0">
-      <div className="text-xs text-muted">{label}</div>
+      <div className="text-[13px] text-muted">{label}</div>
       <div
         className={cx(
-          "mt-0.5 text-2xl font-semibold tabular-nums",
+          "display mt-1 whitespace-nowrap text-[26px] leading-none tabular-nums",
           tone === "red" && "text-redline",
           tone === "amber" && "text-amber",
           tone === "green" && "text-green",

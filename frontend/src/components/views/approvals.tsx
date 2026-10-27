@@ -79,7 +79,7 @@ export function ApprovalsView() {
                     aria-pressed={pattern === p}
                     onClick={() => setPattern(p)}
                     className={cx(
-                      "rounded-[3px] border px-1.5 py-0.5 font-mono text-[12px]",
+                      "rounded-control border px-1.5 py-0.5 font-mono text-[12px]",
                       pattern === p ? "border-blue text-blue" : "border-line text-muted hover:text-ink",
                     )}
                   >
@@ -179,7 +179,7 @@ function ProposalCard({ p, canDecide, onDecided }: { p: Proposal; canDecide: boo
       )}
       {p.status === "rejected" && p.decided_at && <p className="mt-2 text-sm text-muted">Rejected {dateTime(p.decided_at)}. Nothing was copied.</p>}
 
-      <details className="mt-3 border border-line" open={p.status === "pending"}>
+      <details className="mt-3 overflow-hidden rounded-control border border-line" open={p.status === "pending"}>
         <summary className="cursor-pointer px-3 py-2 text-sm font-medium">
           {p.status === "pending" ? "Preview the new layout" : "Layout"}
         </summary>

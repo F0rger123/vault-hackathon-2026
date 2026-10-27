@@ -6,11 +6,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/F0rger123/vault-hackathon-2026/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/F0rger123/vault-hackathon-2026/ci.yml?branch=main&style=flat-square&label=CI&labelColor=14213d&color=2f7d4f"></a>
-  <img alt="Meta Llama on this machine" src="https://img.shields.io/badge/reads%20with-Meta%20Llama%203%20%C2%B7%20local-1f5fad?style=flat-square&labelColor=14213d">
-  <img alt="Conflicts found" src="https://img.shields.io/badge/planted%20conflicts%20found-10%20of%2010-c8102e?style=flat-square&labelColor=14213d">
-  <img alt="Stack" src="https://img.shields.io/badge/stack-FastAPI%20%C2%B7%20SQLite%20FTS5%20%C2%B7%20Next.js-5a6577?style=flat-square&labelColor=14213d">
-  <img alt="Meta Global AI Developer Hackathon 2026" src="https://img.shields.io/badge/Meta%20Global%20AI%20Hackathon-2026%20%C2%B7%20Indie-b7791f?style=flat-square&labelColor=14213d">
+  <a href="https://github.com/F0rger123/vault-hackathon-2026/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/F0rger123/vault-hackathon-2026/ci.yml?branch=main&style=flat-square&label=CI&labelColor=0a0a0a&color=2f7d4f"></a>
+  <img alt="Meta Llama on this machine" src="https://img.shields.io/badge/reads%20with-Meta%20Llama%203%20%C2%B7%20local-f5f5f5?style=flat-square&labelColor=0a0a0a">
+  <img alt="Conflicts found" src="https://img.shields.io/badge/planted%20conflicts%20found-10%20of%2010-f0525f?style=flat-square&labelColor=0a0a0a">
+  <img alt="Stack" src="https://img.shields.io/badge/stack-FastAPI%20%C2%B7%20SQLite%20FTS5%20%C2%B7%20Next.js-8c8c8c?style=flat-square&labelColor=0a0a0a">
+  <img alt="Meta Global AI Developer Hackathon 2026" src="https://img.shields.io/badge/Meta%20Global%20AI%20Hackathon-2026%20%C2%B7%20Indie-f5f5f5?style=flat-square&labelColor=0a0a0a">
 </p>
 
 <h3 align="center">Point it at a drawer full of drawings, inspection reports and contracts.<br>It reads every page, proves every fact with a quote, and redlines the places where your documents disagree.<br>Nothing leaves the machine.</h3>
