@@ -1,67 +1,69 @@
 @import "tailwindcss";
 
 /*
-  VAULT design tokens: vault steel console (see frontend/DESIGN.md).
+  VAULT design tokens: monochrome console (see frontend/DESIGN.md).
   Components use these tokens only (bg-panel, text-ink, border-line, text-redline ...); never hard-coded hex.
-  Brass is reserved for primary actions, focus and the active state. Redline red is reserved for conflicts and denials.
+  The accent is plain ink (white on black, black on white) and marks primary actions, focus and the active state. Redline red is reserved for conflicts and denials.
   Dark is the default; light is opt-in through html[data-theme="light"].
 */
 :root {
-  --paper: #0b0f14;
-  --rail: #080b0f;
-  --panel: #121921;
-  --raised: #19222d;
-  --ink: #e7ecf2;
-  --muted: #8e9bab;
-  --line: #24303d;
-  --line-strong: #344354;
-  --brass: #d9a54a;
-  --on-brass: #1a1206;
-  --blue: #6fa8ff;
-  --on-blue: #08111f;
-  --redline: #ff5a6a;
-  --amber: #f0903f;
-  --green: #4cc98a;
-  --grid: color-mix(in srgb, #6fa8ff 6%, transparent);
-  --highlight: inset 0 1px 0 rgb(255 255 255 / 0.04);
-  --lift: 0 0 0 1px rgb(0 0 0 / 0.2), 0 12px 32px -12px rgb(0 0 0 / 0.6);
+  --paper: #050505;
+  --rail: #000000;
+  --panel: #0c0c0c;
+  --raised: #141414;
+  --ink: #f5f5f5;
+  --muted: #8c8c8c;
+  --line: #1f1f1f;
+  --line-strong: #2e2e2e;
+  --accent: #f5f5f5;
+  --on-accent: #050505;
+  --blue: #c4d0e0;
+  --on-blue: #050505;
+  --redline: #f0525f;
+  --amber: #d9a25c;
+  --green: #6cc497;
+  --grid: rgb(255 255 255 / 0.035);
+  --glow: rgb(255 255 255 / 0.045);
+  --highlight: inset 0 1px 0 rgb(255 255 255 / 0.035);
+  --lift: 0 0 0 1px rgb(255 255 255 / 0.06), 0 24px 48px -16px rgb(0 0 0 / 0.8);
   color-scheme: dark;
 }
 
 :root[data-theme="light"] {
-  --paper: #eceef1;
-  --rail: #10161d;
+  --paper: #fafafa;
+  --rail: #000000;
   --panel: #ffffff;
-  --raised: #f5f6f8;
-  --ink: #121a24;
-  --muted: #5b6676;
-  --line: #dde1e6;
-  --line-strong: #c3cad3;
-  --brass: #9a6a14;
-  --on-brass: #ffffff;
-  --blue: #1f5fbf;
+  --raised: #f4f4f4;
+  --ink: #0a0a0a;
+  --muted: #6b6b6b;
+  --line: #e6e6e6;
+  --line-strong: #d0d0d0;
+  --accent: #0a0a0a;
+  --on-accent: #ffffff;
+  --blue: #2a3b55;
   --on-blue: #ffffff;
   --redline: #c8102e;
-  --amber: #b45309;
+  --amber: #a35a00;
   --green: #1f7a4a;
-  --grid: color-mix(in srgb, #1f5fbf 6%, transparent);
-  --highlight: 0 1px 2px rgb(18 26 36 / 0.05), 0 4px 12px rgb(18 26 36 / 0.04);
-  --lift: 0 1px 2px rgb(18 26 36 / 0.08), 0 16px 40px -16px rgb(18 26 36 / 0.3);
+  --grid: rgb(0 0 0 / 0.035);
+  --glow: rgb(0 0 0 / 0.03);
+  --highlight: 0 1px 2px rgb(0 0 0 / 0.04);
+  --lift: 0 1px 2px rgb(0 0 0 / 0.06), 0 24px 48px -20px rgb(0 0 0 / 0.25);
   color-scheme: light;
 }
 
-/* The side rail stays dark steel in both themes. */
+/* The side rail stays black in both themes. */
 .rail-scope {
-  --paper: #080b0f;
-  --panel: #10161d;
-  --raised: #161e27;
-  --ink: #e7ecf2;
-  --muted: #8a97a7;
-  --line: #1f2934;
-  --line-strong: #2e3a48;
-  --brass: #d9a54a;
-  --on-brass: #1a1206;
-  --blue: #6fa8ff;
+  --paper: #000000;
+  --panel: #0a0a0a;
+  --raised: #141414;
+  --ink: #f5f5f5;
+  --muted: #858585;
+  --line: #1c1c1c;
+  --line-strong: #2a2a2a;
+  --accent: #f5f5f5;
+  --on-accent: #000000;
+  --blue: #c4d0e0;
   color-scheme: dark;
   color: var(--ink);
 }
@@ -75,15 +77,15 @@
   --color-muted: var(--muted);
   --color-line: var(--line);
   --color-line-strong: var(--line-strong);
-  --color-brass: var(--brass);
-  --color-on-brass: var(--on-brass);
+  --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
   --color-blue: var(--blue);
   --color-on-blue: var(--on-blue);
   --color-redline: var(--redline);
   --color-amber: var(--amber);
   --color-green: var(--green);
-  --font-sans: var(--font-archivo), system-ui, sans-serif;
-  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+  --font-sans: var(--font-geist), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
   --radius-control: 6px;
   --radius-card: 10px;
   --shadow-panel: var(--highlight);
@@ -98,27 +100,33 @@ body {
 }
 
 body {
-  font-family: var(--font-archivo), system-ui, sans-serif;
+  font-family: var(--font-geist), system-ui, sans-serif;
   font-size: 14px;
+  letter-spacing: -0.006em;
   line-height: 1.5;
   font-feature-settings: "tnum" 1;
 }
 
-/* Expanded Archivo for titles, the wordmark and big figures: the plate-stamped look of vault hardware. */
+/* Titles and big figures: tight, semi-bold Geist. */
 .display {
-  font-variation-settings: "wdth" 118;
-  font-weight: 650;
-  letter-spacing: -0.01em;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+/* A faint light from above the work area: the only atmosphere on the page. */
+.vault-glow {
+  background-image: radial-gradient(900px 360px at 55% -120px, var(--glow), transparent 70%);
+  background-repeat: no-repeat;
 }
 
 /* Visible keyboard focus everywhere. */
 :focus-visible {
-  outline: 2px solid var(--brass);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
 ::selection {
-  background: color-mix(in srgb, var(--brass) 35%, transparent);
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
 /* Drafting grid behind the live run board pipeline. */
@@ -133,12 +141,12 @@ body {
 /* Motion happens only when a real event arrives; the element is re-keyed per event. */
 @keyframes slot-hit {
   0% {
-    background-color: var(--brass);
-    color: var(--on-brass);
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--brass) 25%, transparent);
+    background-color: var(--accent);
+    color: var(--on-accent);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent);
   }
   100% {
-    background-color: color-mix(in srgb, var(--brass) 10%, var(--panel));
+    background-color: color-mix(in srgb, var(--accent) 10%, var(--panel));
     color: var(--ink);
     box-shadow: 0 0 0 0 transparent;
   }
@@ -149,7 +157,7 @@ body {
 
 @keyframes tick-in {
   0% {
-    background-color: color-mix(in srgb, var(--brass) 16%, transparent);
+    background-color: color-mix(in srgb, var(--accent) 16%, transparent);
   }
   100% {
     background-color: transparent;
@@ -162,7 +170,7 @@ body {
 @keyframes bump {
   0% {
     transform: translateY(-3px);
-    color: var(--brass);
+    color: var(--accent);
   }
   100% {
     transform: none;
@@ -225,7 +233,7 @@ body {
 }
 
 mark {
-  background: color-mix(in srgb, var(--brass) 30%, transparent);
+  background: color-mix(in srgb, var(--amber) 30%, transparent);
   color: inherit;
   padding: 0 1px;
   border-radius: 2px;

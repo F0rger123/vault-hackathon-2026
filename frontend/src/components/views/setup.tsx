@@ -26,7 +26,7 @@ function Step({ n, title, intro, children, last }: { n: number; title: string; i
   return (
     <section aria-labelledby={`step-${n}`} className="grid grid-cols-[32px_minmax(0,1fr)] gap-x-3 sm:grid-cols-[40px_minmax(0,1fr)] sm:gap-x-4">
       <div className="flex flex-col items-center">
-        <span className="grid h-8 w-8 place-items-center rounded-full border border-brass/50 bg-brass/10 text-brass text-sm font-semibold tabular-nums sm:h-10 sm:w-10 sm:text-base">
+        <span className="grid h-8 w-8 place-items-center rounded-full border border-accent/50 bg-accent/10 text-accent text-sm font-semibold tabular-nums sm:h-10 sm:w-10 sm:text-base">
           {n}
         </span>
         {!last && <span aria-hidden className="w-px flex-1 bg-line-strong" />}

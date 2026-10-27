@@ -478,7 +478,7 @@ function LaneTrack({
   return (
     <section
       aria-label={laneLabel(lane.lane)}
-      className={cx("@container min-w-0 overflow-hidden rounded-card border bg-panel shadow-panel", lane.blocked ? "border-dashed border-line" : "border-brass/40")}
+      className={cx("@container min-w-0 overflow-hidden rounded-card border bg-panel shadow-panel", lane.blocked ? "border-dashed border-line" : "border-accent/40")}
     >
       <header className="flex flex-col-reverse gap-2 border-b border-line bg-raised/60 px-3.5 py-2.5 @[320px]:flex-row @[320px]:items-start @[320px]:justify-between @[320px]:gap-3">
         <div className="min-w-0">
@@ -515,8 +515,8 @@ function LaneTrack({
                   key={s.last ? `${i}-${s.last.id}` : `${i}-idle`}
                   className={cx(
                     "min-w-0 rounded-control border px-2 py-1.5",
-                    s.last ? "border-brass/40" : "border-dashed border-line",
-                    hit ? "slot-hit" : s.last ? "bg-brass/10" : "bg-paper",
+                    s.last ? "border-accent/40" : "border-dashed border-line",
+                    hit ? "slot-hit" : s.last ? "bg-accent/10" : "bg-paper",
                   )}
                   title={s.last ? `${file(s.last.document_id)}: ${describeEvent(s.last, file)}` : undefined}
                 >

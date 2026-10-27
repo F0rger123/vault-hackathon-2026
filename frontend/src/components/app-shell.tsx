@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useId, useState, useSyncExternalStore, type ReactNode } from "react";
 import { setToken } from "@/lib/api";
 import { SessionGate, SessionProvider, useMaybeSession, useSession } from "./session";
 import { Button, cx, inputClass } from "./ui";
@@ -31,22 +31,29 @@ export function sheetNumber(href: string): number {
 }
 export const SHEET_COUNT = NAV.length;
 
+/** Logo mark: a solid ink tile with a keyhole cut through it. */
+function VaultMark({ className }: { className?: string }) {
+  // The rail and the phone header both render a mark; each needs its own mask id, or a hidden copy breaks the other.
+  const maskId = `vault-keyhole-${useId().replace(/:/g, "")}`;
+  return (
+    <svg aria-hidden viewBox="0 0 28 28" className={className}>
+      <defs>
+        <mask id={maskId}>
+          <rect width="28" height="28" fill="white" />
+          <circle cx="14" cy="11.5" r="3.4" fill="black" />
+          <path d="M12.3 13.2h3.4l1.1 7.3h-5.6z" fill="black" />
+        </mask>
+      </defs>
+      <rect width="28" height="28" rx="7" fill="var(--ink)" mask={`url(#${maskId})`} />
+    </svg>
+  );
+}
+
 function Wordmark() {
   return (
     <Link href="/" className="flex items-center gap-3 rounded-control">
-      {/* Combination dial: brass ring with index ticks and a pointer at the top. */}
-      <svg aria-hidden viewBox="0 0 32 32" className="h-8 w-8">
-        <circle cx="16" cy="16" r="14.5" fill="none" stroke="var(--brass)" strokeWidth="1.5" />
-        <circle cx="16" cy="16" r="9" fill="color-mix(in srgb, var(--brass) 14%, transparent)" stroke="var(--brass)" strokeWidth="1.2" />
-        <g stroke="var(--brass)" strokeWidth="1.2" strokeLinecap="round" opacity="0.7">
-          {Array.from({ length: 12 }, (_, i) => (
-            <line key={i} x1="16" y1="2.8" x2="16" y2={i % 3 === 0 ? "5.6" : "4.4"} transform={`rotate(${i * 30} 16 16)`} />
-          ))}
-        </g>
-        <path d="M16 8.5v5" stroke="var(--brass)" strokeWidth="2" strokeLinecap="round" />
-        <circle cx="16" cy="16" r="2" fill="var(--brass)" />
-      </svg>
-      <span className="display text-[19px] tracking-[0.08em] text-ink">VAULT</span>
+      <VaultMark className="h-7 w-7" />
+      <span className="text-[15px] font-semibold tracking-[0.32em] text-ink">VAULT</span>
     </Link>
   );
 }
@@ -75,11 +82,11 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
                 active ? "bg-raised font-medium text-ink" : "text-muted hover:bg-raised/60 hover:text-ink",
               )}
             >
-              {active && <span aria-hidden className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-brass" />}
+              {active && <span aria-hidden className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-accent" />}
               <svg
                 aria-hidden
                 viewBox="0 0 16 16"
-                className={cx("h-4 w-4 shrink-0", active ? "text-brass" : "text-muted group-hover:text-ink")}
+                className={cx("h-4 w-4 shrink-0", active ? "text-accent" : "text-muted group-hover:text-ink")}
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="1.4"
@@ -90,8 +97,8 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
               </svg>
               <span className="flex-1 whitespace-nowrap">{item.label}</span>
               {badge && (
-                <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-brass/15 px-2 py-0.5 text-xs font-semibold text-brass">
-                  {item.href === "/run" && <span aria-hidden className="live-dot h-1.5 w-1.5 rounded-full bg-brass" />}
+                <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-accent/15 px-2 py-0.5 text-xs font-semibold text-accent">
+                  {item.href === "/run" && <span aria-hidden className="live-dot h-1.5 w-1.5 rounded-full bg-accent" />}
                   <span className="tabular-nums">{badge}</span>
                   <span className="sr-only">{item.href === "/run" ? "running" : "waiting"}</span>
                 </span>
@@ -171,7 +178,7 @@ function UserBox() {
     <div className="flex items-center gap-3 text-sm">
       <span
         aria-hidden
-        className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-raised text-xs font-semibold uppercase text-brass ring-1 ring-line-strong"
+        className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-raised text-xs font-semibold uppercase text-ink ring-1 ring-line-strong"
       >
         {me.username.slice(0, 2)}
       </span>
@@ -198,7 +205,7 @@ function Chrome({ children }: { children: ReactNode }) {
   }, [open]);
 
   return (
-    <div className={cx("min-h-dvh", ready && "lg:grid lg:grid-cols-[248px_minmax(0,1fr)] lg:bg-[linear-gradient(to_right,#080b0f_247px,#1f2934_247px,#1f2934_248px,transparent_248px)]")}>
+    <div className={cx("min-h-dvh", ready && "lg:grid lg:grid-cols-[248px_minmax(0,1fr)] lg:bg-[linear-gradient(to_right,#000_247px,#1c1c1c_247px,#1c1c1c_248px,transparent_248px)]")}>
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:bg-panel focus:px-3 focus:py-2"
@@ -255,7 +262,7 @@ function Chrome({ children }: { children: ReactNode }) {
         </header>
       )}
 
-      <main id="main" className={cx("min-w-0", ready && "mx-auto w-full max-w-[1480px] px-4 pb-16 pt-6 sm:px-6 lg:px-10 lg:pt-9")}>
+      <main id="main" className={cx("min-w-0", ready && "vault-glow mx-auto w-full max-w-[1480px] px-4 pb-16 pt-6 sm:px-6 lg:px-10 lg:pt-9")}>
         {children}
       </main>
     </div>

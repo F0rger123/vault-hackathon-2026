@@ -1,20 +1,18 @@
 import type { Metadata, Viewport } from "next";
-import { Archivo, IBM_Plex_Mono } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import { AppShell } from "@/components/app-shell";
 import "./globals.css";
 
-// Variable Archivo with the width axis: expanded cuts for titles and figures, normal width for body text.
-const archivo = Archivo({
-  variable: "--font-archivo",
+// Geist for the interface: neutral, precise and quiet at small sizes.
+const geist = Geist({
+  variable: "--font-geist",
   subsets: ["latin"],
-  axes: ["wdth"],
 });
 
 // Mono is reserved for literal data: verbatim document quotes and part numbers.
-const plexMono = IBM_Plex_Mono({
-  variable: "--font-plex-mono",
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
   subsets: ["latin"],
-  weight: ["400", "500"],
 });
 
 export const metadata: Metadata = {
@@ -23,7 +21,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0b0f14",
+  themeColor: "#050505",
 };
 
 // Applies the saved theme before first paint so the page never flashes the wrong colours.
@@ -31,7 +29,7 @@ const THEME_SCRIPT = `try{var t=localStorage.getItem("vault-theme");if(t==="ligh
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${archivo.variable} ${plexMono.variable} h-full antialiased`}>
+    <html lang="en" suppressHydrationWarning className={`${geist.variable} ${geistMono.variable} h-full antialiased`}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>

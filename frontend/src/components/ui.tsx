@@ -7,7 +7,7 @@ export function cx(...parts: (string | false | null | undefined)[]): string {
 type Variant = "primary" | "secondary" | "danger" | "quiet";
 
 const VARIANTS: Record<Variant, string> = {
-  primary: "bg-brass text-on-brass border-brass font-semibold hover:brightness-110 active:brightness-95",
+  primary: "bg-accent text-on-accent border-accent font-semibold hover:brightness-110 active:brightness-95",
   secondary: "bg-raised text-ink border-line-strong hover:border-muted hover:bg-panel",
   danger: "bg-redline/10 text-redline border-redline/50 hover:bg-redline/20",
   quiet: "bg-transparent text-blue border-transparent hover:underline underline-offset-4 px-1",
@@ -157,7 +157,7 @@ export function Meter({ value, max, tone = "blue", label }: { value: number; max
       aria-valuenow={value}
       className="h-1.5 w-full overflow-hidden rounded-full bg-raised ring-1 ring-line"
     >
-      <div className={cx("h-full rounded-full transition-[width] duration-500", tone === "blue" ? "bg-brass" : "bg-green")} style={{ width: `${pct}%` }} />
+      <div className={cx("h-full rounded-full transition-[width] duration-500", tone === "blue" ? "bg-accent" : "bg-accent/70")} style={{ width: `${pct}%` }} />
     </div>
   );
 }
@@ -175,7 +175,7 @@ export function Field({ label, hint, children, htmlFor }: { label: string; hint?
 }
 
 export const inputClass =
-  "min-h-9 w-full min-w-0 rounded-control border border-line-strong bg-raised px-3 py-1.5 text-sm text-ink placeholder:text-muted hover:border-muted focus-visible:border-brass";
+  "min-h-9 w-full min-w-0 rounded-control border border-line-strong bg-raised px-3 py-1.5 text-sm text-ink placeholder:text-muted hover:border-muted focus-visible:border-accent";
 
 export function Figure({ label, value, tone }: { label: string; value: ReactNode; tone?: "red" | "amber" | "green" }) {
   return (

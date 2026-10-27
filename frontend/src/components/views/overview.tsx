@@ -44,7 +44,7 @@ export function OverviewView() {
                 "rounded-card border border-line bg-panel px-4 py-4 shadow-panel",
                 i === all.length - 1 && "col-span-2 sm:col-span-1",
                 label === "Findings" && "border-redline/30",
-                label === "Active runs" && "border-brass/40",
+                label === "Active runs" && "border-accent/40",
               )}
             >
               <Figure label={label} value={value} />
@@ -125,16 +125,16 @@ function RunRow({ job }: { job: Job }) {
   const lanes = job.params.lanes ?? (job.params.provider ? [{ provider: job.params.provider, concurrency: job.workers }] : []);
   const finished = job.done + job.failed;
   return (
-    <li className="rounded-card border border-brass/30 bg-raised px-4 py-4">
+    <li className="rounded-card border border-accent/30 bg-raised px-4 py-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <span aria-hidden className="live-dot h-2 w-2 rounded-full bg-brass text-brass" />
+          <span aria-hidden className="live-dot h-2 w-2 rounded-full bg-accent text-accent" />
           <span className="display text-[17px]">Run {job.id}</span>
           <span className="text-sm text-muted">{statusText(job.status)}</span>
         </div>
         <Link
           href={`/run?job=${job.id}`}
-          className="rounded-control border border-brass bg-brass px-3.5 py-1.5 text-sm font-semibold text-on-brass hover:brightness-110"
+          className="rounded-control border border-accent bg-accent px-3.5 py-1.5 text-sm font-semibold text-on-accent hover:brightness-110"
         >
           Open the live board
         </Link>
