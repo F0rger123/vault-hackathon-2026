@@ -26,7 +26,7 @@ function Step({ n, title, intro, children, last }: { n: number; title: string; i
   return (
     <section aria-labelledby={`step-${n}`} className="grid grid-cols-[32px_minmax(0,1fr)] gap-x-3 sm:grid-cols-[40px_minmax(0,1fr)] sm:gap-x-4">
       <div className="flex flex-col items-center">
-        <span className="grid h-8 w-8 place-items-center border border-line-strong bg-panel text-sm font-semibold tabular-nums sm:h-10 sm:w-10 sm:text-base">
+        <span className="grid h-8 w-8 place-items-center rounded-full border border-brass/50 bg-brass/10 text-brass text-sm font-semibold tabular-nums sm:h-10 sm:w-10 sm:text-base">
           {n}
         </span>
         {!last && <span aria-hidden className="w-px flex-1 bg-line-strong" />}
@@ -220,7 +220,7 @@ function TeachByExample({ docs, docsError, canEdit }: { docs: DocumentRow[] | un
             onChange={(e) => setQuery(e.target.value)}
           />
         </Field>
-        <ul aria-label="Matching documents" className="mt-2 max-h-48 overflow-y-auto border border-line">
+        <ul aria-label="Matching documents" className="mt-2 max-h-48 overflow-y-auto rounded-control border border-line">
           {docs && matches.length === 0 && <li className="px-3 py-2 text-sm text-muted">No file names match.</li>}
           {!docs && !docsError && <li className="px-3 py-2 text-sm text-muted">Loading documents</li>}
           {matches.map((d) => (
@@ -318,7 +318,7 @@ function ExampleTable({ examples }: { examples: Example[] }) {
     <div className="overflow-x-auto">
       <table className="w-full min-w-[420px] text-sm">
         <thead>
-          <tr className="border-b border-line-strong text-left text-xs text-muted">
+          <tr className="border-b border-line text-left text-xs font-medium text-muted">
             <th className="py-1.5 pr-3 font-medium">Document</th>
             <th className="py-1.5 pr-3 font-medium">Type</th>
             <th className="py-1.5 pr-3 font-medium">Project</th>
@@ -400,10 +400,10 @@ function MachineCheck({ providers, caps, canCalibrate }: { providers: ProvidersR
         )}
       </Panel>
 
-      <div className="overflow-x-auto border border-line bg-panel">
+      <div className="overflow-x-auto rounded-card border border-line bg-panel shadow-panel">
         <table className="w-full min-w-[640px] text-sm">
           <thead>
-            <tr className="border-b border-line-strong text-left text-xs text-muted">
+            <tr className="border-b border-line text-left text-xs font-medium text-muted">
               <th className="px-4 py-2 font-medium">Model</th>
               <th className="px-4 py-2 font-medium">Hardware ceiling</th>
               <th className="px-4 py-2 font-medium">Last measurement</th>

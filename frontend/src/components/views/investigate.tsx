@@ -83,7 +83,7 @@ export function InvestigateView() {
                   aria-pressed={kind === id}
                   onClick={() => setKind(id)}
                   className={cx(
-                    "rounded-[3px] border px-2.5 py-1 text-sm",
+                    "rounded-control border px-2.5 py-1 text-sm",
                     kind === id ? "border-ink bg-ink text-panel" : "border-line bg-panel text-muted hover:text-ink",
                   )}
                 >
@@ -214,7 +214,7 @@ export function InvestigateView() {
                               <button
                                 key={p}
                                 onClick={() => searchFor({ ...EMPTY, part_number: p })}
-                                className="rounded-[3px] border border-line px-1.5 font-mono text-[11.5px] text-muted hover:border-blue hover:text-blue"
+                                className="rounded-control border border-line px-1.5 font-mono text-[11.5px] text-muted hover:border-blue hover:text-blue"
                                 title={`Search for ${p}`}
                               >
                                 {p}

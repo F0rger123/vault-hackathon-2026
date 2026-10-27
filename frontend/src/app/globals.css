@@ -1,51 +1,82 @@
 @import "tailwindcss";
 
 /*
-  VAULT design tokens: engineering drawing sheet / records vault.
+  VAULT design tokens: vault steel console (see frontend/DESIGN.md).
   Components use these tokens only (bg-panel, text-ink, border-line, text-redline ...); never hard-coded hex.
-  Redline red is reserved for conflicts and denials.
+  Brass is reserved for primary actions, focus and the active state. Redline red is reserved for conflicts and denials.
+  Dark is the default; light is opt-in through html[data-theme="light"].
 */
 :root {
-  --paper: #eef2f3;
+  --paper: #0b0f14;
+  --rail: #080b0f;
+  --panel: #121921;
+  --raised: #19222d;
+  --ink: #e7ecf2;
+  --muted: #8e9bab;
+  --line: #24303d;
+  --line-strong: #344354;
+  --brass: #d9a54a;
+  --on-brass: #1a1206;
+  --blue: #6fa8ff;
+  --on-blue: #08111f;
+  --redline: #ff5a6a;
+  --amber: #f0903f;
+  --green: #4cc98a;
+  --grid: color-mix(in srgb, #6fa8ff 6%, transparent);
+  --highlight: inset 0 1px 0 rgb(255 255 255 / 0.04);
+  --lift: 0 0 0 1px rgb(0 0 0 / 0.2), 0 12px 32px -12px rgb(0 0 0 / 0.6);
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --paper: #eceef1;
+  --rail: #10161d;
   --panel: #ffffff;
-  --ink: #14213d;
-  --muted: #5a6577;
-  --line: #c9d3da;
-  --line-strong: #14213d;
-  --blue: #1f5fad;
+  --raised: #f5f6f8;
+  --ink: #121a24;
+  --muted: #5b6676;
+  --line: #dde1e6;
+  --line-strong: #c3cad3;
+  --brass: #9a6a14;
+  --on-brass: #ffffff;
+  --blue: #1f5fbf;
   --on-blue: #ffffff;
   --redline: #c8102e;
-  --amber: #b7791f;
-  --green: #2f7d4f;
-  --grid: color-mix(in srgb, #1f5fad 7%, transparent);
+  --amber: #b45309;
+  --green: #1f7a4a;
+  --grid: color-mix(in srgb, #1f5fbf 6%, transparent);
+  --highlight: 0 1px 2px rgb(18 26 36 / 0.05), 0 4px 12px rgb(18 26 36 / 0.04);
+  --lift: 0 1px 2px rgb(18 26 36 / 0.08), 0 16px 40px -16px rgb(18 26 36 / 0.3);
   color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --paper: #0e1a2b;
-    --panel: #13243a;
-    --ink: #dce8f2;
-    --muted: #94a8bf;
-    --line: #2b4462;
-    --line-strong: #6f8fb3;
-    --blue: #6aa6ee;
-    --on-blue: #0e1a2b;
-    --redline: #ff6b7d;
-    --amber: #e7ae55;
-    --green: #62c78e;
-    --grid: color-mix(in srgb, #6aa6ee 8%, transparent);
-    color-scheme: dark;
-  }
+/* The side rail stays dark steel in both themes. */
+.rail-scope {
+  --paper: #080b0f;
+  --panel: #10161d;
+  --raised: #161e27;
+  --ink: #e7ecf2;
+  --muted: #8a97a7;
+  --line: #1f2934;
+  --line-strong: #2e3a48;
+  --brass: #d9a54a;
+  --on-brass: #1a1206;
+  --blue: #6fa8ff;
+  color-scheme: dark;
+  color: var(--ink);
 }
 
 @theme inline {
   --color-paper: var(--paper);
+  --color-rail: var(--rail);
   --color-panel: var(--panel);
+  --color-raised: var(--raised);
   --color-ink: var(--ink);
   --color-muted: var(--muted);
   --color-line: var(--line);
   --color-line-strong: var(--line-strong);
+  --color-brass: var(--brass);
+  --color-on-brass: var(--on-brass);
   --color-blue: var(--blue);
   --color-on-blue: var(--on-blue);
   --color-redline: var(--redline);
@@ -53,6 +84,11 @@
   --color-green: var(--green);
   --font-sans: var(--font-archivo), system-ui, sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+  --radius-control: 6px;
+  --radius-card: 10px;
+  --shadow-panel: var(--highlight);
+  --shadow-lift: var(--lift);
+  --ease-out-soft: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 html,
@@ -63,22 +99,31 @@ body {
 
 body {
   font-family: var(--font-archivo), system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
   font-feature-settings: "tnum" 1;
+}
+
+/* Expanded Archivo for titles, the wordmark and big figures: the plate-stamped look of vault hardware. */
+.display {
+  font-variation-settings: "wdth" 118;
+  font-weight: 650;
+  letter-spacing: -0.01em;
 }
 
 /* Visible keyboard focus everywhere. */
 :focus-visible {
-  outline: 2px solid var(--blue);
+  outline: 2px solid var(--brass);
   outline-offset: 2px;
 }
 
 ::selection {
-  background: color-mix(in srgb, var(--blue) 25%, transparent);
+  background: color-mix(in srgb, var(--brass) 35%, transparent);
 }
 
-/* Drafting grid used on the live run board sheet. */
+/* Drafting grid behind the live run board pipeline. */
 .drafting-grid {
-  background-color: var(--panel);
+  background-color: color-mix(in srgb, var(--paper) 55%, var(--panel));
   background-image:
     linear-gradient(var(--grid) 1px, transparent 1px),
     linear-gradient(90deg, var(--grid) 1px, transparent 1px);
@@ -88,21 +133,23 @@ body {
 /* Motion happens only when a real event arrives; the element is re-keyed per event. */
 @keyframes slot-hit {
   0% {
-    background-color: var(--blue);
-    color: var(--on-blue);
+    background-color: var(--brass);
+    color: var(--on-brass);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--brass) 25%, transparent);
   }
   100% {
-    background-color: color-mix(in srgb, var(--blue) 10%, var(--panel));
+    background-color: color-mix(in srgb, var(--brass) 10%, var(--panel));
     color: var(--ink);
+    box-shadow: 0 0 0 0 transparent;
   }
 }
 .slot-hit {
-  animation: slot-hit 1.4s ease-out both;
+  animation: slot-hit 1.4s var(--ease-out-soft) both;
 }
 
 @keyframes tick-in {
   0% {
-    background-color: color-mix(in srgb, var(--blue) 18%, transparent);
+    background-color: color-mix(in srgb, var(--brass) 16%, transparent);
   }
   100% {
     background-color: transparent;
@@ -115,7 +162,7 @@ body {
 @keyframes bump {
   0% {
     transform: translateY(-3px);
-    color: var(--blue);
+    color: var(--brass);
   }
   100% {
     transform: none;
@@ -123,7 +170,7 @@ body {
 }
 .bump {
   display: inline-block;
-  animation: bump 0.6s ease-out both;
+  animation: bump 0.6s var(--ease-out-soft) both;
 }
 
 @keyframes flow {
@@ -149,7 +196,21 @@ body {
   }
 }
 .drawer-in {
-  animation: drawer-in 0.18s ease-out both;
+  animation: drawer-in 0.2s var(--ease-out-soft) both;
+}
+
+/* Live dot for running work. */
+@keyframes live {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 45%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 4px transparent;
+  }
+}
+.live-dot {
+  animation: live 1.8s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -164,7 +225,8 @@ body {
 }
 
 mark {
-  background: color-mix(in srgb, var(--amber) 28%, transparent);
+  background: color-mix(in srgb, var(--brass) 30%, transparent);
   color: inherit;
   padding: 0 1px;
+  border-radius: 2px;
 }

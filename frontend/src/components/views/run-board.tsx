@@ -176,7 +176,7 @@ function Board({ jobId }: { jobId: number }) {
 
       <section
         aria-label="Pipeline"
-        className="drafting-grid relative border border-line-strong p-3 sm:p-5"
+        className="drafting-grid relative rounded-card border border-line p-3 sm:p-5"
       >
         <SheetCorner job={job.data} />
         <div className="flex flex-col items-stretch lg:flex-row">
@@ -194,7 +194,7 @@ function Board({ jobId }: { jobId: number }) {
           <Connector pulse={latestLaneEvent(model, live)} />
           <div className="flex min-w-0 flex-1 flex-col gap-3">
             {model.lanes.length === 0 && (
-              <div className="border border-dashed border-line bg-panel px-4 py-6 text-sm text-muted">
+              <div className="rounded-card border border-dashed border-line-strong bg-panel px-4 py-6 text-sm text-muted">
                 Waiting for the coordinator to plan the lanes.
               </div>
             )}
@@ -251,7 +251,7 @@ function StatusStrip({
   const eta = running && rate && rate > 0 ? (remaining / rate) * 60 : null;
 
   return (
-    <section aria-label="Run status" className="border border-line-strong bg-panel">
+    <section aria-label="Run status" className="overflow-hidden rounded-card border border-line bg-panel shadow-panel">
       <div className="grid gap-px bg-line md:grid-cols-[minmax(0,1fr)_auto_auto]">
         <div className="bg-panel px-4 py-3">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -348,8 +348,8 @@ function Station({
   className?: string;
 }) {
   return (
-    <section aria-label={title} className={cx("min-w-0 shrink-0 self-stretch border border-line-strong bg-panel lg:self-start", className)}>
-      <header className="border-b border-line-strong px-3 py-2">
+    <section aria-label={title} className={cx("min-w-0 shrink-0 self-stretch overflow-hidden rounded-card border border-line bg-panel shadow-panel lg:self-start", className)}>
+      <header className="border-b border-line bg-raised/60 px-3.5 py-2.5">
         <h2 className="text-[15px] font-semibold">{title}</h2>
         <p className="text-xs leading-snug text-muted">{role}</p>
       </header>
@@ -478,7 +478,7 @@ function LaneTrack({
   return (
     <section
       aria-label={laneLabel(lane.lane)}
-      className={cx("min-w-0 border bg-panel", lane.blocked ? "border-dashed border-line" : "border-line-strong")}
+      className={cx("min-w-0 overflow-hidden rounded-card border bg-panel shadow-panel", lane.blocked ? "border-dashed border-line" : "border-brass/40")}
     >
       <header className="flex items-start justify-between gap-3 border-b border-line px-3 py-2">
         <div className="min-w-0">
@@ -609,7 +609,7 @@ function EventLog({
   const test = FILTERS.find((f) => f.id === filter)!.test;
   const shown = events.filter(test).slice(-300).reverse();
   return (
-    <section aria-label="Event log" className="border border-line bg-panel">
+    <section aria-label="Event log" className="overflow-hidden rounded-card border border-line bg-panel shadow-panel">
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-4 py-2.5">
         <h2 className="text-[15px] font-semibold">What the agents are doing</h2>
         <div role="group" aria-label="Filter events" className="flex flex-wrap gap-1">
@@ -619,7 +619,7 @@ function EventLog({
               aria-pressed={filter === f.id}
               onClick={() => setFilter(f.id)}
               className={cx(
-                "rounded-[3px] border px-2 py-0.5 text-xs",
+                "rounded-control border px-2 py-0.5 text-xs",
                 filter === f.id ? "border-ink bg-ink text-panel" : "border-line text-muted hover:text-ink",
               )}
             >

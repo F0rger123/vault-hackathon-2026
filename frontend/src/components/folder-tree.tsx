@@ -43,7 +43,7 @@ function Branch({ node, depth }: { node: Node; depth: number }) {
       {folders.map((f) => (
         <li key={f.name} className="py-0.5">
           <details open={depth === 0}>
-            <summary className="flex cursor-pointer list-none items-center gap-1.5 rounded-[3px] py-0.5 text-sm hover:text-blue [&::-webkit-details-marker]:hidden">
+            <summary className="flex cursor-pointer list-none items-center gap-1.5 rounded-control py-0.5 text-sm hover:text-blue [&::-webkit-details-marker]:hidden">
               <FolderIcon />
               <span className="font-medium">{f.name}</span>
               <span className="text-xs text-muted tabular-nums">{f.count}</span>

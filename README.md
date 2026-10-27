@@ -3,12 +3,12 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/F0rger123/vault-hackathon-2026/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/F0rger123/vault-hackathon-2026/ci.yml?branch=main&style=flat-square&label=CI&labelColor=151b23&color=3fb97b"></a>
-  <img alt="Meta models" src="https://img.shields.io/badge/models-Meta%20Llama%20%C2%B7%20Muse-5b8cff?style=flat-square&labelColor=151b23">
-  <img alt="Local first" src="https://img.shields.io/badge/inference-local%20by%20default-3fb97b?style=flat-square&labelColor=151b23">
-  <img alt="Python" src="https://img.shields.io/badge/backend-FastAPI%20%C2%B7%20SQLite%20FTS5-8b95a5?style=flat-square&labelColor=151b23">
-  <img alt="Frontend" src="https://img.shields.io/badge/frontend-Next.js%20%C2%B7%20Tailwind-8b95a5?style=flat-square&labelColor=151b23">
-  <img alt="Hackathon" src="https://img.shields.io/badge/Meta%20Global%20AI%20Hackathon-2026%20%C2%B7%20Indie-e0a43a?style=flat-square&labelColor=151b23">
+  <a href="https://github.com/F0rger123/vault-hackathon-2026/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/F0rger123/vault-hackathon-2026/ci.yml?branch=main&style=flat-square&label=CI&labelColor=121921&color=4cc98a"></a>
+  <img alt="Meta models" src="https://img.shields.io/badge/models-Meta%20Llama%20%C2%B7%20Muse-d9a54a?style=flat-square&labelColor=121921">
+  <img alt="Local first" src="https://img.shields.io/badge/inference-local%20by%20default-4cc98a?style=flat-square&labelColor=121921">
+  <img alt="Python" src="https://img.shields.io/badge/backend-FastAPI%20%C2%B7%20SQLite%20FTS5-8e9bab?style=flat-square&labelColor=121921">
+  <img alt="Frontend" src="https://img.shields.io/badge/frontend-Next.js%20%C2%B7%20Tailwind-8e9bab?style=flat-square&labelColor=121921">
+  <img alt="Hackathon" src="https://img.shields.io/badge/Meta%20Global%20AI%20Hackathon-2026%20%C2%B7%20Indie-d9a54a?style=flat-square&labelColor=121921">
 </p>
 
 > **AI agents: start here.** Paste this repository link into Claude or ChatGPT and ask it to walk you through VAULT. Machine-readable entry points:
@@ -48,10 +48,14 @@ All data shown is fictional, produced by the project's own synthetic dataset gen
 |---|---|---|
 | <img src="docs/screenshots/overview.jpg" alt="Overview with privacy posture and latest findings" width="280"> | <img src="docs/screenshots/approvals.jpg" alt="Organize proposal previewed as a folder tree awaiting approval" width="280"> | <img src="docs/screenshots/security.jpg" alt="Remote inference switch, screening summary and audit log" width="280"> |
 
+The interface is dark "vault steel" by default with a brass accent; a light theme is one click away in the sidebar.
+
+<img src="docs/screenshots/overview-light.jpg" alt="Overview in the light theme" width="480">
+
 ## How it works
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"primaryColor":"#151b23","primaryTextColor":"#e6e9ee","primaryBorderColor":"#5b8cff","lineColor":"#8b95a5","secondaryColor":"#0d1117","tertiaryColor":"#0d1117","fontFamily":"Geist, Segoe UI, sans-serif"}}}%%
+%%{init: {"theme":"base","themeVariables":{"primaryColor":"#121921","primaryTextColor":"#e7ecf2","primaryBorderColor":"#d9a54a","lineColor":"#8e9bab","secondaryColor":"#0b0f14","tertiaryColor":"#0b0f14","fontFamily":"Archivo, Segoe UI, sans-serif"}}}%%
 flowchart LR
     A["Someone adds a folder of files"] --> B["Files are checked and<br/>a sealed copy is kept"]
     B --> C["Computer checks how fast<br/>it can work and gives an estimate"]
@@ -62,7 +66,7 @@ flowchart LR
 ```
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"primaryColor":"#151b23","primaryTextColor":"#e6e9ee","primaryBorderColor":"#e0a43a","lineColor":"#8b95a5","fontFamily":"Geist, Segoe UI, sans-serif"}}}%%
+%%{init: {"theme":"base","themeVariables":{"primaryColor":"#121921","primaryTextColor":"#e7ecf2","primaryBorderColor":"#d9a54a","lineColor":"#8e9bab","fontFamily":"Archivo, Segoe UI, sans-serif"}}}%%
 flowchart TD
     R["Someone asks VAULT to do something"] --> Q{"Are they allowed to?"}
     Q -- "No" --> X["Refused and written<br/>in the activity log"]

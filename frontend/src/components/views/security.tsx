@@ -215,7 +215,7 @@ function AuditLog() {
               aria-pressed={outcome === id}
               onClick={() => setOutcome(id)}
               className={cx(
-                "rounded-[3px] border px-2 py-0.5 text-xs",
+                "rounded-control border px-2 py-0.5 text-xs",
                 outcome === id ? "border-ink bg-ink text-panel" : "border-line text-muted hover:text-ink",
               )}
             >
@@ -240,7 +240,7 @@ function AuditLog() {
         <div className="max-h-[520px] overflow-auto">
           <table className="w-full min-w-[720px] text-sm">
             <thead className="sticky top-0 bg-panel">
-              <tr className="border-b border-line-strong text-left text-xs text-muted">
+              <tr className="border-b border-line text-left text-xs font-medium text-muted">
                 <th className="px-4 py-2 font-medium">When</th>
                 <th className="px-4 py-2 font-medium">Who</th>
                 <th className="px-4 py-2 font-medium">Action</th>
