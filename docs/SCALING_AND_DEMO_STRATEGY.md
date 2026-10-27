@@ -30,7 +30,7 @@ The coordinator agent treats every model endpoint as a **lane** with a number of
 from shared queues, so adding hardware adds throughput without code changes:
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"primaryColor":"#ffffff","primaryTextColor":"#14213D","primaryBorderColor":"#1F5FAD","lineColor":"#5A6577","fontFamily":"Archivo, Segoe UI, sans-serif"}}}%%
+%%{init: {"theme":"base","themeVariables":{"primaryColor":"#ffffff","primaryTextColor":"#14213D","primaryBorderColor":"#1F5FAD","lineColor":"#5A6577","fontFamily":"Geist, Segoe UI, sans-serif"}}}%%
 flowchart LR
     C["Coordinator plans the run<br/>from measured capacity"] --> S["Security agent checks<br/>every file first"]
     S -->|"marked or personal files"| L["Local model lanes<br/>(on-site GPUs)"]

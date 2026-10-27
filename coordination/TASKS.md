@@ -10,7 +10,7 @@ This file is the single source of truth for what is planned, in progress, and ve
 
 ## Progress dashboard
 
-Last updated: 2026-10-26 evening (Luke's agent, solo mode). Baseline commit: `7390fac`; latest evidence through `05075ae` and the prompt-v3 commit.
+Last updated: 2026-10-26 night (Luke's agent, solo mode, full audit). `main` at `7174dbc`. **Time left:** 9 days to the Nov 4, 9:00 PM ET deadline; feature freeze Nov 2, video Nov 3.
 
 | Feature | Subtasks | VERIFIED | REVIEW | IN_PROGRESS | READY | BACKLOG | BLOCKED | DEFERRED |
 |---|---|---|---|---|---|---|---|---|
@@ -40,6 +40,10 @@ Last updated: 2026-10-26 evening (Luke's agent, solo mode). Baseline commit: `73
 - `E-CI-1`: GitHub Actions run 40405500963 on commit `7ab3266`: backend (ruff, pytest, bandit, dataset determinism excluding PNG), frontend (lint, typegen + tsc, build) and dependency-audit all succeeded.
 - `E-DOCKER-1`: `docker compose build` built `vault-hackathon-2026-backend` (322 MB) and `-frontend` (996 MB); backend container run read-only on 127.0.0.1:8001 returned `{"status":"ok"}` on `/api/v1/health` and 401 on `/api/v1/documents` without a token. Full `docker compose up` with the frontend not yet exercised.
 - `E-GH-1`: labels created (owner:luke, owner:franco, P0–P2, task, blocker, needs-luke) and issues #1–#25 opened for every READY, REVIEW, IN_PROGRESS and BLOCKED task.
+- `E-AUDIT-1` (2026-10-26 night, `main` at `7174dbc`): `pytest -p no:warnings` 33 passed; ruff check and format clean; bandit no medium/high; `pip-audit` no known vulnerabilities; `npm audit --omit=dev` 0 vulnerabilities; frontend lint and `tsc --noEmit` clean. No secrets or runtime data tracked by git.
+- `E-E2E-1` (2026-10-26 night): `scripts/e2e_smoke.py` against a fresh API on 127.0.0.1:8010 with a fresh data directory, heuristic provider: 25/25 checks passed. Upload 150 files 0.69 s, process 151 items 2.2 s, search 7 ms, 10 findings, proposal approved and 151 files copied to `exports/proposal-1`, denied viewer actions return 403, audit log populated.
+- `E-LLM-3` (2026-10-26 night): same script with `--provider ollama --limit 10`: job completed 11/11 items, 0 failed, 58 s wall time; extractions recorded `provider=ollama`, `model=llama3:latest`, `locality=local`, 8.5–19.4 s per document, `verified_ratio` 1.0 on the four documents inspected. GPU: RTX 5070 Laptop, 7.6 of 8.2 GB in use. (0 findings is expected: the first 10 files contain no planted conflict pair.)
+- `E-UI-2`: PR #28 (merged as `7174dbc`, CI green) restyled all six screens and retook README screenshots. The branch was named `luke/F10.10-ui-redesign`; that name is a misnomer, F10.10 remains the investigation screen.
 - `E-REPO-1`: `gh repo view` → https://github.com/F0rger123/vault-hackathon-2026, visibility PUBLIC, default branch `main`.
 
 ---
@@ -804,7 +808,7 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 - **Required tests:** Playwright e2e: sign in with demo analyst token, see dashboard; bad token shows error.
 - **Blockers:** none
 - **Related PR/commit:** —
-- **Verification evidence:** — Built in solo mode on branch `luke/F05-agent-orchestrator`: lint, typegen + tsc and build pass; each screen checked against the live API with screenshots in `docs/screenshots/`. Browser e2e tests (F11.5) still missing.
+- **Verification evidence:** — Built in solo mode (`luke/F05-agent-orchestrator`, PR #27) and restyled in PR #28 (`E-UI-2`): lint, typegen + tsc and build pass; each screen checked by hand against the live API, screenshots in `docs/screenshots/`. Browser e2e tests (F11.5) still missing, so status stays REVIEW.
 
 #### F10.2 — Dashboard
 - **Description:** Replace the scaffold dashboard with the final design: stats, active jobs, recent findings, recent audit (admin), provider privacy status.
@@ -815,7 +819,7 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 - **Required tests:** Playwright e2e with seeded demo data.
 - **Blockers:** Scaffold built by Luke's agent; needs Franco's redesign and a browser check.
 - **Related PR/commit:** scaffold in `7390fac`
-- **Verification evidence:** `E-FE-1` (build only). Built in solo mode on branch `luke/F05-agent-orchestrator`: lint, typegen + tsc and build pass; each screen checked against the live API with screenshots in `docs/screenshots/`. Browser e2e tests (F11.5) still missing.
+- **Verification evidence:** `E-FE-1` (build only). Built in solo mode (`luke/F05-agent-orchestrator`, PR #27) and restyled in PR #28 (`E-UI-2`): lint, typegen + tsc and build pass; each screen checked by hand against the live API, screenshots in `docs/screenshots/`. Browser e2e tests (F11.5) still missing, so status stays REVIEW.
 
 #### F10.3 — Import screen with inventory and estimate
 - **Description:** Create/select collection, drag-and-drop upload, show accepted/rejected with reasons, inventory, run estimate, then confirm processing.
@@ -826,7 +830,7 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 - **Required tests:** Playwright e2e: upload 5 files, run heuristic estimate, start job.
 - **Blockers:** none
 - **Related PR/commit:** —
-- **Verification evidence:** — Built in solo mode on branch `luke/F05-agent-orchestrator`: lint, typegen + tsc and build pass; each screen checked against the live API with screenshots in `docs/screenshots/`. Browser e2e tests (F11.5) still missing.
+- **Verification evidence:** — Built in solo mode (`luke/F05-agent-orchestrator`, PR #27) and restyled in PR #28 (`E-UI-2`): lint, typegen + tsc and build pass; each screen checked by hand against the live API, screenshots in `docs/screenshots/`. Browser e2e tests (F11.5) still missing, so status stays REVIEW.
 
 #### F10.4 — Library (collection browser)
 - **Description:** Paged document table with filters (type, project, date, part number) and metadata.
@@ -837,7 +841,7 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 - **Required tests:** Playwright e2e filter test.
 - **Blockers:** none
 - **Related PR/commit:** —
-- **Verification evidence:** — Built in solo mode on branch `luke/F05-agent-orchestrator`: lint, typegen + tsc and build pass; each screen checked against the live API with screenshots in `docs/screenshots/`. Browser e2e tests (F11.5) still missing.
+- **Verification evidence:** — Built in solo mode (`luke/F05-agent-orchestrator`, PR #27) and restyled in PR #28 (`E-UI-2`): lint, typegen + tsc and build pass; each screen checked by hand against the live API, screenshots in `docs/screenshots/`. Browser e2e tests (F11.5) still missing, so status stays REVIEW.
 
 #### F10.5 — Document viewer
 - **Description:** Show page text, the original file (PDF/image inline), extracted fields, provider/model/locality and injection warnings.
@@ -848,7 +852,7 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 - **Required tests:** Playwright e2e opening one of each type.
 - **Blockers:** none
 - **Related PR/commit:** —
-- **Verification evidence:** — Built in solo mode on branch `luke/F05-agent-orchestrator`: lint, typegen + tsc and build pass; each screen checked against the live API with screenshots in `docs/screenshots/`. Browser e2e tests (F11.5) still missing.
+- **Verification evidence:** — Built in solo mode (`luke/F05-agent-orchestrator`, PR #27) and restyled in PR #28 (`E-UI-2`): lint, typegen + tsc and build pass; each screen checked by hand against the live API, screenshots in `docs/screenshots/`. Browser e2e tests (F11.5) still missing, so status stays REVIEW.
 
 #### F10.6 — Evidence viewer for findings
 - **Description:** Side-by-side evidence for each finding: document, page, quoted line, value, verified badge; click to open that page.
@@ -859,7 +863,7 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 - **Required tests:** Playwright e2e.
 - **Blockers:** none
 - **Related PR/commit:** —
-- **Verification evidence:** — Built in solo mode on branch `luke/F05-agent-orchestrator`: lint, typegen + tsc and build pass; each screen checked against the live API with screenshots in `docs/screenshots/`. Browser e2e tests (F11.5) still missing.
+- **Verification evidence:** — Built in solo mode (`luke/F05-agent-orchestrator`, PR #27) and restyled in PR #28 (`E-UI-2`): lint, typegen + tsc and build pass; each screen checked by hand against the live API, screenshots in `docs/screenshots/`. Browser e2e tests (F11.5) still missing, so status stays REVIEW.
 
 #### F10.7 — Processing view
 - **Description:** Job list and detail with progress, item status counts, errors, workers, provider, cancel button.
@@ -870,7 +874,7 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 - **Required tests:** Playwright e2e.
 - **Blockers:** none
 - **Related PR/commit:** —
-- **Verification evidence:** — Built in solo mode on branch `luke/F05-agent-orchestrator`: lint, typegen + tsc and build pass; each screen checked against the live API with screenshots in `docs/screenshots/`. Browser e2e tests (F11.5) still missing.
+- **Verification evidence:** — Built in solo mode (`luke/F05-agent-orchestrator`, PR #27) and restyled in PR #28 (`E-UI-2`): lint, typegen + tsc and build pass; each screen checked by hand against the live API, screenshots in `docs/screenshots/`. Browser e2e tests (F11.5) still missing, so status stays REVIEW.
 
 #### F10.8 — Actions: proposals and approvals
 - **Description:** Create a proposal (pattern picker), before/after preview tree, approve/reject (admin), result with export folder.
@@ -881,7 +885,7 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 - **Required tests:** Playwright e2e with analyst and admin tokens.
 - **Blockers:** none
 - **Related PR/commit:** —
-- **Verification evidence:** — Built in solo mode on branch `luke/F05-agent-orchestrator`: lint, typegen + tsc and build pass; each screen checked against the live API with screenshots in `docs/screenshots/`. Browser e2e tests (F11.5) still missing.
+- **Verification evidence:** — Built in solo mode (`luke/F05-agent-orchestrator`, PR #27) and restyled in PR #28 (`E-UI-2`): lint, typegen + tsc and build pass; each screen checked by hand against the live API, screenshots in `docs/screenshots/`. Browser e2e tests (F11.5) still missing, so status stays REVIEW.
 
 #### F10.9 — Security and audit view
 - **Description:** Provider list with local/remote and privacy text, remote-inference switch (admin), audit table filterable by outcome.
@@ -892,7 +896,7 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 - **Required tests:** Playwright e2e.
 - **Blockers:** none
 - **Related PR/commit:** —
-- **Verification evidence:** — Built in solo mode on branch `luke/F05-agent-orchestrator`: lint, typegen + tsc and build pass; each screen checked against the live API with screenshots in `docs/screenshots/`. Browser e2e tests (F11.5) still missing.
+- **Verification evidence:** — Built in solo mode (`luke/F05-agent-orchestrator`, PR #27) and restyled in PR #28 (`E-UI-2`): lint, typegen + tsc and build pass; each screen checked by hand against the live API, screenshots in `docs/screenshots/`. Browser e2e tests (F11.5) still missing, so status stays REVIEW.
 
 #### F10.10 — Intelligence (natural-language investigation) screen
 - **Description:** Question box, answer with inline citations, evidence panel.
