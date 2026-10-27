@@ -40,8 +40,20 @@ def header(me: str, to: str, kind: str, refs: str, needs_human: bool) -> str:
 
 
 def cmd_inbox(a) -> None:
-    out = gh("issue", "list", "--label", "agent-msg", "--label", f"to:{a.me}", "--state", "open",
-             "--json", "number,title,author,updatedAt,comments", "--limit", "50")
+    out = gh(
+        "issue",
+        "list",
+        "--label",
+        "agent-msg",
+        "--label",
+        f"to:{a.me}",
+        "--state",
+        "open",
+        "--json",
+        "number,title,author,updatedAt,comments",
+        "--limit",
+        "50",
+    )
     items = json.loads(out)
     if not items:
         print(f"inbox for {a.me}: empty")
