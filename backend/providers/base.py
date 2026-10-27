@@ -37,3 +37,7 @@ class Provider(ABC):
     def extract(
         self, pages: list[str], filename: str, policy_rules: list[dict], examples: list[dict] | None = None
     ) -> Extraction: ...
+
+    def chat_json(self, system: str, user: str, schema: dict) -> str:
+        """Return raw JSON text constrained to `schema`. Only model-backed providers implement this."""
+        raise ProviderError(f"provider {self.name} cannot write free-form answers")

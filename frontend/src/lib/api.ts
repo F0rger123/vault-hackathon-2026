@@ -260,6 +260,47 @@ export interface SearchResponse {
   results: SearchResult[];
 }
 
+export interface InvestigationSource {
+  id: number;
+  document_id: number;
+  filename: string;
+  page: number | null;
+  quote: string;
+  origin: "finding" | "search";
+  finding_id?: number;
+  value?: number | null;
+  doc_type?: string | null;
+  project?: string | null;
+  doc_date?: string | null;
+}
+
+export interface AnswerSentence {
+  text: string;
+  sources: number[];
+  kind: "cited" | "interpretation";
+  verified: boolean;
+  unsupported_numbers: string[];
+}
+
+export interface Investigation {
+  question: string;
+  collection_id: number;
+  plan: {
+    project: string | null;
+    part_numbers: string[];
+    doc_type: string | null;
+    year: string | null;
+    conflicts: boolean;
+    terms: string[];
+  };
+  answer: AnswerSentence[];
+  sources: InvestigationSource[];
+  findings: { id: number; kind: Finding["kind"]; key: string; summary: string; status: string; sources: number[] }[];
+  withheld_local_only: number;
+  answered_by: { provider: ProviderName; model: string; locality: "local" | "remote"; is_ai_model: boolean };
+  duration_ms: number;
+}
+
 export interface Proposal {
   id: number;
   collection_id: number;
@@ -407,6 +448,8 @@ export const vault = {
     return api<SearchResponse>(`/search?${q.toString()}`);
   },
   findings: (collectionId: number) => api<Finding[]>(`/collections/${collectionId}/findings`),
+  investigate: (collection_id: number, question: string, provider: ProviderName | null) =>
+    post<Investigation>("/investigations", { collection_id, question, provider, confirm_remote: false }),
   proposals: () => api<Proposal[]>("/proposals"),
   createProposal: (collection_id: number, instruction: string, pattern: string) =>
     post<Proposal>("/proposals", { collection_id, instruction, pattern }),

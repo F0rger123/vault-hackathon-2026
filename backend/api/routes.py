@@ -13,12 +13,14 @@ from backend.api.schemas import (
     Decision,
     EstimateRequest,
     ImportPath,
+    InvestigationCreate,
     JobCreate,
     ProposalCreate,
     RemoteToggle,
 )
 from backend.core.config import Settings
 from backend.core.hardware import estimate_runtime, profile_hardware, recommend_workers
+from backend.indexing.investigate import investigate
 from backend.indexing.search import search as run_search
 from backend.ingest.service import ensure_collection, ingest_bytes
 from backend.providers import PROVIDER_NAMES, get_provider
@@ -548,6 +550,32 @@ def search(
 def findings(collection_id: int, conn=Depends(get_conn), _: Principal = Depends(require("findings:read"))):
     rows = conn.execute("SELECT * FROM findings WHERE collection_id = ? ORDER BY id", (collection_id,)).fetchall()
     return [{**dict(r), "evidence": loads(r["evidence"], [])} for r in rows]
+
+
+@router.post("/investigations")
+def new_investigation(
+    body: InvestigationCreate,
+    conn=Depends(get_conn),
+    settings: Settings = Depends(get_settings),
+    p: Principal = Depends(require("search")),
+) -> dict:
+    _collection(conn, body.collection_id)
+    provider, info = _provider(conn, settings, body.provider, body.confirm_remote, p.username)
+    try:
+        result = investigate(conn, body.collection_id, body.question, provider)
+    except ProviderError as exc:
+        audit.record(conn, p.username, "investigation.run", "error", detail={"provider": info.name})
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    # The question is the user's own words, but it can still name sensitive things; log sizes only.
+    audit.record(
+        conn,
+        p.username,
+        "investigation.run",
+        "allowed",
+        target=f"collection:{body.collection_id}",
+        detail={"provider": info.name, "sources": len(result["sources"]), "sentences": len(result["answer"])},
+    )
+    return result
 
 
 # ---------- proposals (approval workflow) ----------

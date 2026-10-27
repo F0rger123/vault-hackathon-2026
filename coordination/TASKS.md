@@ -539,14 +539,14 @@ Last updated: 2026-10-26 night (Luke's agent, solo mode, full audit). `main` at 
 
 #### F06.4 — Natural-language investigation
 - **Description:** Turn a question ("Which parts from Project Alpha have conflicting ratings?") into structured search + findings, then have a Meta model write an answer that cites only retrieved evidence.
-- **Priority:** P0 · **Owner:** luke · **Status:** BACKLOG · **Dependencies:** F06.2, F06.3, F04.2
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F06.2, F06.3, F04.2
 - **Scope:** new endpoint `POST /investigations` (contract to be added to `API_CONTRACT.md` before Franco builds UI for it).
 - **Expected behavior:** Every sentence in the answer links to a document/page; uncited claims are marked as interpretation.
 - **Acceptance criteria:** 5 scripted demo questions answered with citations that verify.
 - **Required tests:** integration test with heuristic retrieval plus a fake model; manual run with Ollama.
 - **Blockers:** none
-- **Related PR/commit:** —
-- **Verification evidence:** —
+- **Related PR/commit:** branch `luke/F06.4-investigations` (PR pending)
+- **Verification evidence:** `POST /investigations` in `backend/indexing/investigate.py`, contract in `API_CONTRACT.md`. `tests/integration/test_investigations.py` (5 tests: planted conflicts cited, part question, audit omits question, 401/403/404/422 denials, fake-model citation checks catching a bad citation and an invented 9999 psi). Full suite 38 passed. Live with `llama3:latest` via Ollama on the 150-document heuristic-processed collection (`scripts/demo_questions.py`, saved to `evaluation/results/investigations-ollama-2026-10-26.json`): all 5 scripted questions answered in 2.4–4.0 s; 12 of 13 cited sentences verified; the 13th named a part number (PV-6766) absent from its cited lines and was correctly flagged. Answer to the Alpha question matches ground truth (BV-7891 600/1500 psi, RV-6577 150/1500 psi). Known limit: the checker verifies numbers, not every claim; a sentence can be fully cited yet loosely worded.
 
 #### F06.5 — Additional relationship checks
 - **Description:** Same part number with different descriptions or materials across projects; contract quantities vs parts lists.
@@ -900,14 +900,14 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 
 #### F10.10 — Intelligence (natural-language investigation) screen
 - **Description:** Question box, answer with inline citations, evidence panel.
-- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** BACKLOG · **Dependencies:** F06.4
-- **Scope:** Endpoint not yet defined; start with `GET /search` + findings until F06.4 lands.
+- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** REVIEW · **Dependencies:** F06.4
+- **Scope:** `POST /investigations` (see `API_CONTRACT.md`); `frontend/src/components/ask-panel.tsx` on the Investigate screen.
 - **Expected behavior:** Citations open the document viewer at the cited page.
-- **Acceptance criteria:** Defined when F06.4's contract is published.
+- **Acceptance criteria:** Answer sentences show numbered citations; clicking one highlights the quoted line; file names open the document drawer; unverified and uncited sentences are visibly marked; heuristic answers labelled "Rule-based, not AI"; only local providers offered.
 - **Required tests:** Playwright e2e.
-- **Blockers:** F06.4.
+- **Blockers:** none
 - **Related PR/commit:** —
-- **Verification evidence:** —
+- **Verification evidence:** Lint, tsc and production build pass. Playwright run against the live API with Llama 3: suggestion click, answer and source highlight rendered with no console errors at 1280 px and 390 px (`docs/screenshots/ask-dark.jpg`). Browser e2e test (F11.5) still missing.
 
 ---
 

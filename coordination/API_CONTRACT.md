@@ -279,6 +279,26 @@ Matches in `snippet` are wrapped in `[[` and `]]`; render them as highlights and
 `status`: `verified` (every quote found verbatim) or `needs_review`. Findings are recomputed after each processing job. An unknown collection returns `[]`.
 - **Errors:** 401, 403
 
+### `POST /investigations`
+Answers a natural-language question using only evidence from one collection (F06.4). Retrieval is deterministic: the question is turned into a plan (known project names, part numbers, document-type words, a year, conflict words, remaining search terms), then finding evidence and search hits become numbered sources. A Meta model writes the answer as sentences that cite source numbers; the `heuristic` provider writes a fixed template instead and is labelled `is_ai_model: false`. Every sentence is checked after generation.
+- **Permission:** `search`
+- **Body:** `{"collection_id": 1, "question": "Which parts in Project Alpha have conflicting pressure ratings?", "provider": "ollama" | "meta_api" | "heuristic" | null, "confirm_remote": false}`. `question` 3–500 chars.
+- **Response 200:**
+```json
+{"question": "…", "collection_id": 1,
+ "plan": {"project": "Alpha", "part_numbers": [], "doc_type": null, "year": null, "conflicts": true, "terms": ["pressure", "ratings"]},
+ "answer": [{"text": "BV-7891 has a pressure rating of 600 psi and 1500 psi.", "sources": [1, 2, 3],
+             "kind": "cited", "verified": true, "unsupported_numbers": []}],
+ "sources": [{"id": 1, "document_id": 12, "filename": "ALP-INS-0001.pdf", "page": 1, "quote": "BV-7891 … 600 psi",
+              "origin": "finding", "finding_id": 3, "value": 600.0}],
+ "findings": [{"id": 3, "kind": "rating_conflict", "key": "BV-7891", "summary": "…", "status": "verified", "sources": [1, 2, 3]}],
+ "withheld_local_only": 0,
+ "answered_by": {"provider": "ollama", "model": "llama3:latest", "locality": "local", "is_ai_model": true},
+ "duration_ms": 4021}
+```
+`kind: "interpretation"` means the sentence cites no valid source. `verified: false` on a cited sentence means it states a rating, date or number (≥ 100, or with decimals) that does not appear in the lines it cites; listed in `unsupported_numbers`. Show both clearly. Search-hit sources carry `doc_type`, `project`, `doc_date` instead of `finding_id`/`value`. With a remote provider, lines from documents screened `local_only` are never sent; `withheld_local_only` counts them. At most 16 sources. The question is not written to the audit log (only provider and counts).
+- **Errors:** 401, 403 (no `search`, or remote disabled), 404 (collection), 409 (remote without `confirm_remote`), 422, 502 (model output failed validation or the model call failed), 503 (provider unavailable)
+
 ## Proposals (approval workflow)
 
 ### `POST /proposals` → 201
