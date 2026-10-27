@@ -56,6 +56,13 @@ class ProposalCreate(BaseModel):
     pattern: str = Field(default="{project}/{doc_type}/{year}", max_length=100)
 
 
+class InvestigationCreate(BaseModel):
+    collection_id: int
+    question: str = Field(min_length=3, max_length=500)
+    provider: Literal["ollama", "meta_api", "heuristic"] | None = None
+    confirm_remote: bool = False
+
+
 class Decision(BaseModel):
     note: str = Field(default="", max_length=500)
 

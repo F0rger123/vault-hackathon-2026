@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import { vault, type Finding } from "@/lib/api";
 import { humanize } from "@/lib/format";
 import { useLoad } from "@/lib/use-load";
+import { AskPanel } from "../ask-panel";
 import { DocumentDrawer } from "../document-drawer";
 import { FindingRedline } from "../finding-redline";
 import { useSession } from "../session";
@@ -62,8 +63,9 @@ export function InvestigateView() {
       <TitleBlock
         href="/investigate"
         title="Investigate"
-        description="Search the archive and check each finding against verbatim quotes from the original documents."
+        description="Ask a question, search the archive, and check each finding against verbatim quotes from the original documents."
       />
+      {collection && <AskPanel collectionId={collection.id} onOpenDocument={setOpenDoc} />}
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
         <section aria-labelledby="findings-h" className="min-w-0">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">

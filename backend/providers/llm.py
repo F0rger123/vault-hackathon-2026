@@ -67,23 +67,24 @@ class OllamaProvider(Provider):
     def extract(
         self, pages: list[str], filename: str, policy_rules: list[dict], examples: list[dict] | None = None
     ) -> Extraction:
+        return _parse(
+            self.chat_json(SYSTEM_PROMPT, build_user_prompt(pages, filename, policy_rules, examples), inline_schema())
+        )
+
+    def chat_json(self, system: str, user: str, schema: dict) -> str:
         body = {
             "model": self.model,
             "stream": False,
-            "format": inline_schema(),
+            "format": schema,
             "options": {"temperature": 0, "num_ctx": 8192},
-            "messages": [
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": build_user_prompt(pages, filename, policy_rules, examples)},
-            ],
+            "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
         }
         try:
             r = httpx.post(f"{self.url}/api/chat", json=body, timeout=self.timeout)
             r.raise_for_status()
-            content = r.json()["message"]["content"]
+            return r.json()["message"]["content"]
         except (httpx.HTTPError, KeyError, ValueError) as exc:
             raise ProviderError(f"Ollama request failed ({type(exc).__name__})") from exc
-        return _parse(content)
 
 
 class MetaModelAPIProvider(Provider):
@@ -118,6 +119,11 @@ class MetaModelAPIProvider(Provider):
     def extract(
         self, pages: list[str], filename: str, policy_rules: list[dict], examples: list[dict] | None = None
     ) -> Extraction:
+        return _parse(
+            self.chat_json(SYSTEM_PROMPT, build_user_prompt(pages, filename, policy_rules, examples), inline_schema())
+        )
+
+    def chat_json(self, system: str, user: str, schema: dict) -> str:
         if not self.allowed:
             raise ProviderError("remote inference is disabled by policy")
         if not self.key:
@@ -125,14 +131,8 @@ class MetaModelAPIProvider(Provider):
         body = {
             "model": self.model,
             "temperature": 0,
-            "messages": [
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": build_user_prompt(pages, filename, policy_rules, examples)},
-            ],
-            "response_format": {
-                "type": "json_schema",
-                "json_schema": {"name": "vault_extraction", "schema": inline_schema()},
-            },
+            "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
+            "response_format": {"type": "json_schema", "json_schema": {"name": "vault_output", "schema": schema}},
         }
         try:
             r = httpx.post(
@@ -142,9 +142,8 @@ class MetaModelAPIProvider(Provider):
                 headers={"Authorization": f"Bearer {self.key}"},
             )
             r.raise_for_status()
-            content = r.json()["choices"][0]["message"]["content"]
+            return r.json()["choices"][0]["message"]["content"]
         except httpx.HTTPStatusError as exc:
             raise ProviderError(f"Meta Model API returned HTTP {exc.response.status_code}") from exc
         except (httpx.HTTPError, KeyError, IndexError, ValueError) as exc:
             raise ProviderError(f"Meta Model API request failed ({type(exc).__name__})") from exc
-        return _parse(content)

@@ -1,0 +1,271 @@
+[
+  {
+    "question": "Which parts in Project Alpha have conflicting pressure ratings?",
+    "duration_ms": 4021,
+    "answered_by": {
+      "provider": "ollama",
+      "model": "llama3:latest",
+      "locality": "local",
+      "is_ai_model": true
+    },
+    "plan": {
+      "project": "Alpha",
+      "part_numbers": [],
+      "doc_type": null,
+      "year": null,
+      "conflicts": true,
+      "terms": [
+        "pressure",
+        "ratings"
+      ]
+    },
+    "answer": [
+      {
+        "text": "Parts BV-7891 and RV-6577 have conflicting pressure ratings in Project Alpha.",
+        "sources": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "kind": "cited",
+        "verified": true,
+        "unsupported_numbers": []
+      },
+      {
+        "text": "BV-7891 has a pressure rating of 600 psi and 1500 psi.",
+        "sources": [
+          1,
+          2,
+          3
+        ],
+        "kind": "cited",
+        "verified": true,
+        "unsupported_numbers": []
+      },
+      {
+        "text": "RV-6577 has a pressure rating of 150 psi and 1500 psi.",
+        "sources": [
+          4,
+          5,
+          6
+        ],
+        "kind": "cited",
+        "verified": true,
+        "unsupported_numbers": []
+      }
+    ],
+    "source_count": 16
+  },
+  {
+    "question": "What pressure ratings are recorded for BV-7891?",
+    "duration_ms": 2351,
+    "answered_by": {
+      "provider": "ollama",
+      "model": "llama3:latest",
+      "locality": "local",
+      "is_ai_model": true
+    },
+    "plan": {
+      "project": null,
+      "part_numbers": [
+        "BV-7891"
+      ],
+      "doc_type": null,
+      "year": null,
+      "conflicts": false,
+      "terms": [
+        "pressure",
+        "ratings"
+      ]
+    },
+    "answer": [
+      {
+        "text": "BV-7891 has conflicting pressure ratings.",
+        "sources": [
+          1,
+          2,
+          3
+        ],
+        "kind": "cited",
+        "verified": true,
+        "unsupported_numbers": []
+      },
+      {
+        "text": "The recorded pressure ratings are 600 psi and 1500 psi.",
+        "sources": [
+          1,
+          2,
+          3
+        ],
+        "kind": "cited",
+        "verified": true,
+        "unsupported_numbers": []
+      }
+    ],
+    "source_count": 6
+  },
+  {
+    "question": "Are any part numbers reused across different projects?",
+    "duration_ms": 3425,
+    "answered_by": {
+      "provider": "ollama",
+      "model": "llama3:latest",
+      "locality": "local",
+      "is_ai_model": true
+    },
+    "plan": {
+      "project": null,
+      "part_numbers": [],
+      "doc_type": null,
+      "year": null,
+      "conflicts": true,
+      "terms": [
+        "numbers",
+        "reused"
+      ]
+    },
+    "answer": [
+      {
+        "text": "Yes, part numbers are reused across different projects.",
+        "sources": [
+          13,
+          14
+        ],
+        "kind": "cited",
+        "verified": true,
+        "unsupported_numbers": []
+      },
+      {
+        "text": "The part number BV-7891 is reused in multiple documents.",
+        "sources": [
+          2,
+          3
+        ],
+        "kind": "cited",
+        "verified": true,
+        "unsupported_numbers": []
+      },
+      {
+        "text": "FL-5958 and FL-9004 have the same pressure rating of 1500 psi.",
+        "sources": [
+          5,
+          11,
+          12
+        ],
+        "kind": "cited",
+        "verified": true,
+        "unsupported_numbers": []
+      }
+    ],
+    "source_count": 16
+  },
+  {
+    "question": "Show inspection reports from Project Borealis",
+    "duration_ms": 2966,
+    "answered_by": {
+      "provider": "ollama",
+      "model": "llama3:latest",
+      "locality": "local",
+      "is_ai_model": true
+    },
+    "plan": {
+      "project": "Borealis",
+      "part_numbers": [],
+      "doc_type": "inspection_report",
+      "year": null,
+      "conflicts": false,
+      "terms": []
+    },
+    "answer": [
+      {
+        "text": "Project Borealis has inspection reports.",
+        "sources": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "kind": "cited",
+        "verified": true,
+        "unsupported_numbers": []
+      },
+      {
+        "text": "The inspection reports are labeled as 'INSPECTION REPORT'.",
+        "sources": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "kind": "cited",
+        "verified": true,
+        "unsupported_numbers": []
+      }
+    ],
+    "source_count": 6
+  },
+  {
+    "question": "Which documents mention gate valves?",
+    "duration_ms": 3951,
+    "answered_by": {
+      "provider": "ollama",
+      "model": "llama3:latest",
+      "locality": "local",
+      "is_ai_model": true
+    },
+    "plan": {
+      "project": null,
+      "part_numbers": [],
+      "doc_type": null,
+      "year": null,
+      "conflicts": false,
+      "terms": [
+        "gate",
+        "valves"
+      ]
+    },
+    "answer": [
+      {
+        "text": "The documents that mention gate valves are ALP-BOM-01.csv, ALP-BOM-02.csv, BOR-BOM-02.csv, and several inspection reports.",
+        "sources": [
+          1,
+          2,
+          4
+        ],
+        "kind": "cited",
+        "verified": true,
+        "unsupported_numbers": []
+      },
+      {
+        "text": "Some of the inspection reports also mention gate valves, specifically PV-7043 and PV-6766.",
+        "sources": [
+          3,
+          5,
+          6
+        ],
+        "kind": "cited",
+        "verified": false,
+        "unsupported_numbers": [
+          "6766"
+        ]
+      },
+      {
+        "text": "Additionally, BOR-DWG-0004.pdf mentions a Gate valve with a rating of 150 psi.",
+        "sources": [
+          7
+        ],
+        "kind": "cited",
+        "verified": true,
+        "unsupported_numbers": []
+      }
+    ],
+    "source_count": 11
+  }
+]
