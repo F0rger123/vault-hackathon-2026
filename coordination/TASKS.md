@@ -25,8 +25,8 @@ Last updated: 2026-10-28 (Luke's agent, solo mode). `main` at `8094701`. **Time 
 | F09 Security | 9 | 8 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F10 User Interface | 10 | 10 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F11 Synthetic Data & Evaluation | 7 | 5 | 0 | 1 | 0 | 1 | 0 | 0 |
-| F12 Deployment & Submission | 8 | 2 | 2 | 0 | 0 | 2 | 2 | 0 |
-| **Total** | **90** | **63** | **7** | **1** | **1** | **14** | **4** | **0** |
+| F12 Deployment & Submission | 8 | 3 | 1 | 0 | 0 | 2 | 2 | 0 |
+| **Total** | **90** | **64** | **6** | **1** | **1** | **14** | **4** | **0** |
 
 **Recorded evidence used below**
 
@@ -1056,14 +1056,21 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 
 #### F12.2 — Docker Compose deployment
 - **Description:** Backend and frontend images, ports bound to 127.0.0.1, read-only backend container, optional Ollama profile.
-- **Priority:** P0 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F01.2, F01.4
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F01.2, F01.4
 - **Scope:** `docker-compose.yml`, `Dockerfile.backend`, `frontend/Dockerfile`.
 - **Expected behavior:** `docker compose up --build` gives a working stack talking to host Ollama.
 - **Acceptance criteria:** Both images build; health check passes; dashboard loads.
 - **Required tests:** manual build and smoke test.
-- **Blockers:** Only `docker compose config` validated so far.
+- **Blockers:** none
 - **Related PR/commit:** `7390fac`
-- **Verification evidence:** `docker compose config -q` succeeded 2026-10-26. `E-DOCKER-1`.
+- **Verification evidence:** `docker compose config -q` succeeded 2026-10-26 (`E-DOCKER-1`).
+- **Full run, 2026-10-28 (`E-DOCKER-2`):** `docker compose -p vault-f122 up -d --build` built both images and started them in 50 s.
+  - `GET /api/v1/health` returned ok, and the frontend returned 200.
+  - `vault init --demo-users` ran inside the container.
+  - 30 Alpha files uploaded through the API (0 rejected). A heuristic job completed 30 of 30, 0 failed, with 1 finding.
+  - The dashboard, Investigate and Security pages loaded in Chromium with the data shown.
+  - The backend runs as user `vault`, with a read-only root filesystem, and its port is bound to 127.0.0.1 only.
+  - Torn down afterwards with `down -v`.
 
 #### F12.3 — Public README and documentation set
 - **Description:** README with banner, screenshots of real pages using synthetic data, Mermaid diagrams in plain English, "AI agents: start here" block; `docs/` complete.

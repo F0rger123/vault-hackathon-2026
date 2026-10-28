@@ -102,7 +102,8 @@ Keep `VAULT_META_API_MODEL=muse-spark-1.3`. Avoid the `-contributor` models.
 ## Verifying an install
 
 ```bash
-pytest -p no:warnings                  # 26 tests
+pytest -p no:warnings                  # about 50 tests
+cd tests/e2e && npm install && npm test # browser tests: seeds a demo, starts both servers, runs Playwright
 curl http://127.0.0.1:8000/api/v1/health
 ```
 
