@@ -16,8 +16,10 @@ LATEST_EXTRACTION = """
 """
 
 
-def _locate(conn: sqlite3.Connection, document_id: int, part: str, rating: float | None) -> dict | None:
-    """Find the source line that mentions `part` (and its rating, when known)."""
+def _locate(
+    conn: sqlite3.Connection, document_id: int, part: str, rating: float | None, text: str | None = None
+) -> dict | None:
+    """Find the source line that mentions `part` (and its rating or a text value such as a material)."""
     rows = conn.execute(
         "SELECT page_no, text FROM pages WHERE document_id = ? ORDER BY page_no", (document_id,)
     ).fetchall()
@@ -32,6 +34,10 @@ def _locate(conn: sqlite3.Connection, document_id: int, part: str, rating: float
         for line in r["text"].splitlines():
             if part.casefold() in line.casefold():
                 hit = {"page": r["page_no"], "quote": line.strip()[:400], "verified": True}
+                if text is not None:
+                    if re.search(rf"(?<![\w.]){re.escape(text)}(?![\w.])", line, re.IGNORECASE):
+                        return hit
+                    continue
                 if rating_pat is None or rating_pat.search(line):
                     return hit
                 fallback = fallback or hit
@@ -44,6 +50,10 @@ def analyse_collection(conn: sqlite3.Connection, collection_id: int) -> int:
         (collection_id,),
     ).fetchall()
     ratings: dict[str, dict[float, list[tuple[int, str]]]] = defaultdict(lambda: defaultdict(list))
+    # (field, part, project) -> value -> documents. Only documents with a known project take part, so a part
+    # number shared by two projects can never look like a disagreement.
+    others: dict[tuple[str, str, str], dict[str, list[tuple[int, str]]]] = defaultdict(lambda: defaultdict(list))
+    display: dict[tuple[str, str, str], str] = {}
     filenames = {}
     projects: dict[int, str | None] = {}
     for r in rows:
@@ -55,6 +65,14 @@ def analyse_collection(conn: sqlite3.Connection, collection_id: int) -> int:
             psi = comp.get("pressure_rating_psi")
             if comp.get("part_number") and psi is not None:
                 ratings[comp["part_number"]][float(psi)].append((r["document_id"], r["doc_type"] or "other"))
+            project = projects[r["document_id"]]
+            for field_name in ("quantity", "material"):
+                value = comp.get(field_name)
+                if comp.get("part_number") and project and value not in (None, ""):
+                    key = (field_name, comp["part_number"], project)
+                    folded = str(value).strip().casefold()
+                    display.setdefault((field_name, comp["part_number"], folded), str(value).strip())
+                    others[key][folded].append((r["document_id"], r["doc_type"] or "other"))
 
     def build_evidence(part: str, docs_by_value: dict[float, list[tuple[int, str]]]) -> list[dict]:
         out = []
@@ -117,6 +135,36 @@ def analyse_collection(conn: sqlite3.Connection, collection_id: int) -> int:
                     f"{part} is used in {len(named)} projects with different pressure ratings: {values}",
                     build_evidence(part, by_value),
                 )
+
+    for (field_name, part, project), by_value in sorted(others.items()):
+        if len(by_value) < 2:
+            continue
+        evidence = []
+        for value, docs in sorted(by_value.items()):
+            # Values were grouped case-insensitively; show them as the first document wrote them.
+            shown: int | str = int(value) if field_name == "quantity" else display[(field_name, part, value)]
+            for doc_id, doc_type in docs:
+                loc = _locate(conn, doc_id, part, None, text=value)
+                evidence.append(
+                    {
+                        "document_id": doc_id,
+                        "filename": filenames[doc_id],
+                        "doc_type": doc_type,
+                        "value": shown,
+                        "project": project,
+                        "page": loc["page"] if loc else None,
+                        "quote": loc["quote"] if loc else None,
+                        "verified": bool(loc),
+                    }
+                )
+        label = "quantities" if field_name == "quantity" else "materials"
+        values = ", ".join(str(e) for e in dict.fromkeys(x["value"] for x in evidence))
+        add(
+            f"{field_name}_conflict",
+            part,
+            f"{part} has conflicting {label} across {len(evidence)} documents in project {project}: {values}",
+            evidence,
+        )
 
     with transaction(conn):
         conn.execute("DELETE FROM findings WHERE collection_id = ?", (collection_id,))

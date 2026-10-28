@@ -602,7 +602,7 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 
 #### F06.5 — Additional relationship checks
 - **Description:** Same part number with different descriptions or materials across projects; contract quantities vs parts lists.
-- **Priority:** P1 · **Owner:** luke · **Status:** BACKLOG · **Dependencies:** F06.3, F11.1
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F06.3, F11.1
 - **Scope:** new finding kinds; generator must plant them first.
 - **Expected behavior:** New kinds appear with evidence like rating conflicts.
 - **Acceptance criteria:** Planted cases found with precision ≥ 0.9.
@@ -610,6 +610,13 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 - **Blockers:** none
 - **Related PR/commit:** —
 - **Verification evidence:** —
+- **Related PR/commit:** branch `luke/F06.5-more-conflicts`
+- **Verification evidence (2026-10-28):**
+  - **New finding kinds:** `quantity_conflict` and `material_conflict`. They compare the same part within one project only, and each comes with quotes verified in the source. The rules baseline now reads material and quantity from CSV columns and from "qty N" or "quantity N".
+  - **Dataset v2, rules baseline:** 5 of 5 material and 5 of 5 quantity conflicts at precision 1.0; rating conflicts still 10 of 10. v1 still has exactly its 10 rating findings, with no new false alarms.
+  - **Llama 3:** material 5 of 5, quantity 0 of 5. A prompt tweak fixed quantities but broke ratings (0.82 to 0.10), so it was reverted. Details are in `evaluation/results/SUMMARY.md`.
+  - **Tests:** `tests/integration/test_more_conflicts.py` (extraction, plus an Alpha v2 end-to-end check with verified quotes). Full suite 66 passed.
+  - **UI:** Investigate has new filters and value labels (units, materials).
 
 #### F06.6 — Semantic (embedding) retrieval
 - **Description:** Local embeddings for fuzzy queries alongside FTS5.
