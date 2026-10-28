@@ -7,8 +7,15 @@ Planted anomalies:
 - rating_conflict: a drawing and an inspection record disagree on a part's pressure rating.
 - injection: a memo contains instructions aimed at an AI system. VAULT must treat it as data.
 
+Dataset v2 (`--dataset-version 2`) adds, per project, without changing any v1 file:
+- quantity_conflict: an extra supply agreement orders a different quantity of a part than the parts lists,
+  drawings and other contracts state.
+- material_conflict: an extra parts list gives a part a different material than the other documents.
+- a scanned inspection report: an image-only PDF with no text layer (needs OCR, F02.6).
+
 Usage:
   python -m generator.generate --out data/synthetic/v1 --seed 2026          # the committed 150-file set
+  python -m generator.generate --out data/synthetic/v2 --seed 2026 --dataset-version 2   # v1 plus 15 files
   python -m generator.generate --out data/synthetic/scale --projects 100 --photos 3 --marked-fraction 0.1
       # ~3,600 files: more projects, phone-style photos of inspection sheets, documents with
       # sensitivity markings (ITAR/EXPORT CONTROLLED) and a personnel roster with personal data.
@@ -19,12 +26,13 @@ import csv
 import io
 import json
 import random
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date, timedelta
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 from reportlab.lib.pagesizes import landscape, letter
+from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
 
 PROJECTS = [("Alpha", "ALP"), ("Borealis", "BOR"), ("Cobalt", "COB"), ("Driftwood", "DRF"), ("Ember", "EMB")]
@@ -311,12 +319,126 @@ def _photo_jpg(path: Path, lines: list[str], rng: random.Random) -> None:
     canvas.save(path, format="JPEG", quality=68)
 
 
+def _scanned_pdf(path: Path, lines: list[str], rng: random.Random) -> None:
+    """A scanned paper form: the page is a single image, with no text layer for VAULT to read."""
+    paper = Image.new("L", (1275, 1650), 250)
+    draw = ImageDraw.Draw(paper)
+    font = ImageFont.load_default(size=30)
+    y = 120
+    for line in lines:
+        draw.text((110, y), line, fill=25, font=font)
+        y += 56
+    paper = paper.rotate(rng.uniform(-1.5, 1.5), fillcolor=250)
+    buf = io.BytesIO()
+    paper.save(buf, format="PNG", optimize=False)
+    buf.seek(0)
+    c = canvas.Canvas(str(path), pagesize=letter, invariant=1)
+    w, h = letter
+    c.drawImage(ImageReader(buf), 0, 0, width=w, height=h)
+    c.showPage()
+    c.save()
+
+
+def _v2_extras(
+    files: Path,
+    docs: list["Doc"],
+    anomalies: list[dict],
+    seed: int,
+    project: str,
+    code: str,
+    parts: list[Part],
+    bom_parts: list[Part],
+) -> None:
+    """Dataset v2 additions for one project. Their own RNG keeps every v1 file and value unchanged."""
+    vrng = random.Random(f"{seed}-v2-{code}")
+
+    # Quantity conflict: a fourth contract orders a different quantity of a part the parts lists also show.
+    qp = vrng.choice(bom_parts)
+    wrong_qty = qp.quantity + vrng.choice([2, 3, 5, 10])
+    others = vrng.sample([p for p in parts if p is not qp], 2)
+    ordered = [replace(qp, quantity=wrong_qty), *others]
+    d = _date(vrng)
+    fname = f"{code}-CTR-004.pdf"
+    _contract_pdf(files / fname, code, project, 4, d, vrng.choice(SUPPLIERS), ordered, vrng)
+    docs.append(
+        Doc(
+            fname,
+            "contract",
+            project,
+            d.isoformat(),
+            [{"part_number": p.number, "pressure_rating_psi": p.rating} for p in ordered],
+            [f"quantity_conflict:{qp.number}"],
+        )
+    )
+    anomalies.append(
+        {
+            "kind": "quantity_conflict",
+            "project": project,
+            "part_number": qp.number,
+            "values": sorted([qp.quantity, wrong_qty]),
+            "documents": [fname],
+        }
+    )
+
+    # Material conflict: a third parts list gives a part the wrong material.
+    mp = vrng.choice([p for p in bom_parts if p is not qp])
+    wrong_material = vrng.choice([m for m in MATERIALS if m != mp.material])
+    rows = [replace(mp, material=wrong_material), *vrng.sample([p for p in parts if p not in (qp, mp)], 3)]
+    d = _date(vrng)
+    buf = io.StringIO()
+    wr = csv.writer(buf, lineterminator="\n")
+    buf.write(f"# PARTS LIST - Project: {project} - issued {d.isoformat()}\n")
+    wr.writerow(["part_number", "description", "material", "rated_psi", "qty"])
+    for p in rows:
+        wr.writerow([p.number, p.description, p.material, f"{p.rating} psi", p.quantity])
+    fname = f"{code}-BOM-03.csv"
+    (files / fname).write_text(buf.getvalue(), encoding="utf-8", newline="\n")
+    docs.append(
+        Doc(
+            fname,
+            "parts_list",
+            project,
+            d.isoformat(),
+            [{"part_number": p.number, "pressure_rating_psi": p.rating} for p in rows],
+            [f"material_conflict:{mp.number}"],
+        )
+    )
+    anomalies.append(
+        {
+            "kind": "material_conflict",
+            "project": project,
+            "part_number": mp.number,
+            "values": sorted([mp.material, wrong_material]),
+            "documents": [fname],
+        }
+    )
+
+    # A scanned inspection report with no text layer.
+    d = _date(vrng)
+    tested = vrng.sample(parts, 3)
+    lines = ["INSPECTION REPORT", f"Report No. {code}-SCN-0001", f"Project: {project}", f"Date: {d.isoformat()}", ""]
+    lines += [f"{p.number} {p.description} hydrostatic test at {p.rating} psi - PASS" for p in tested]
+    fname = f"{code}-SCN-0001.pdf"
+    _scanned_pdf(files / fname, lines, vrng)
+    docs.append(
+        Doc(
+            fname,
+            "inspection_report",
+            project,
+            d.isoformat(),
+            [{"part_number": p.number, "pressure_rating_psi": p.rating} for p in tested],
+            layout="scanned",
+        )
+    )
+
+
 def generate(
     out: Path,
     seed: int = 2026,
     projects: list[tuple[str, str]] | None = None,
     photos: int = 0,
     marked_fraction: float = 0.0,
+    version: int = 1,
 ) -> dict:
     rng = random.Random(seed)
     out.mkdir(parents=True, exist_ok=True)
@@ -433,6 +555,7 @@ def generate(
                 )
             )
 
+        bom_parts: list[Part] = []
         for n in range(1, 3):
             d = _date(rng)
             buf = io.StringIO()
@@ -440,6 +563,7 @@ def generate(
             buf.write(f"# PARTS LIST - Project: {project} - issued {d.isoformat()}\n")
             wr.writerow(["part_number", "description", "material", "rated_psi", "qty"])
             subset = rng.sample(parts, 6)
+            bom_parts += [p for p in subset if p not in bom_parts]
             for p in subset:
                 wr.writerow([p.number, p.description, p.material, f"{p.rating} psi", p.quantity])
             fname = f"{code}-BOM-{n:02d}.csv"
@@ -491,6 +615,9 @@ def generate(
             fname = f"{code}-STP-{n:02d}.png"
             _stamp_png(files / fname, text, f"{project} document control  {_date(rng).isoformat()}", rng)
             docs.append(Doc(fname, "other", project, None, layout="image"))
+
+        if version >= 2:
+            _v2_extras(files, docs, anomalies, seed, project, code, parts, bom_parts)
 
         # Scale-only extras use their own RNG so the default 150-file set stays byte-identical.
         xrng = random.Random(f"{seed}-{code}")
@@ -549,6 +676,14 @@ def generate(
 
     # Link each rating conflict to the drawings that show the true rating.
     for a in anomalies:
+        if a["kind"] in ("quantity_conflict", "material_conflict"):
+            for x in docs:
+                if x.project == a["project"] and x.filename not in a["documents"]:
+                    if x.doc_type in ("engineering_drawing", "contract", "parts_list") and any(
+                        c["part_number"] == a["part_number"] for c in x.components
+                    ):
+                        a["documents"].append(x.filename)
+            continue
         if a["kind"] != "rating_conflict":
             continue
         for x in docs:
@@ -562,7 +697,13 @@ def generate(
         x.split = "heldout" if i % 10 in (2, 5, 8) else "train"
 
     manifest = {
-        "generator": "vault-synthetic-v1" if not (photos or marked_fraction or projects) else "vault-synthetic-scale",
+        "generator": (
+            "vault-synthetic-scale"
+            if photos or marked_fraction or projects
+            else "vault-synthetic-v2"
+            if version >= 2
+            else "vault-synthetic-v1"
+        ),
         "seed": seed,
         "fictional": True,
         "documents": [x.__dict__ for x in sorted(docs, key=lambda x: x.filename)],
@@ -579,9 +720,10 @@ def main() -> None:
     ap.add_argument("--projects", type=int, default=5, help="number of fictional projects (~30 files each)")
     ap.add_argument("--photos", type=int, default=0, help="phone-style JPEG photos per project")
     ap.add_argument("--marked-fraction", type=float, default=0.0, help="adds ITAR-marked sheets and a roster")
+    ap.add_argument("--dataset-version", type=int, default=1, choices=[1, 2], help="2 adds new conflict kinds")
     args = ap.parse_args()
     projects = None if args.projects == 5 else make_projects(args.projects)
-    m = generate(args.out, args.seed, projects, args.photos, args.marked_fraction)
+    m = generate(args.out, args.seed, projects, args.photos, args.marked_fraction, args.dataset_version)
     print(f"wrote {len(m['documents'])} files and {len(m['anomalies'])} planted anomalies to {args.out}")
 
 

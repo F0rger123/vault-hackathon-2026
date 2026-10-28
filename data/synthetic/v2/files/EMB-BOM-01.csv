@@ -1,0 +1,8 @@
+# PARTS LIST - Project: Ember - issued 2022-09-08
+part_number,description,material,rated_psi,qty
+FL-8650,Weld-neck flange,Bronze C95800,2500 psi,1
+RV-9954,Relief valve,316L stainless,1500 psi,4
+PV-1247,Gate valve,Inconel 625,900 psi,2
+BV-8888,Ball valve,A105 carbon steel,600 psi,2
+HX-7438,Plate heat exchanger,Inconel 625,150 psi,4
+FL-1714,Weld-neck flange,Inconel 625,600 psi,2

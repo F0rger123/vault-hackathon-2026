@@ -31,6 +31,11 @@ jobs:
         run: |
           python -m generator.generate --out /tmp/regen --seed 2026
           diff <(cd data/synthetic/v1 && find . -type f ! -name '*.png' | sort | xargs sha256sum) <(cd /tmp/regen && find . -type f ! -name '*.png' | sort | xargs sha256sum)
+      - name: Dataset v2 is deterministic
+        # Scanned pages (*-SCN-*.pdf) embed rendered pixels, so they are excluded like the PNG stamps.
+        run: |
+          python -m generator.generate --out /tmp/regen2 --seed 2026 --dataset-version 2
+          diff <(cd data/synthetic/v2 && find . -type f ! -name '*.png' ! -name '*-SCN-*' | sort | xargs sha256sum) <(cd /tmp/regen2 && find . -type f ! -name '*.png' ! -name '*-SCN-*' | sort | xargs sha256sum)
 
   frontend:
     runs-on: ubuntu-latest

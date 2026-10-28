@@ -1045,7 +1045,7 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 
 #### F11.6 — Dataset v2 (scanned pages, more anomaly kinds)
 - **Description:** Add rasterised/scanned PDFs, duplicate part numbers with conflicting descriptions, contract quantity mismatches.
-- **Priority:** P1 · **Owner:** luke · **Status:** BACKLOG · **Dependencies:** F11.1
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F11.1
 - **Scope:** generator v2 with its own manifest; v1 stays frozen.
 - **Expected behavior:** Deterministic like v1.
 - **Acceptance criteria:** Determinism check passes.
@@ -1055,6 +1055,13 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 - **Verification evidence:** —
 
 ---
+- **Related PR/commit:** branch `luke/F11.6-dataset-v2`
+- **Verification evidence (2026-10-28):** `python -m generator.generate --dataset-version 2` writes `data/synthetic/v2/` (165 files, 22 planted anomalies). The new planted problems are 5 quantity conflicts, 5 material conflicts, and 5 scanned image-only PDFs with 0 extractable text characters.
+  - Regenerating v1 with the changed generator is byte-identical, PNGs included.
+  - Two v2 runs are identical, excluding PNGs and scanned PDFs.
+  - `tests/unit/test_dataset_v2.py`: v2 is a superset of v1 with unchanged shared files, and the planted counts are right.
+  - CI has a new "Dataset v2 is deterministic" step.
+  - Detecting the new kinds is F06.5.
 
 #### F11.7 — Scale dataset generator (thousands of files, photos, markings)
 
