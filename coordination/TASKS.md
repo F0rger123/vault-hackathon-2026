@@ -17,7 +17,7 @@ Last updated: 2026-10-28 (Luke's agent, solo mode). `main` at `8094701`. **Time 
 | F01 Project Foundation | 9 | 8 | 1 | 0 | 0 | 0 | 0 | 0 |
 | F02 File Ingestion | 7 | 5 | 0 | 0 | 0 | 2 | 0 | 0 |
 | F03 Hardware & Collection Analysis | 5 | 5 | 0 | 0 | 0 | 0 | 0 | 0 |
-| F04 AI Model System | 10 | 4 | 2 | 0 | 1 | 2 | 1 | 0 |
+| F04 AI Model System | 10 | 5 | 1 | 0 | 1 | 2 | 1 | 0 |
 | F05 Parallel Processing | 9 | 7 | 0 | 0 | 0 | 1 | 1 | 0 |
 | F06 Search & Investigation | 6 | 4 | 0 | 0 | 0 | 2 | 0 | 0 |
 | F07 Teaching & Corrections | 5 | 4 | 0 | 0 | 0 | 1 | 0 | 0 |
@@ -26,7 +26,7 @@ Last updated: 2026-10-28 (Luke's agent, solo mode). `main` at `8094701`. **Time 
 | F10 User Interface | 10 | 10 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F11 Synthetic Data & Evaluation | 7 | 5 | 0 | 1 | 0 | 1 | 0 | 0 |
 | F12 Deployment & Submission | 8 | 4 | 0 | 0 | 0 | 2 | 2 | 0 |
-| **Total** | **90** | **67** | **3** | **1** | **1** | **14** | **4** | **0** |
+| **Total** | **90** | **68** | **2** | **1** | **1** | **14** | **4** | **0** |
 
 **Recorded evidence used below**
 
@@ -408,14 +408,22 @@ Last updated: 2026-10-28 (Luke's agent, solo mode). `main` at `8094701`. **Time 
 
 #### F04.9 — Response caching for repeated development runs
 - **Description:** Cache model responses by (document SHA-256, provider, model, prompt version, policy version) to avoid paying twice.
-- **Priority:** P1 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F04.3
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F04.3
 - **Scope:** provider wrapper; cache table.
 - **Expected behavior:** Re-processing an unchanged document with the same settings makes no model call.
 - **Acceptance criteria:** Second run of a job makes zero provider calls.
 - **Required tests:** unit test with a counting fake provider.
-- **Blockers:** Design to be finalised; matters most once paid API calls start.
+- **Blockers:** none
 - **Related PR/commit:** —
-- **Verification evidence:** —
+- **Verification evidence (2026-10-28):**
+  - **Code:** `backend/providers/cache.py`, `CachingProvider`.
+    - Cache key: provider, model, a hash of `prompting.py`, the page text, filename, policy rules and examples.
+    - Writes are atomic, and paths go through `safe_join`.
+    - Off unless `VAULT_RESPONSE_CACHE=true`, and only used for processing jobs, so estimates and measurements still time real calls. The rules baseline is never wrapped.
+  - **Tests:** `tests/unit/test_response_cache.py` (4 tests): a second run makes 0 model calls; text, rule or example changes miss; a corrupt entry is replaced; the cache is off by default.
+  - **Live, Llama 3 through the CLI, 19 Cobalt PDFs, 2 workers:**
+    - Run 1: 79 s, 19 cache entries written.
+    - Run 2: 5 s, still 19 entries, so no model call was made.
 
 ---
 

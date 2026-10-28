@@ -122,4 +122,10 @@ def process_document(
 
 
 def make_provider(settings: Settings, name: str | None = None) -> Provider:
-    return get_provider(name or settings.provider, settings)
+    provider = get_provider(name or settings.provider, settings)
+    # Only model-backed providers are worth caching; the rule-based baseline is faster than a file read.
+    if settings.response_cache and provider.info().is_ai_model:
+        from backend.providers.cache import CachingProvider
+
+        return CachingProvider(provider, settings.data_dir / "cache")
+    return provider
