@@ -15,18 +15,18 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 | Feature | Subtasks | VERIFIED | REVIEW | IN_PROGRESS | READY | BACKLOG | BLOCKED | DEFERRED |
 |---|---|---|---|---|---|---|---|---|
 | F01 Project Foundation | 9 | 8 | 1 | 0 | 0 | 0 | 0 | 0 |
-| F02 File Ingestion | 7 | 5 | 0 | 0 | 0 | 2 | 0 | 0 |
+| F02 File Ingestion | 7 | 6 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F03 Hardware & Collection Analysis | 5 | 5 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F04 AI Model System | 10 | 6 | 0 | 0 | 1 | 2 | 1 | 0 |
 | F05 Parallel Processing | 9 | 8 | 0 | 0 | 0 | 0 | 1 | 0 |
 | F06 Search & Investigation | 6 | 5 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F07 Teaching & Corrections | 5 | 4 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F08 Actions & Organization | 5 | 3 | 0 | 0 | 0 | 2 | 0 | 0 |
-| F09 Security | 9 | 8 | 0 | 0 | 0 | 1 | 0 | 0 |
+| F09 Security | 9 | 9 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F10 User Interface | 10 | 10 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F11 Synthetic Data & Evaluation | 7 | 6 | 0 | 1 | 0 | 0 | 0 | 0 |
 | F12 Deployment & Submission | 8 | 4 | 0 | 0 | 0 | 2 | 2 | 0 |
-| **Total** | **90** | **72** | **1** | **1** | **1** | **11** | **4** | **0** |
+| **Total** | **90** | **74** | **1** | **1** | **1** | **9** | **4** | **0** |
 
 **Recorded evidence used below**
 
