@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    - cron: "17 6 * * 1"  # weekly, so newly published vulnerabilities show up without a code change
 
 permissions:
   contents: read
@@ -68,7 +70,6 @@ jobs:
 
   dependency-audit:
     runs-on: ubuntu-latest
-    continue-on-error: true  # report-only until we triage findings; see docs/SECURITY.md
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -76,3 +77,38 @@ jobs:
           python-version: "3.11"
       - run: pip install -U pip setuptools && pip install -e . pip-audit && pip-audit --skip-editable
       - run: cd frontend && npm audit --audit-level=high
+
+  # Static analysis beyond ruff/bandit: Python, TypeScript/React/Next.js, Dockerfiles and committed secrets.
+  # Images are pinned by digest so a compromised tag cannot change what runs here.
+  semgrep:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Semgrep
+        run: >
+          docker run --rm -v "$PWD:/src" -w /src
+          semgrep/semgrep:1.140.0@sha256:4372a1de903521f9f10f877b6caf15d150d17e1ca592582682c8d02b77cbd4f6
+          semgrep scan --error --metrics=off
+          --config p/python --config p/typescript --config p/react --config p/nextjs
+          --config p/dockerfile --config p/secrets
+          --exclude data --exclude frontend/node_modules --exclude frontend/.next
+
+  trivy:
+    runs-on: ubuntu-latest
+    env:
+      TRIVY: aquasec/trivy:0.67.2@sha256:e2b22eac59c02003d8749f5b8d9bd073b62e30fefaef5b7c8371204e0a4b0c08
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan repository (lockfiles, Dockerfiles, secrets)
+        run: >
+          docker run --rm -v "$PWD:/src" $TRIVY fs --quiet --exit-code 1
+          --scanners vuln,secret,misconfig --severity HIGH,CRITICAL --skip-dirs /src/data /src
+      - name: Build images
+        run: docker compose build
+      - name: Scan images
+        # --ignore-unfixed: base-image packages with no released fix are listed in docs/SECURITY.md instead.
+        run: |
+          for img in backend frontend; do
+            docker run --rm -v /var/run/docker.sock:/var/run/docker.sock $TRIVY image --quiet --exit-code 1 \
+              --ignore-unfixed --severity HIGH,CRITICAL vault-hackathon-2026-$img:latest
+          done
