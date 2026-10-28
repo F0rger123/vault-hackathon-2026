@@ -1,0 +1,257 @@
+{
+  "experiment": "F07.3 corrections from train split, measured on held-out split",
+  "provider": "heuristic",
+  "model": "regex-rules-v1",
+  "generated_at": "2026-10-28T01:15:48",
+  "dataset": "data\\synthetic\\v1",
+  "train_documents_wrong_before": {
+    "doc_type": 9,
+    "project": 16
+  },
+  "rules": [
+    {
+      "field": "doc_type",
+      "value": "inspection_report",
+      "when_contains": "Witness",
+      "fixes_train_docs": 6,
+      "policy_version": 2,
+      "corrected_document": "COB-INS-0004.pdf"
+    },
+    {
+      "field": "project",
+      "value": "Driftwood",
+      "when_contains": "Witness: R. Okafor (site QA)",
+      "fixes_train_docs": 1,
+      "policy_version": 3,
+      "corrected_document": "DRF-INS-0008.pdf"
+    },
+    {
+      "field": "project",
+      "value": "Cobalt",
+      "when_contains": "Witness: P. Ivanova (site QA)",
+      "fixes_train_docs": 1,
+      "policy_version": 4,
+      "corrected_document": "COB-INS-0004.pdf"
+    },
+    {
+      "field": "project",
+      "value": "Ember",
+      "when_contains": "Witness: A. Delacroix (site QA)",
+      "fixes_train_docs": 1,
+      "policy_version": 5,
+      "corrected_document": "EMB-INS-0004.pdf"
+    },
+    {
+      "field": "project",
+      "value": "Borealis",
+      "when_contains": "Witness: M. Lindqvist (site QA)",
+      "fixes_train_docs": 1,
+      "policy_version": 6,
+      "corrected_document": "BOR-INS-0004.pdf"
+    }
+  ],
+  "before": {
+    "heldout": {
+      "doc_type": 0.889,
+      "project": 0.8
+    },
+    "train": {
+      "doc_type": 0.914,
+      "project": 0.848
+    }
+  },
+  "after": {
+    "heldout": {
+      "doc_type": 0.978,
+      "project": 0.822
+    },
+    "train": {
+      "doc_type": 0.971,
+      "project": 0.886
+    }
+  },
+  "change": {
+    "heldout": {
+      "doc_type": 0.089,
+      "project": 0.022
+    },
+    "train": {
+      "doc_type": 0.057,
+      "project": 0.038
+    }
+  },
+  "jobs": {
+    "before": {
+      "status": "completed",
+      "seconds": 1.7
+    },
+    "after": {
+      "status": "completed",
+      "seconds": 1.7
+    }
+  },
+  "full_reports": {
+    "before": {
+      "provider": "heuristic",
+      "model": "regex-rules-v1",
+      "collection": "corrections-experiment",
+      "documents_scored": 150,
+      "generated_at": "2026-10-28T01:15:46",
+      "splits": {
+        "heldout": {
+          "doc_type": {
+            "correct": 40,
+            "total": 45,
+            "rate": 0.889
+          },
+          "project": {
+            "correct": 36,
+            "total": 45,
+            "rate": 0.8
+          },
+          "doc_date": {
+            "correct": 36,
+            "total": 36,
+            "rate": 1.0
+          },
+          "evidence_verified_docs": {
+            "correct": 45,
+            "total": 45,
+            "rate": 1.0
+          },
+          "part_recall": {
+            "correct": 118,
+            "total": 118,
+            "rate": 1.0
+          },
+          "rating_accuracy": {
+            "correct": 100,
+            "total": 118,
+            "rate": 0.847
+          }
+        },
+        "train": {
+          "doc_type": {
+            "correct": 96,
+            "total": 105,
+            "rate": 0.914
+          },
+          "project": {
+            "correct": 89,
+            "total": 105,
+            "rate": 0.848
+          },
+          "doc_date": {
+            "correct": 89,
+            "total": 89,
+            "rate": 1.0
+          },
+          "part_recall": {
+            "correct": 279,
+            "total": 279,
+            "rate": 1.0
+          },
+          "rating_accuracy": {
+            "correct": 237,
+            "total": 279,
+            "rate": 0.849
+          },
+          "evidence_verified_docs": {
+            "correct": 105,
+            "total": 105,
+            "rate": 1.0
+          }
+        }
+      },
+      "conflicts": {
+        "planted": 10,
+        "found": 10,
+        "true_positive": 10,
+        "recall": 1.0,
+        "precision": 1.0,
+        "note": "findings reflect the most recent processing run of the collection"
+      }
+    },
+    "after": {
+      "provider": "heuristic",
+      "model": "regex-rules-v1",
+      "collection": "corrections-experiment",
+      "documents_scored": 150,
+      "generated_at": "2026-10-28T01:15:48",
+      "splits": {
+        "heldout": {
+          "doc_type": {
+            "correct": 44,
+            "total": 45,
+            "rate": 0.978
+          },
+          "project": {
+            "correct": 37,
+            "total": 45,
+            "rate": 0.822
+          },
+          "doc_date": {
+            "correct": 36,
+            "total": 36,
+            "rate": 1.0
+          },
+          "evidence_verified_docs": {
+            "correct": 45,
+            "total": 45,
+            "rate": 1.0
+          },
+          "part_recall": {
+            "correct": 118,
+            "total": 118,
+            "rate": 1.0
+          },
+          "rating_accuracy": {
+            "correct": 100,
+            "total": 118,
+            "rate": 0.847
+          }
+        },
+        "train": {
+          "doc_type": {
+            "correct": 102,
+            "total": 105,
+            "rate": 0.971
+          },
+          "project": {
+            "correct": 93,
+            "total": 105,
+            "rate": 0.886
+          },
+          "doc_date": {
+            "correct": 89,
+            "total": 89,
+            "rate": 1.0
+          },
+          "part_recall": {
+            "correct": 279,
+            "total": 279,
+            "rate": 1.0
+          },
+          "rating_accuracy": {
+            "correct": 237,
+            "total": 279,
+            "rate": 0.849
+          },
+          "evidence_verified_docs": {
+            "correct": 105,
+            "total": 105,
+            "rate": 1.0
+          }
+        }
+      },
+      "conflicts": {
+        "planted": 10,
+        "found": 10,
+        "true_positive": 10,
+        "recall": 1.0,
+        "precision": 1.0,
+        "note": "findings reflect the most recent processing run of the collection"
+      }
+    }
+  }
+}

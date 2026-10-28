@@ -598,14 +598,14 @@ Last updated: 2026-10-26 night (Luke's agent, solo mode, full audit). `main` at 
 
 #### F07.3 — Measured improvement on held-out data
 - **Description:** Create rules from training-split corrections only, then report held-out accuracy before and after.
-- **Priority:** P0 · **Owner:** luke · **Status:** READY · **Dependencies:** F07.2, F11.4
-- **Scope:** evaluation script option `--policy`.
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F07.2, F11.4
+- **Scope:** `evaluation/corrections_experiment.py` (a separate script rather than a `--policy` flag, because it must reprocess between scores).
 - **Expected behavior:** Honest before/after numbers, including no improvement if that is the result.
 - **Acceptance criteria:** Report committed to `evaluation/results/`.
 - **Required tests:** evaluation run.
 - **Blockers:** none
-- **Related PR/commit:** —
-- **Verification evidence:** —
+- **Related PR/commit:** branch `luke/F07.3-corrections-eval` (PR pending)
+- **Verification evidence:** 2026-10-28, results in `evaluation/results/SUMMARY.md` and `corrections-*-20261028-*.json`. Heuristic: 5 rules from train; held-out doc_type 0.889 → 0.978, project 0.800 → 0.822. Llama 3 (`llama3:latest`, 2 workers): no rule passed the safety test, held-out unchanged (doc_type 0.978, project 0.889). Unit tests `tests/unit/test_corrections_experiment.py` (3) cover phrase selection and the never-break-a-train-document rule.
 
 #### F07.4 — Example-based teaching for new markings
 - **Description:** User uploads example stamps/markings; examples are passed as few-shot images to a vision-capable model.
