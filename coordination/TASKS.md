@@ -23,10 +23,10 @@ Last updated: 2026-10-28 (Luke's agent, solo mode). `main` at `8094701`. **Time 
 | F07 Teaching & Corrections | 5 | 4 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F08 Actions & Organization | 5 | 3 | 0 | 0 | 0 | 2 | 0 | 0 |
 | F09 Security | 9 | 8 | 0 | 0 | 0 | 1 | 0 | 0 |
-| F10 User Interface | 10 | 0 | 10 | 0 | 0 | 0 | 0 | 0 |
-| F11 Synthetic Data & Evaluation | 7 | 4 | 0 | 1 | 1 | 1 | 0 | 0 |
+| F10 User Interface | 10 | 10 | 0 | 0 | 0 | 0 | 0 | 0 |
+| F11 Synthetic Data & Evaluation | 7 | 5 | 0 | 1 | 0 | 1 | 0 | 0 |
 | F12 Deployment & Submission | 8 | 3 | 1 | 0 | 0 | 2 | 2 | 0 |
-| **Total** | **90** | **53** | **16** | **1** | **2** | **14** | **4** | **0** |
+| **Total** | **90** | **64** | **6** | **1** | **1** | **14** | **4** | **0** |
 
 **Recorded evidence used below**
 
@@ -834,7 +834,7 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 
 #### F10.1 — App shell, navigation and sign-in
 - **Description:** Layout with sidebar navigation (Dashboard, Import, Library, Intelligence, Processing, Actions, Security, Settings), token sign-in, sign-out, role display.
-- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** REVIEW · **Dependencies:** F01.4
+- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** VERIFIED · **Dependencies:** F01.4
 - **Scope:** `frontend/src/app/layout.tsx`, shared components; endpoints `GET /me`.
 - **Expected behavior:** Unauthenticated users see sign-in; 401 anywhere returns to sign-in.
 - **Acceptance criteria:** Keyboard navigable; works at 375 px width; role shown.
@@ -842,10 +842,11 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 - **Blockers:** none
 - **Related PR/commit:** —
 - **Verification evidence:** — Built in solo mode (`luke/F05-agent-orchestrator`, PR #27) and restyled in PR #28 (`E-UI-2`): lint, typegen + tsc and build pass; each screen checked by hand against the live API, screenshots in `docs/screenshots/`. Browser e2e tests (F11.5) still missing, so status stays REVIEW.
+- **Verification evidence (E-E2E-2, 2026-10-28):** covered by the Playwright suite in `tests/e2e/` (`01-sign-in`); 13 of 13 tests passed in 5 consecutive fresh runs on Windows 11 (Chromium, desktop and Pixel 7 profiles).
 
 #### F10.2 — Dashboard
 - **Description:** Replace the scaffold dashboard with the final design: stats, active jobs, recent findings, recent audit (admin), provider privacy status.
-- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** REVIEW · **Dependencies:** F10.1
+- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** VERIFIED · **Dependencies:** F10.1
 - **Scope:** `frontend/src/app/page.tsx`; endpoints `/stats`, `/system/providers`, `/collections`, `/jobs`, `/collections/{id}/findings`.
 - **Expected behavior:** Updates while jobs run.
 - **Acceptance criteria:** Matches design; no console errors; numbers match the API.
@@ -853,10 +854,11 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 - **Blockers:** Scaffold built by Luke's agent; needs Franco's redesign and a browser check.
 - **Related PR/commit:** scaffold in `7390fac`
 - **Verification evidence:** `E-FE-1` (build only). Built in solo mode (`luke/F05-agent-orchestrator`, PR #27) and restyled in PR #28 (`E-UI-2`): lint, typegen + tsc and build pass; each screen checked by hand against the live API, screenshots in `docs/screenshots/`. Browser e2e tests (F11.5) still missing, so status stays REVIEW.
+- **Verification evidence (E-E2E-2, 2026-10-28):** covered by the Playwright suite in `tests/e2e/` (`01-sign-in`); 13 of 13 tests passed in 5 consecutive fresh runs on Windows 11 (Chromium, desktop and Pixel 7 profiles).
 
 #### F10.3 — Import screen with inventory and estimate
 - **Description:** Create/select collection, drag-and-drop upload, show accepted/rejected with reasons, inventory, run estimate, then confirm processing.
-- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** REVIEW · **Dependencies:** F10.1
+- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** VERIFIED · **Dependencies:** F10.1
 - **Scope:** `POST /collections`, `POST /collections/{id}/documents`, `GET /collections/{id}/inventory`, `POST /collections/{id}/estimate`, `POST /jobs`.
 - **Expected behavior:** Remote providers show a clear "data will leave this machine" confirmation and send `confirm_remote: true` only after the user agrees.
 - **Acceptance criteria:** Upload of the synthetic folder works; estimate shows low/high seconds and its basis; 409 handled as a confirmation prompt.
@@ -864,10 +866,11 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 - **Blockers:** none
 - **Related PR/commit:** —
 - **Verification evidence:** — Built in solo mode (`luke/F05-agent-orchestrator`, PR #27) and restyled in PR #28 (`E-UI-2`): lint, typegen + tsc and build pass; each screen checked by hand against the live API, screenshots in `docs/screenshots/`. Browser e2e tests (F11.5) still missing, so status stays REVIEW.
+- **Verification evidence (E-E2E-2, 2026-10-28):** covered by the Playwright suite in `tests/e2e/` (`04-setup-run`); 13 of 13 tests passed in 5 consecutive fresh runs on Windows 11 (Chromium, desktop and Pixel 7 profiles).
 
 #### F10.4 — Library (collection browser)
 - **Description:** Paged document table with filters (type, project, date, part number) and metadata.
-- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** REVIEW · **Dependencies:** F10.1
+- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** VERIFIED · **Dependencies:** F10.1
 - **Scope:** `GET /documents`, `GET /search` (filters with empty `q`).
 - **Expected behavior:** Filters update the list; selecting a row opens the document viewer.
 - **Acceptance criteria:** 150 synthetic docs browsable; filters return correct subsets.
@@ -875,10 +878,11 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 - **Blockers:** none
 - **Related PR/commit:** —
 - **Verification evidence:** — Built in solo mode (`luke/F05-agent-orchestrator`, PR #27) and restyled in PR #28 (`E-UI-2`): lint, typegen + tsc and build pass; each screen checked by hand against the live API, screenshots in `docs/screenshots/`. Browser e2e tests (F11.5) still missing, so status stays REVIEW.
+- **Verification evidence (E-E2E-2, 2026-10-28):** covered by the Playwright suite in `tests/e2e/` (`02-investigate`); 13 of 13 tests passed in 5 consecutive fresh runs on Windows 11 (Chromium, desktop and Pixel 7 profiles).
 
 #### F10.5 — Document viewer
 - **Description:** Show page text, the original file (PDF/image inline), extracted fields, provider/model/locality and injection warnings.
-- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** REVIEW · **Dependencies:** F10.4
+- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** VERIFIED · **Dependencies:** F10.4
 - **Scope:** `GET /documents/{id}`, `GET /documents/{id}/pages/{n}`, `GET /documents/{id}/original` (fetch with Authorization header, then object URL).
 - **Expected behavior:** Injection-flagged documents show a visible warning; heuristic extractions are labelled "rule-based, not AI".
 - **Acceptance criteria:** Drawings, CSV, Markdown and PNG all display.
@@ -886,10 +890,11 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 - **Blockers:** none
 - **Related PR/commit:** —
 - **Verification evidence:** — Built in solo mode (`luke/F05-agent-orchestrator`, PR #27) and restyled in PR #28 (`E-UI-2`): lint, typegen + tsc and build pass; each screen checked by hand against the live API, screenshots in `docs/screenshots/`. Browser e2e tests (F11.5) still missing, so status stays REVIEW.
+- **Verification evidence (E-E2E-2, 2026-10-28):** covered by the Playwright suite in `tests/e2e/` (`02-investigate`); 13 of 13 tests passed in 5 consecutive fresh runs on Windows 11 (Chromium, desktop and Pixel 7 profiles).
 
 #### F10.6 — Evidence viewer for findings
 - **Description:** Side-by-side evidence for each finding: document, page, quoted line, value, verified badge; click to open that page.
-- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** REVIEW · **Dependencies:** F10.5
+- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** VERIFIED · **Dependencies:** F10.5
 - **Scope:** `GET /collections/{id}/findings`, document/page endpoints.
 - **Expected behavior:** Conflicting values are visually contrasted; quotes highlighted in page text.
 - **Acceptance criteria:** All 10 planted conflicts navigable to their source pages.
@@ -897,10 +902,11 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 - **Blockers:** none
 - **Related PR/commit:** —
 - **Verification evidence:** — Built in solo mode (`luke/F05-agent-orchestrator`, PR #27) and restyled in PR #28 (`E-UI-2`): lint, typegen + tsc and build pass; each screen checked by hand against the live API, screenshots in `docs/screenshots/`. Browser e2e tests (F11.5) still missing, so status stays REVIEW.
+- **Verification evidence (E-E2E-2, 2026-10-28):** covered by the Playwright suite in `tests/e2e/` (`02-investigate`); 13 of 13 tests passed in 5 consecutive fresh runs on Windows 11 (Chromium, desktop and Pixel 7 profiles).
 
 #### F10.7 — Processing view
 - **Description:** Job list and detail with progress, item status counts, errors, workers, provider, cancel button.
-- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** REVIEW · **Dependencies:** F10.1
+- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** VERIFIED · **Dependencies:** F10.1
 - **Scope:** `GET /jobs`, `GET /jobs/{id}`, `POST /jobs/{id}/cancel`, `GET /system/hardware`.
 - **Expected behavior:** Polls every 1–3 s while a job runs; viewer role sees no cancel button (server still enforces).
 - **Acceptance criteria:** Cancel works; failed items show safe error text.
@@ -908,10 +914,11 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 - **Blockers:** none
 - **Related PR/commit:** —
 - **Verification evidence:** — Built in solo mode (`luke/F05-agent-orchestrator`, PR #27) and restyled in PR #28 (`E-UI-2`): lint, typegen + tsc and build pass; each screen checked by hand against the live API, screenshots in `docs/screenshots/`. Browser e2e tests (F11.5) still missing, so status stays REVIEW.
+- **Verification evidence (E-E2E-2, 2026-10-28):** covered by the Playwright suite in `tests/e2e/` (`04-setup-run`); 13 of 13 tests passed in 5 consecutive fresh runs on Windows 11 (Chromium, desktop and Pixel 7 profiles).
 
 #### F10.8 — Actions: proposals and approvals
 - **Description:** Create a proposal (pattern picker), before/after preview tree, approve/reject (admin), result with export folder.
-- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** REVIEW · **Dependencies:** F10.1
+- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** VERIFIED · **Dependencies:** F10.1
 - **Scope:** `POST /proposals`, `GET /proposals`, `GET /proposals/{id}`, `POST /proposals/{id}/approve`, `POST /proposals/{id}/reject`.
 - **Expected behavior:** Analyst can create but sees approve disabled; if forced, the 403 is shown as "Only administrators can approve".
 - **Acceptance criteria:** Full create → preview → approve flow with admin token; 409 handled.
@@ -919,10 +926,11 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 - **Blockers:** none
 - **Related PR/commit:** —
 - **Verification evidence:** — Built in solo mode (`luke/F05-agent-orchestrator`, PR #27) and restyled in PR #28 (`E-UI-2`): lint, typegen + tsc and build pass; each screen checked by hand against the live API, screenshots in `docs/screenshots/`. Browser e2e tests (F11.5) still missing, so status stays REVIEW.
+- **Verification evidence (E-E2E-2, 2026-10-28):** covered by the Playwright suite in `tests/e2e/` (`05-approvals`); 13 of 13 tests passed in 5 consecutive fresh runs on Windows 11 (Chromium, desktop and Pixel 7 profiles).
 
 #### F10.9 — Security and audit view
 - **Description:** Provider list with local/remote and privacy text, remote-inference switch (admin), audit table filterable by outcome.
-- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** REVIEW · **Dependencies:** F10.1
+- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** VERIFIED · **Dependencies:** F10.1
 - **Scope:** `GET /system/providers`, `PUT /settings/remote-inference`, `GET /audit`.
 - **Expected behavior:** Denied events are prominent (needed for the demo's blocked-action segment).
 - **Acceptance criteria:** A viewer's denied upload attempt appears in the audit view within one refresh.
@@ -930,10 +938,11 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 - **Blockers:** none
 - **Related PR/commit:** —
 - **Verification evidence:** — Built in solo mode (`luke/F05-agent-orchestrator`, PR #27) and restyled in PR #28 (`E-UI-2`): lint, typegen + tsc and build pass; each screen checked by hand against the live API, screenshots in `docs/screenshots/`. Browser e2e tests (F11.5) still missing, so status stays REVIEW.
+- **Verification evidence (E-E2E-2, 2026-10-28):** covered by the Playwright suite in `tests/e2e/` (`03-security`); 13 of 13 tests passed in 5 consecutive fresh runs on Windows 11 (Chromium, desktop and Pixel 7 profiles).
 
 #### F10.10 — Intelligence (natural-language investigation) screen
 - **Description:** Question box, answer with inline citations, evidence panel.
-- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** REVIEW · **Dependencies:** F06.4
+- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** VERIFIED · **Dependencies:** F06.4
 - **Scope:** `POST /investigations` (see `API_CONTRACT.md`); `frontend/src/components/ask-panel.tsx` on the Investigate screen.
 - **Expected behavior:** Citations open the document viewer at the cited page.
 - **Acceptance criteria:** Answer sentences show numbered citations; clicking one highlights the quoted line; file names open the document drawer; unverified and uncited sentences are visibly marked; heuristic answers labelled "Rule-based, not AI"; only local providers offered.
@@ -945,6 +954,7 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 ---
 
 ## F11 — Synthetic Data & Evaluation
+- **Verification evidence (E-E2E-2, 2026-10-28):** covered by the Playwright suite in `tests/e2e/` (`02-investigate`); 13 of 13 tests passed in 5 consecutive fresh runs on Windows 11 (Chromium, desktop and Pixel 7 profiles).
 
 #### F11.1 — Deterministic synthetic dataset v1
 - **Description:** 150 fictional files across 5 projects: 40 drawings, 40 inspection records, 15 contracts, 10 parts lists, 10 revision histories, 20 memos, 15 stamp images; alternate layouts.
@@ -992,14 +1002,19 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 
 #### F11.5 — End-to-end browser tests
 - **Description:** Playwright tests for the main demo flow against a locally seeded backend.
-- **Priority:** P1 · **Owner:** luke (franco may claim) · **Status:** READY · **Dependencies:** F10.1
+- **Priority:** P1 · **Owner:** luke (franco may claim) · **Status:** VERIFIED · **Dependencies:** F10.1
 - **Scope:** `tests/e2e/`.
 - **Expected behavior:** One command seeds data, starts both servers and runs the flow.
 - **Acceptance criteria:** Runs locally on Windows and macOS; optional CI job.
 - **Required tests:** itself.
 - **Blockers:** none
-- **Related PR/commit:** —
-- **Verification evidence:** —
+- **Related PR/commit:** branch `luke/F11.5-e2e`
+- **Verification evidence (E-E2E-2, 2026-10-28):**
+  - **How it runs:** `cd tests/e2e && npm test` seeds `data/e2e/` with `demo_reset.py`, starts the API on :8100, builds and serves the UI on :3100, and runs 13 Playwright tests (12 desktop, 1 phone).
+  - **Windows 11:** 5 consecutive fresh runs, 13 of 13 each time, 25–30 s per run, plus about 2 min for the first build.
+  - **Bug the suite found and fixed:** a race in `frontend/src/components/session.tsx`. A rejected token sometimes showed "Your session ended" instead of "That token was not accepted".
+  - **CI:** the `e2e` job runs on Linux; its result is pending on the PR.
+  - **macOS:** not run, because no Mac is available. The config chooses `.venv/bin/python` on POSIX systems, and the Linux CI run exercises that path.
 
 #### F11.6 — Dataset v2 (scanned pages, more anomaly kinds)
 - **Description:** Add rasterised/scanned PDFs, duplicate part numbers with conflicting descriptions, contract quantity mismatches.

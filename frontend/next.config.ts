@@ -32,6 +32,8 @@ const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
   devIndicators: false,
+  // The browser tests build into their own folder so they never overwrite a developer's build.
+  distDir: process.env.VAULT_NEXT_DIST_DIR ?? ".next",
   partialPrefetching: true,
   poweredByHeader: false,
   async headers() {

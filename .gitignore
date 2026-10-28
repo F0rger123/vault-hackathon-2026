@@ -18,6 +18,7 @@ frontend/next-env.d.ts
 # Runtime data: databases, stored originals, exports, tokens. Never commit.
 data/runtime/
 data/demo/
+data/e2e/
 data/*.db
 *.db
 *.db-wal
@@ -37,7 +38,8 @@ evaluation/scratch/
 Thumbs.db
 .vscode/
 .idea/
-data/e2e/
+
+# Browser tests (F11.5)
 tests/e2e/node_modules/
 tests/e2e/test-results/
 tests/e2e/playwright-report/

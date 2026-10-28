@@ -23,11 +23,11 @@ The two-minute snapshot. Read this first in a new session. Detail lives in the l
 - **Actions:** proposals, approval, copy-only export.
 - **Security:** audit log, and security tests S1–S10.
 - **Demo reset** in about 12 s (F12.6).
-- **Tests:** 41 pytest tests, plus a 25-check HTTP end-to-end smoke.
+- **Tests:** 47 pytest tests, a 25-check HTTP end-to-end smoke, and 13 Playwright browser tests.
+- **Web interface (F10.1–F10.10):** six screens, all covered by browser tests (F11.5).
 
 ## Partly working
 
-- **Web interface (F10.1–F10.10):** six screens are built and checked by hand with screenshots. There are no automated browser tests yet (F11.5).
 - **Meta Model API lane (F04.3, F05.9):** code and tests exist. It has never run with a real key (blocker B2).
 - **CLI and Docker Compose (F12.1, F12.2):** both work locally. Both images rebuilt and checked on 2026-10-28 in PR #32. Not yet tested on a clean machine.
 
@@ -74,7 +74,7 @@ All decisions: [`DECISIONS.md`](DECISIONS.md).
 
 ## Next three recommended tasks
 
-1. **F11.5** (P1, READY; issue [#20](https://github.com/F0rger123/vault-hackathon-2026/issues/20)): Playwright tests for sign-in, import, run, investigate and approvals.
+1. **F11.5** (P1, in review; issue [#20](https://github.com/F0rger123/vault-hackathon-2026/issues/20)): Playwright tests for sign-in, import, run, investigate and approvals.
    - **Owner:** Franco once he joins, Luke's agent while solo.
    - **Why READY:** F10.1 is in REVIEW, not VERIFIED, but F11.5 is the task that verifies F10.x, so it can start.
 2. **F11.4** (Luke, P0, IN_PROGRESS): a final full local Llama evaluation on fresh seeds, to produce the submission figures.
