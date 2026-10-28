@@ -10,6 +10,7 @@ import {
   TERMINAL,
   vault,
   type AgentEvent,
+  type EstimateCheck,
   type Job,
   type ProvidersResponse,
 } from "@/lib/api";
@@ -276,6 +277,7 @@ function StatusStrip({
             {formatDuration(elapsed)} {running ? "so far" : "in total"}
             {eta !== null && `, about ${formatDuration(eta)} left at this pace`}.
           </p>
+          {job.estimate_check && <EstimateCheckLine check={job.estimate_check} />}
         </div>
         <div className="bg-panel px-4 py-3 md:min-w-44">
           <div className="text-xs text-muted">{running ? "Throughput, last minute" : "Average throughput"}</div>
@@ -649,5 +651,25 @@ function EventLog({
         ))}
       </ol>
     </section>
+  );
+}
+
+/** F03.5: tell the user how far off the pre-run estimate was, so they know how much to trust the next one. */
+function EstimateCheckLine({ check }: { check: EstimateCheck }) {
+  const range = `${formatDuration(check.estimated_low_s)} to ${formatDuration(check.estimated_high_s)}`;
+  const ratio = check.actual_vs_estimate;
+  const verdict = check.within_range
+    ? "within the estimate"
+    : ratio !== null && ratio < 1
+      ? `${(1 / ratio).toFixed(1)}x faster than estimated`
+      : ratio !== null
+        ? `${ratio.toFixed(1)}x slower than estimated`
+        : "outside the estimate";
+  return (
+    <p className="mt-1 text-sm text-muted">
+      Estimated {range} from a {check.sample_size}-document sample; this run was {verdict}.
+      {check.estimated_workers !== check.job_workers &&
+        ` The estimate assumed ${check.estimated_workers} parallel slots; this run used ${check.job_workers}.`}
+    </p>
   );
 }

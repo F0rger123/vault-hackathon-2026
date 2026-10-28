@@ -193,6 +193,22 @@ export interface Job {
   finished_at: number | null;
   items: Record<string, number>;
   errors: { document_id: number; error: string; attempts: number }[];
+  /** How the last estimate for this collection and provider compared with this run (F03.5). */
+  estimate_check: EstimateCheck | null;
+}
+
+export interface EstimateCheck {
+  provider: string;
+  estimated_at: number;
+  estimated_low_s: number;
+  estimated_high_s: number;
+  actual_s: number;
+  within_range: boolean;
+  /** Actual time divided by the middle of the estimated range: 1 is spot on, 0.5 is twice as fast. */
+  actual_vs_estimate: number | null;
+  estimated_workers: number;
+  job_workers: number;
+  sample_size: number;
 }
 
 export const TERMINAL: JobStatus[] = ["completed", "completed_with_errors", "failed", "cancelled"];

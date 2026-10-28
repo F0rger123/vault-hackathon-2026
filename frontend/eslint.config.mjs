@@ -9,6 +9,8 @@ const eslintConfig = defineConfig([
   globalIgnores([
     // Default ignores of eslint-config-next:
     ".next/**",
+    // Separate build folder used by the browser tests (tests/e2e).
+    ".next-e2e/**",
     "out/**",
     "build/**",
     "next-env.d.ts",
