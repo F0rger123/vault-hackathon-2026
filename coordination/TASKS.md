@@ -1052,14 +1052,14 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 
 #### F12.6 — Demo environment and seed script
 - **Description:** One script that resets a demo database, creates demo users, ingests the dataset and pre-processes it.
-- **Priority:** P0 · **Owner:** luke · **Status:** READY · **Dependencies:** F12.1
-- **Scope:** `scripts/demo_reset.ps1` and `scripts/demo_reset.sh`.
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F12.1
+- **Scope:** `scripts/demo_reset.py` (logic) with `scripts/demo_reset.ps1` and `scripts/demo_reset.sh` wrappers; data in git-ignored `data/demo/`.
 - **Expected behavior:** Demo can be rehearsed repeatedly from a clean state.
 - **Acceptance criteria:** Runs in under 2 minutes with heuristic, documented duration with Ollama.
 - **Required tests:** run twice.
 - **Blockers:** none
-- **Related PR/commit:** —
-- **Verification evidence:** —
+- **Related PR/commit:** branch `luke/F12.6-demo-seed` (PR pending)
+- **Verification evidence:** 2026-10-27, heuristic: four consecutive runs from Git Bash and PowerShell, 10.0–12.6 s each, every run ending with 150/150 processed, 10 findings, 1 pending proposal. Served `data/demo` and confirmed `/stats` (150 documents, 10 findings, 1 pending) and a viewer 403 on `/proposals`. With `--provider ollama` (`llama3:latest`, hardware-recommended workers): 778.5 s total, 771 s processing, 150/150, 0 failed, 10 findings. Refuses to wipe `data/runtime` (exit 2). Found and fixed during testing: read-only originals stopped the wipe, so the wipe now clears the read-only flag and keeps the `.vault-demo` marker until last.
 
 #### F12.7 — Demo video (~3 minutes)
 - **Description:** Record and edit the video following `docs/DEMO_STORYBOARD.md`; only working features shown.

@@ -133,6 +133,8 @@ cd frontend && npm install && npm run dev                       # interface on h
 .venv/Scripts/pytest                                            # run the checks
 ```
 
+To rehearse the demo from a clean state, run `./scripts/demo_reset.sh` (or `.\scripts\demo_reset.ps1`). It rebuilds `data/demo/` in about 12 seconds; see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#demo-environment-reset-and-rehearse).
+
 Docker: `docker compose up --build` (binds to 127.0.0.1 only). See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 <details>

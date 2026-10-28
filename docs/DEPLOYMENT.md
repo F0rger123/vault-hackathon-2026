@@ -51,6 +51,21 @@ npm run dev
 
 The UI is at http://localhost:3000. Sign in by pasting a token from `data/runtime/dev_tokens.json`.
 
+## Demo environment (reset and rehearse)
+
+One command rebuilds the demo from nothing: a fresh database in `data/demo/` (git-ignored), the admin, analyst and viewer users, all 150 synthetic files in the "Halvern Engineering Archive" collection, a finished processing run, and one organization proposal waiting for an administrator.
+
+```bash
+./scripts/demo_reset.sh                       # macOS/Linux/Git Bash; heuristic provider, about 12 s
+./scripts/demo_reset.sh --provider ollama     # local Llama 3: about 13 minutes on an RTX 5070 Laptop
+```
+
+```powershell
+.\scripts\demo_reset.ps1                      # Windows PowerShell; same arguments
+```
+
+Then serve it with `VAULT_DATA_DIR=data/demo vault serve` and sign in with a token from `data/demo/dev_tokens.json`. Run the reset again before every rehearsal. The script only deletes a directory it created (marked by a `.vault-demo` file) and refuses anything else, including `data/runtime/`.
+
 ## Docker Compose
 
 ```bash
