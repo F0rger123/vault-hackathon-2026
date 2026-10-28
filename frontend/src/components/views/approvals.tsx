@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { atLeast, errorText, vault, type Proposal } from "@/lib/api";
+import { useMemo, useState } from "react";
+import { atLeast, errorText, vault, type LayoutSuggestion, type Proposal, type ProviderName } from "@/lib/api";
 import { dateTime, formatNumber } from "@/lib/format";
 import { useLoad } from "@/lib/use-load";
 import { FolderTree } from "../folder-tree";
@@ -19,6 +19,14 @@ export function ApprovalsView() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const canCreate = atLeast(me, "analyst");
+  const providers = useLoad("providers", vault.providers);
+  // Suggestions use a local Meta model when one is running, otherwise the rule-based reader. Never a remote one.
+  const suggester = useMemo<ProviderName>(() => {
+    const local = (providers.data?.providers ?? []).find((p) => p.available && p.locality === "local" && p.is_ai_model);
+    return (local?.name as ProviderName) ?? "heuristic";
+  }, [providers.data]);
+  const [suggestion, setSuggestion] = useState<LayoutSuggestion | null>(null);
+  const [suggesting, setSuggesting] = useState(false);
 
   const list = (proposals.data ?? []).filter((p) => !collection || p.collection_id === collection.id);
   const pending = list.filter((p) => p.status === "pending");
@@ -64,6 +72,43 @@ export function ApprovalsView() {
                   onChange={(e) => setInstruction(e.target.value)}
                 />
               </Field>
+              <div className="flex flex-col gap-1.5">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  busy={suggesting}
+                  disabled={instruction.trim().length < 3}
+                  onClick={async () => {
+                    setSuggesting(true);
+                    setError(null);
+                    try {
+                      const s = await vault.interpretLayout(instruction.trim(), suggester);
+                      setSuggestion(s);
+                      if (s.supported) setPattern(s.pattern);
+                    } catch (err) {
+                      setSuggestion(null);
+                      setError(errorText(err));
+                    } finally {
+                      setSuggesting(false);
+                    }
+                  }}
+                >
+                  {suggesting ? "Reading the request" : "Suggest a pattern from this request"}
+                </Button>
+                {suggestion && (
+                  <p className="text-xs text-muted" role="status">
+                    {suggestion.supported ? (
+                      <>
+                        Suggested <span className="font-mono text-ink">{suggestion.pattern}</span>. {suggestion.explanation}
+                      </>
+                    ) : (
+                      <>No allowed pattern fits. {suggestion.explanation}</>
+                    )}{" "}
+                    {suggestion.is_ai_model ? `Read by ${suggestion.model} on this machine.` : "Rule-based, not AI."} Check it
+                    before creating the proposal.
+                  </p>
+                )}
+              </div>
               <Field
                 label="Folder pattern"
                 htmlFor="pattern"

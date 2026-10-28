@@ -211,6 +211,16 @@ export interface EstimateCheck {
   sample_size: number;
 }
 
+/** A folder pattern suggested for a plain-language request (F08.4). Always one of the allowed patterns. */
+export interface LayoutSuggestion {
+  pattern: string;
+  explanation: string;
+  supported: boolean;
+  provider: ProviderName;
+  model: string;
+  is_ai_model: boolean;
+}
+
 export const TERMINAL: JobStatus[] = ["completed", "completed_with_errors", "failed", "cancelled"];
 
 export interface AgentEvent {
@@ -468,6 +478,8 @@ export const vault = {
   investigate: (collection_id: number, question: string, provider: ProviderName | null) =>
     post<Investigation>("/investigations", { collection_id, question, provider, confirm_remote: false }),
   proposals: () => api<Proposal[]>("/proposals"),
+  interpretLayout: (instruction: string, provider: ProviderName) =>
+    post<LayoutSuggestion>("/proposals/interpret", { instruction, provider }),
   createProposal: (collection_id: number, instruction: string, pattern: string) =>
     post<Proposal>("/proposals", { collection_id, instruction, pattern }),
   decide: (id: number, decision: "approve" | "reject", note: string) =>

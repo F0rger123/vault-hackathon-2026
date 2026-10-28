@@ -330,6 +330,16 @@ Answers a natural-language question using only evidence from one collection (F06
 - **Response 201:** Proposal (`status: "pending"`).
 - **Errors:** 400 (invalid pattern), 401, 403, 404, 422
 
+### `POST /proposals/interpret` → 200 (F08.4)
+- **Permission:** `proposals:create`
+- **Body:** `{"instruction": "Group by year, then project", "provider": "ollama" | "meta_api" | "heuristic" | null, "confirm_remote": false}`. The instruction is 3–500 characters.
+- **Response 200:** `{pattern, explanation, supported, provider, model, is_ai_model}`.
+  - `pattern` is always one of the 15 allowed orderings of `{project}`, `{doc_type}` and `{year}`, or `"unsupported"`.
+  - Model output outside that list is rejected with 502, never used.
+  - Nothing is created; the client still calls `POST /proposals`.
+- **Errors:** 401, 403 (permission, or remote inference disabled), 409 (remote without `confirm_remote`), 422, 502, 503.
+- **Audit:** `proposal.interpret` records the provider and the chosen pattern, never the instruction.
+
 ### `GET /proposals`
 - **Permission:** `proposals:read` — 50 most recent, newest first.
 

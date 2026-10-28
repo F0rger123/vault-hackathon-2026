@@ -58,6 +58,12 @@ class ProposalCreate(BaseModel):
     pattern: str = Field(default="{project}/{doc_type}/{year}", max_length=100)
 
 
+class LayoutRequest(BaseModel):
+    instruction: str = Field(min_length=3, max_length=500)
+    provider: ProviderName | None = None
+    confirm_remote: bool = False
+
+
 class InvestigationCreate(BaseModel):
     collection_id: int
     question: str = Field(min_length=3, max_length=500)

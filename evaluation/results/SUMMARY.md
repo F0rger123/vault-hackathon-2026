@@ -82,3 +82,16 @@ Files are in `evaluation/results/fresh-seed-2027/`. The dataset was generated wi
 - **On unseen data:** Llama 3 still beats the rules baseline on document type and project, and finds every planted pressure conflict with no false alarms.
 - **Quantities:** Llama still misses quantity conflicts (see F06.5).
 
+## Plain-language layout requests (F08.4, 2026-10-28)
+
+`layout-requests-ollama-2026-10-28.json`, Llama 3 8B (`llama3:latest`) through Ollama, temperature 0.
+
+| Split | Correct |
+|---|---|
+| Tuning requests (8) | 8 / 8 |
+| Held-out requests (8), written after the prompt was final | 8 / 8 |
+
+- **How the prompt got here:** the first prompt got only 2 of the first 5 requests right. The model added fields nobody asked for, and never answered "unsupported" (for example, "by department" became `{project}/{year}/{doc_type}`). The final prompt adds three rules and three short examples.
+- **Safety held throughout:** the model only ever picked patterns from the allowed list. A request containing `../../Windows/System32` produced `unsupported`. Any answer outside the list is rejected in code anyway.
+- **Scope of these numbers:** they come from 16 hand-written requests, not a benchmark.
+

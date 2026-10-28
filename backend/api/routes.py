@@ -15,6 +15,7 @@ from backend.api.schemas import (
     ImportPath,
     InvestigationCreate,
     JobCreate,
+    LayoutRequest,
     ProposalCreate,
     RemoteToggle,
 )
@@ -33,6 +34,7 @@ from backend.security.files import FileRejected, contained, safe_join
 from backend.storage.db import dumps, loads, now
 from backend.workers.importer import candidate_files, create_import_job, import_one
 from backend.workers.jobs import create_process_job
+from backend.workers.layout_request import interpret as interpret_layout
 from backend.workers.processing import process_document
 from backend.workers.proposals import create_proposal, execute_proposal
 
@@ -614,6 +616,29 @@ def new_proposal(body: ProposalCreate, conn=Depends(get_conn), p: Principal = De
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     audit.record(conn, p.username, "proposal.create", "allowed", target=f"proposal:{pid}")
     return _proposal(conn, pid)
+
+
+@router.post("/proposals/interpret")
+def interpret_proposal(
+    body: LayoutRequest,
+    conn=Depends(get_conn),
+    settings: Settings = Depends(get_settings),
+    p: Principal = Depends(require("proposals:create")),
+) -> dict:
+    """Suggest an allowed folder pattern for a plain-language request (F08.4). Creates nothing."""
+    provider, info = _provider(conn, settings, body.provider, body.confirm_remote, p.username)
+    try:
+        result = interpret_layout(provider, body.instruction)
+    except ProviderError as exc:
+        raise HTTPException(status_code=502, detail=f"could not interpret the request: {exc}") from exc
+    audit.record(
+        conn,
+        p.username,
+        "proposal.interpret",
+        "allowed",
+        detail={"provider": info.name, "pattern": result["pattern"]},
+    )
+    return result
 
 
 def _proposal(conn, pid: int) -> dict:
