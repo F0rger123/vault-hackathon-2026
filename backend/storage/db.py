@@ -203,6 +203,12 @@ MIGRATIONS: list[str] = [
     ALTER TABLE extractions ADD COLUMN review_status TEXT NOT NULL DEFAULT 'unreviewed';
     ALTER TABLE extractions ADD COLUMN lane TEXT;
     """,
+    # 4: token lifecycle (F09.8). NULL expires_at means the token never expires (existing tokens keep working).
+    """
+    ALTER TABLE api_tokens ADD COLUMN expires_at REAL;
+    ALTER TABLE api_tokens ADD COLUMN revoked_at REAL;
+    ALTER TABLE api_tokens ADD COLUMN last_used_at REAL;
+    """,
 ]
 
 

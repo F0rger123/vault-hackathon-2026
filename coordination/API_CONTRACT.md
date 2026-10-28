@@ -86,6 +86,20 @@ Every response carries `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY
 - **Auth:** none.
 - **Response 200:** `{"status": "ok", "version": "0.1.0"}`
 
+### `GET /tokens` (F09.8)
+- **Permission:** `users:manage` (admin)
+- **Response 200:** `[{id, username, role, label, created_at, expires_at, revoked, revoked_at, last_used_at, expired}]`.
+  - `expires_at: null` means the token never expires.
+  - `last_used_at` is updated at most once a minute.
+  - The token value and its hash are never returned.
+- **Errors:** 401, 403
+
+### `POST /tokens/{token_id}/revoke` (F09.8)
+- **Permission:** `users:manage` (admin)
+- **Response 200:** the token's metadata with `revoked: true`. Every later request with that token gets 401. Revoking an already-revoked token is a no-op and returns 200.
+- **Errors:** 401, 403, 404
+- **Audit:** `token.revoke`
+
 ### `GET /me`
 - **Permission:** `system:read`
 - **Response 200:** `{"username": "analyst", "role": "analyst"}`

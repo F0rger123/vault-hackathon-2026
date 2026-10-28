@@ -831,7 +831,7 @@ Last updated: 2026-10-28 (Luke's agent, solo mode). `main` at `8094701`. **Time 
 
 #### F09.8 — Token lifecycle
 - **Description:** Token revocation endpoint, expiry, and CLI listing.
-- **Priority:** P1 · **Owner:** luke · **Status:** BACKLOG · **Dependencies:** F09.1
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F09.1
 - **Scope:** `api_tokens.revoked` exists; endpoints missing.
 - **Expected behavior:** Revoked token returns 401 immediately.
 - **Acceptance criteria:** Test revokes and re-checks.
@@ -841,6 +841,12 @@ Last updated: 2026-10-28 (Luke's agent, solo mode). `main` at `8094701`. **Time 
 - **Verification evidence:** —
 
 ---
+- **Related PR/commit:** branch `luke/F09.8-token-lifecycle`. This is high-risk (auth and a migration), so it waits for Luke's approval before merge.
+- **Verification evidence (2026-10-28):**
+  - **Migration 4:** adds `expires_at`, `revoked_at` and `last_used_at`. It was applied to a copy of the dev database: schema 4, and the 3 existing tokens keep `expires_at = NULL`, so they still work.
+  - **Security tests:** a revoked token gets 401 on the next request; an expired token gets 401; the listing never includes the token or its hash; viewers and analysts get 403 and anonymous callers 401; an unknown id gives 404.
+  - **CLI test:** `vault tokens` shows no token values; `vault token --ttl-days`; `vault revoke`; revoking twice exits 1.
+  - **Suite:** pytest passes; ruff and bandit clean.
 
 #### F09.9 — Sensitivity-aware routing
 
