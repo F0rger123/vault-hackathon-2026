@@ -20,6 +20,8 @@ import threading
 import time
 from dataclasses import dataclass
 
+import psutil
+
 from backend.agents import review_agent, security_agent
 from backend.core.config import Settings
 from backend.core.runtime import effective_settings
@@ -205,6 +207,7 @@ class Orchestrator:
                         except queue.Empty:
                             return
                     it["slot"] = slot
+                    self._wait_for_memory(c, lane, it["document_id"])
                     self._process_safely(c, lane, escalation, it, policy, examples)
 
         threads = [
@@ -271,6 +274,22 @@ class Orchestrator:
         self.event(c, "coordinator", "item.failed", "error", document_id, filename=filename, reason=error)
         c.execute("UPDATE documents SET status = 'error', error = ? WHERE id = ?", (error, document_id))
         c.execute("UPDATE jobs SET failed = failed + 1 WHERE id = ?", (self.job_id,))
+
+    def _wait_for_memory(self, c, lane: Lane, document_id: int) -> None:
+        """Hold back a new document while free RAM is below the floor, so parallel slots cannot exhaust memory.
+
+        Waits at most `memory_wait_s`, then starts anyway: a slow job is better than one that never finishes.
+        """
+        floor = self.settings.min_free_memory_mb
+        if floor <= 0 or psutil.virtual_memory().available // 2**20 >= floor:
+            return
+        self.event(c, f"extractor:{lane.name}", "memory.wait", "allowed", document_id, floor_mb=floor)
+        deadline = time.monotonic() + self.settings.memory_wait_s
+        while time.monotonic() < deadline and not self.cancelled():
+            time.sleep(0.5)
+            if psutil.virtual_memory().available // 2**20 >= floor:
+                return
+        self.event(c, f"extractor:{lane.name}", "memory.low", "error", document_id, floor_mb=floor)
 
     def _extract(self, c, lane: Lane, it: dict, policy, examples) -> dict:
         last = ""
