@@ -105,9 +105,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, [ready, nonce]);
 
   useEffect(() => {
+    // Only a session that was signed in can "end". While a pasted token is being checked, the sign-in
+    // handler above reports the rejection itself; letting this listener win the race would show the wrong message.
     const onUnauthorized = () => {
       setToken(null);
-      setState({ phase: "signed_out", message: "Your session ended. Paste your token again." });
+      setState((s) =>
+        s.phase === "ready" ? { phase: "signed_out", message: "Your session ended. Paste your token again." } : s,
+      );
     };
     window.addEventListener("vault:unauthorized", onUnauthorized);
     return () => window.removeEventListener("vault:unauthorized", onUnauthorized);
