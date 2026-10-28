@@ -25,7 +25,7 @@ from backend.ingest.service import ensure_collection, ingest_bytes
 from backend.providers import PROVIDER_NAMES, get_provider
 from backend.providers.base import ProviderError
 from backend.security import audit
-from backend.security.auth import create_user, issue_token
+from backend.security.auth import create_user, issue_token, list_tokens, revoke_token
 from backend.security.files import FileRejected
 from backend.storage.db import connect, migrate
 from backend.workers.jobs import JobRunner, create_process_job
@@ -66,13 +66,41 @@ def init(demo_users: bool = typer.Option(False, help="Create admin, analyst and 
 
 
 @app.command()
-def token(username: str, role: str = typer.Option("analyst")):
+def token(
+    username: str,
+    role: str = typer.Option("analyst"),
+    ttl_days: float = typer.Option(0, help="Days until the token expires; 0 means it never expires"),
+):
     """Create a user if needed and issue a new API token."""
     _, cm = _db()
     with cm as conn:
         uid = create_user(conn, username, role)
-        typer.echo(issue_token(conn, uid, "cli"))
-        audit.record(conn, ACTOR, "token.issue", "allowed", target=f"user:{username}")
+        typer.echo(issue_token(conn, uid, "cli", ttl_days or None))
+        audit.record(conn, ACTOR, "token.issue", "allowed", target=f"user:{username}", detail={"ttl_days": ttl_days})
+
+
+@app.command()
+def tokens():
+    """List API tokens (metadata only; token values are never stored or shown)."""
+    _, cm = _db()
+    with cm as conn:
+        for t in list_tokens(conn):
+            state = "revoked" if t["revoked"] else "expired" if t["expired"] else "active"
+            expires = time.strftime("%Y-%m-%d %H:%M", time.localtime(t["expires_at"])) if t["expires_at"] else "never"
+            who = f"{t['username']:<12} {t['role']:<8}"
+            typer.echo(f"{t['id']:>4}  {who} {state:<8} expires {expires}  {t['label'] or ''}")
+
+
+@app.command()
+def revoke(token_id: int):
+    """Revoke an API token by id (see `vault tokens`). Takes effect on the next request."""
+    _, cm = _db()
+    with cm as conn:
+        if not revoke_token(conn, token_id):
+            typer.echo(f"token {token_id} not found or already revoked", err=True)
+            raise typer.Exit(1)
+        audit.record(conn, ACTOR, "token.revoke", "allowed", target=f"token:{token_id}")
+        typer.echo(f"token {token_id} revoked")
 
 
 @app.command()

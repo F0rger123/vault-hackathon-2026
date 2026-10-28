@@ -236,3 +236,35 @@ def test_security_headers_on_every_response(client):
         assert r.headers["X-Frame-Options"] == "DENY"
         assert r.headers["Cross-Origin-Resource-Policy"] == "same-site"
         assert r.headers["Cache-Control"] == "no-store"
+
+
+# F09.8 token lifecycle
+def test_revoked_token_is_refused_on_the_next_request(client, tokens):
+    viewer = auth(tokens["viewer"])
+    assert client.get(f"{API}/me", headers=viewer).status_code == 200
+    listed = client.get(f"{API}/tokens", headers=auth(tokens["admin"])).json()
+    assert all("token_hash" not in t and "token" not in t for t in listed)
+    tid = next(t["id"] for t in listed if t["username"] == "viewer")
+    r = client.post(f"{API}/tokens/{tid}/revoke", headers=auth(tokens["admin"]))
+    assert r.status_code == 200 and r.json()["revoked"] is True
+    assert client.get(f"{API}/me", headers=viewer).status_code == 401
+    assert client.post(f"{API}/tokens/99999/revoke", headers=auth(tokens["admin"])).status_code == 404
+
+
+def test_only_admins_manage_tokens(client, tokens):
+    for role in ("viewer", "analyst"):
+        assert client.get(f"{API}/tokens", headers=auth(tokens[role])).status_code == 403
+        assert client.post(f"{API}/tokens/1/revoke", headers=auth(tokens[role])).status_code == 403
+    assert client.get(f"{API}/tokens").status_code == 401
+
+
+def test_expired_token_is_refused(client, settings, monkeypatch):
+    from backend.security import auth as auth_mod
+    from backend.storage.db import connect
+
+    with connect(settings.db_path) as conn:
+        tok = auth_mod.issue_token(conn, auth_mod.create_user(conn, "temp", "viewer"), "test", ttl_days=1)
+    assert client.get(f"{API}/me", headers=auth(tok)).status_code == 200
+    real_now = auth_mod.now
+    monkeypatch.setattr(auth_mod, "now", lambda: real_now() + 2 * 86400)
+    assert client.get(f"{API}/me", headers=auth(tok)).status_code == 401
