@@ -34,6 +34,9 @@ class Settings(BaseSettings):
     max_workers: int = 0  # 0 = choose from hardware profile
     job_max_attempts: int = 3
     model_timeout_s: float = 120.0
+    # A worker holds back a new document while free RAM is below this floor, for up to memory_wait_s (F05.6).
+    min_free_memory_mb: int = 256
+    memory_wait_s: float = 60.0
 
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
 

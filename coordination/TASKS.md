@@ -490,7 +490,7 @@ Last updated: 2026-10-28 (Luke's agent, solo mode). `main` at `8094701`. **Time 
 
 #### F05.6 — Worker robustness tests and resource limits
 - **Description:** Tests for retries, resume and failure accounting; per-worker memory guard; progress events.
-- **Priority:** P1 · **Owner:** luke · **Status:** BACKLOG · **Dependencies:** F05.3, F05.5
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F05.3, F05.5
 - **Scope:** `tests/integration/test_workers.py`; optional psutil memory check before starting an item.
 - **Expected behavior:** Faults are counted correctly and the job never hangs.
 - **Acceptance criteria:** Flaky provider succeeds on retry; always-failing provider marks items failed; restart resumes.
@@ -500,6 +500,14 @@ Last updated: 2026-10-28 (Luke's agent, solo mode). `main` at `8094701`. **Time 
 - **Verification evidence:** —
 
 ---
+- **Verification evidence (2026-10-28):** `tests/integration/test_workers.py` has 5 tests:
+  - a flaky provider succeeds on its second attempt (4 of 4 done, 0 failed);
+  - an always-failing provider marks every item failed after `job_max_attempts`, the job ends `failed` without hanging, and stored errors contain no document text;
+  - an unexpected `RuntimeError` on one document gives `completed_with_errors` (3 done, 1 failed);
+  - a job interrupted mid-item resumes through `JobRunner.resume_unfinished` and completes;
+  - with RAM below the floor, each slot waits up to `memory_wait_s`, records `memory.wait` and then `memory.low`, and still finishes.
+- **Memory guard:** `VAULT_MIN_FREE_MEMORY_MB` (default 256) and `VAULT_MEMORY_WAIT_S` (default 60), using psutil, which is already a dependency.
+- **Full suite:** 58 passed.
 
 #### F05.7 — Coordinator agent with security, extractor lanes and review agent
 
