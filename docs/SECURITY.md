@@ -48,8 +48,27 @@ During the hackathon, open a GitHub issue labelled `security`. Do not include se
 | Ruff with the `S` (bandit) ruleset | CI, blocking |
 | Bandit (`-ll`) | CI, blocking |
 | pytest security suite (S1–S10) | CI, blocking |
-| pip-audit, npm audit | CI, report-only for now |
-| Semgrep, Trivy (images), OWASP ZAP (baseline against localhost) | Planned for F09 verification. Run them only against our own local instance. |
+| pip-audit, npm audit (high and above) | CI, blocking, and weekly |
+| Semgrep (`p/python`, `p/typescript`, `p/react`, `p/nextjs`, `p/dockerfile`, `p/secrets`) | CI, blocking |
+| Trivy: lockfiles, Dockerfiles and secrets in the repository | CI, blocking (high and critical) |
+| Trivy: both Docker images | CI, blocking for high and critical issues that have a released fix |
+| OWASP ZAP (baseline against localhost) | Planned (F09.7). Run it only against our own local instance. |
+
+CI runs the scanners from Docker images pinned by digest, and with read-only repository permissions. Results are not uploaded anywhere.
+
+### Scan triage (F09.6, 2026-10-28)
+
+| Finding | Where | Decision |
+|---|---|---|
+| Semgrep: 0 results across 164 files | whole repository | Nothing to triage. |
+| pip-audit: 0, npm audit: 0 | Python and frontend dependencies | Nothing to triage. |
+| Trivy fs: 0 | `package-lock.json`, both Dockerfiles, secrets | Nothing to triage. |
+| Trivy image: `wheel` and `jaraco.context` (high, fix released) | copies vendored inside `setuptools` in the backend image | Fixed: the image removes `setuptools` after installing VAULT, since nothing uses it at run time. |
+| Trivy image: `undici` and `brace-expansion` (high, fix released) | npm's own bundled packages in the frontend image | Fixed: the runtime image removes npm and starts Next.js with `node` directly. |
+| Trivy image: `zlib1g` CVE-2023-45853 (critical, "will not fix") | frontend image on Debian 12 | Fixed by moving the frontend image to Debian 13 (`node:24-trixie-slim`). The flaw is in zlib's minizip code, which VAULT does not use. |
+| Trivy image: 8 high CVEs in base OS packages (util-linux, ncurses, systemd libraries, perl-base, acl, login), no fix released | both images, Debian 13.7 | Accepted for now. They are in the operating system, not in VAULT. The images run as a non-root user, the backend has a read-only root filesystem, and ports bind to 127.0.0.1. The weekly CI run fails as soon as Debian releases a fix, so the images get rebuilt then. |
+
+To accept a new finding instead of fixing it, add it to this table with a reason first. Then list its ID in `.trivyignore` or pass `--ignore-vuln` to pip-audit.
 
 ## Secret handling rules for contributors
 

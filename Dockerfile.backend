@@ -6,7 +6,9 @@ COPY backend ./backend
 COPY cli ./cli
 COPY generator ./generator
 COPY evaluation ./evaluation
-RUN pip install --no-cache-dir . && mkdir -p /data && chown vault:vault /data
+# setuptools is only needed to install; removing it drops its vendored copies of wheel and jaraco.context,
+# which image scans flag (docs/SECURITY.md).
+RUN pip install --no-cache-dir . && pip uninstall -y setuptools \n    && mkdir -p /data && chown vault:vault /data
 USER vault
 ENV VAULT_DATA_DIR=/data
 EXPOSE 8000
