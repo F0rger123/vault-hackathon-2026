@@ -12,6 +12,8 @@ class CollectionCreate(BaseModel):
 
 class ImportPath(BaseModel):
     path: str = Field(min_length=1, max_length=500)
+    # Large folders: run as a background job with progress, cancel and resume (F02.7).
+    background: bool = False
 
 
 class EstimateRequest(BaseModel):

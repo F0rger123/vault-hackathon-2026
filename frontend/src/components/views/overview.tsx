@@ -12,7 +12,8 @@ import { cx, Empty, Figure, LoadError, Meter, Panel, Tag } from "../ui";
 export function OverviewView() {
   const { collection, stats } = useSession();
   const providers = useLoad("providers", vault.providers, 15000);
-  const jobs = useLoad("jobs", vault.jobs, 3000);
+  const all = useLoad("jobs", vault.jobs, 3000);
+  const jobs = { ...all, data: all.data?.filter((j) => j.kind === "process") };
   const findings = useLoad(collection ? `findings:${collection.id}` : null, () => vault.findings(collection!.id), 15000);
 
   const active = (jobs.data ?? []).filter((j) => !TERMINAL.includes(j.status));

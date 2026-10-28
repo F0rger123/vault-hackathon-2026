@@ -34,7 +34,9 @@ export function RunBoardView() {
   const params = useSearchParams();
   const router = useRouter();
   const requested = Number(params.get("job")) || null;
-  const jobs = useLoad("jobs", vault.jobs, 5000);
+  const all = useLoad("jobs", vault.jobs, 5000);
+  // Path imports (kind "import") are jobs too, but have no model lanes to show on this board.
+  const jobs = { ...all, data: all.data?.filter((j) => j.kind === "process") };
   const jobId = requested ?? jobs.data?.[0]?.id ?? null;
 
   return (
