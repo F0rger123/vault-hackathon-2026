@@ -86,6 +86,35 @@ Every response carries `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY
 - **Auth:** none.
 - **Response 200:** `{"status": "ok", "version": "0.1.0"}`
 
+### `GET /auth/options` (F10.11, public)
+- **Response 200:** `{"demo_login": bool, "password_login": bool}`. It tells the sign-in screen which methods to show.
+
+### `POST /auth/login` (F10.11, public)
+- **Body:** `{"username", "password"}`.
+- **Response 200:** `{token, username, role, expires_at}`. The token is an ordinary bearer token that expires after `VAULT_SESSION_TTL_HOURS` (default 12).
+- **Errors:** 401 `wrong username or password`, the same message for an unknown user; 429 after 5 failures in a minute; 422.
+- **Audit:** `auth.login`, allowed or denied.
+
+### `POST /auth/demo-login` (F10.11, public)
+- **Body:** `{"role": "admin" | "analyst" | "viewer"}`.
+- **Response 200:** the same shape as `/auth/login`, for the demo user of that role.
+- **Errors:** 403 unless the server runs with `VAULT_DEMO_LOGIN=true`; 404 if the demo users do not exist; 422.
+
+### `POST /auth/logout` (F10.11)
+- **Permission:** any signed-in user.
+- **Response 200:** `{"signed_out": true}`. It revokes the token that made the request.
+
+### `GET /settings/meta-api-key` (F10.11)
+- **Permission:** `system:read`.
+- **Response 200:** `{"configured": bool, "source": "environment" | "vault" | null}`. The key itself is never returned.
+
+### `PUT /settings/meta-api-key` · `DELETE /settings/meta-api-key` (F10.11)
+- **Permission:** `settings:write` (admin).
+- **Body (PUT):** `{"key": "LLM_..."}`. It is stored in `<data_dir>/secrets/meta_api_key`; an environment key always wins.
+- **Response 200:** the status above.
+- **Errors:** 422 when the key does not start with `LLM_`.
+- **Audit:** `settings.meta_api_key`, which records "set" or "removed", never the value.
+
 ### `GET /tokens` (F09.8)
 - **Permission:** `users:manage` (admin)
 - **Response 200:** `[{id, username, role, label, created_at, expires_at, revoked, revoked_at, last_used_at, expired}]`.
@@ -171,6 +200,8 @@ Rejections do not fail the request. `duplicate: true` means identical bytes alre
   - `POST /jobs/{id}/cancel` stops it. After a restart it resumes, and files already stored are de-duplicated.
   - Import jobs have no model lanes, so the UI's run board lists only `kind: "process"` jobs.
 - **Errors:** 401, 403 (path imports disabled, or path outside allowed roots), 404, 422
+
+**Collections (F10.11):** `POST /collections` accepts `"is_demo": true`, and every Collection includes `is_demo` (0 or 1). The UI shows demo collections only in Demo mode and the others only in Real mode.
 
 ### `GET /collections/{collection_id}/inventory`
 - **Permission:** `documents:read`

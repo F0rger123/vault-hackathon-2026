@@ -23,10 +23,10 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 | F07 Teaching & Corrections | 5 | 4 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F08 Actions & Organization | 5 | 4 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F09 Security | 9 | 9 | 0 | 0 | 0 | 0 | 0 | 0 |
-| F10 User Interface | 10 | 10 | 0 | 0 | 0 | 0 | 0 | 0 |
+| F10 User Interface | 11 | 11 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F11 Synthetic Data & Evaluation | 7 | 6 | 0 | 1 | 0 | 0 | 0 | 0 |
 | F12 Deployment & Submission | 8 | 4 | 0 | 0 | 0 | 2 | 2 | 0 |
-| **Total** | **90** | **75** | **1** | **1** | **1** | **8** | **4** | **0** |
+| **Total** | **91** | **76** | **1** | **1** | **1** | **8** | **4** | **0** |
 
 **Recorded evidence used below**
 
@@ -1012,6 +1012,27 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 
 ## F11 — Synthetic Data & Evaluation
 - **Verification evidence (E-E2E-2, 2026-10-28):** covered by the Playwright suite in `tests/e2e/` (`02-investigate`); 13 of 13 tests passed in 5 consecutive fresh runs on Windows 11 (Chromium, desktop and Pixel 7 profiles).
+
+#### F10.11 — Easy start: sign-in, Demo and Real modes, Meta API key screen
+
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F10.1, F09.8
+- **Description:** use VAULT without pasting tokens or editing `.env`, and keep fictional demo data apart from real documents.
+- **Implementation scope:**
+  - Sign-in: username and password with scrypt hashes, 12-hour sessions and lockout; optional one-click demo sign-in (`VAULT_DEMO_LOGIN`); sign-out revokes the token.
+  - Modes: a Demo/Real switch, with `collections.is_demo` (migration 5) and a "Create your first collection" form.
+  - Key screen: a Meta Model API key panel on Security, with links to the Meta developer portal.
+- **Acceptance criteria:**
+  - The demo signs in with one click, and a password user signs in without a token.
+  - Real mode never shows demo collections.
+  - A key can be saved and removed from the UI and is never returned.
+  - VAULT works with no API key.
+- **Required tests:** `tests/security/test_sign_in.py`; e2e `01-sign-in`, `06-modes`.
+- **Blockers:** none
+- **Related PR/commit:** branch `luke/F10.11-easy-start`. This is high-risk (auth, a migration, secret storage), so it waits for Luke's approval before merge.
+- **Verification evidence (2026-10-28):**
+  - **`test_sign_in.py`, 6 tests:** a password sign-in session expires and sign-out revokes it; wrong and unknown users get the same 401 and lock out after 5 tries; short passwords are refused; demo sign-in gives 403 unless enabled; the key is never in responses, providers or the audit log, and viewers cannot set it; demo and real collections are kept apart.
+  - **e2e, 17 of 17 twice:** the demo button opens Demo mode with its banner; sign-out makes the session give 401; a wrong password shows a message; the token fallback works; Real mode hides the demo archive until a collection is created.
+  - **Overall:** pytest 97 passed; bandit clean.
 
 #### F11.1 — Deterministic synthetic dataset v1
 - **Description:** 150 fictional files across 5 projects: 40 drawings, 40 inspection records, 15 contracts, 10 parts lists, 10 revision histories, 20 memos, 15 stamp images; alternate layouts.

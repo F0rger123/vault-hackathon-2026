@@ -94,6 +94,25 @@ export interface Collection {
   bytes: number;
   processed: number | null;
   created_at: number;
+  /** 1 for fictional demo collections, shown only in Demo mode (F10.11). */
+  is_demo: number;
+}
+
+export interface AuthOptions {
+  demo_login: boolean;
+  password_login: boolean;
+}
+
+export interface SignedIn {
+  token: string;
+  username: string;
+  role: Role;
+  expires_at: number;
+}
+
+export interface ApiKeyStatus {
+  configured: boolean;
+  source: "environment" | "vault" | null;
 }
 
 export interface DocumentRow {
@@ -434,6 +453,10 @@ export function put<T>(path: string, body: unknown): Promise<T> {
   return api<T>(path, { method: "PUT", body: JSON.stringify(body) });
 }
 
+export function del<T>(path: string): Promise<T> {
+  return api<T>(path, { method: "DELETE" });
+}
+
 export const vault = {
   me: () => api<Me>("/me"),
   stats: () => api<Stats>("/stats"),
@@ -444,6 +467,14 @@ export const vault = {
     post<Calibration>("/system/capacity/calibrate", { provider, confirm_remote }),
   setRemote: (enabled: boolean) => put<{ allow_remote_inference: boolean }>("/settings/remote-inference", { enabled }),
   collections: () => api<Collection[]>("/collections"),
+  createCollection: (name: string, is_demo: boolean) => post<Collection>("/collections", { name, is_demo }),
+  authOptions: () => api<AuthOptions>("/auth/options"),
+  login: (username: string, password: string) => post<SignedIn>("/auth/login", { username, password }),
+  demoLogin: (role: Role) => post<SignedIn>("/auth/demo-login", { role }),
+  logout: () => post<{ signed_out: boolean }>("/auth/logout", {}),
+  apiKeyStatus: () => api<ApiKeyStatus>("/settings/meta-api-key"),
+  setApiKey: (key: string) => put<ApiKeyStatus>("/settings/meta-api-key", { key }),
+  clearApiKey: () => del<ApiKeyStatus>("/settings/meta-api-key"),
   upload: (collectionId: number, files: File[]) => {
     const form = new FormData();
     files.forEach((f) => form.append("files", f));

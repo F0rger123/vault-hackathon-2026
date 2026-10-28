@@ -12,7 +12,11 @@ export function token(role: Role): string {
 
 /** Open a page already signed in as `role`, the way the UI stores a pasted token. */
 export async function signedIn(page: Page, role: Role, path = "/") {
-  await page.addInitScript((t) => sessionStorage.setItem("vault.token", t), token(role));
+  // Demo mode, so the seeded fictional archive is shown even after a test creates a real collection.
+  await page.addInitScript((t) => {
+    sessionStorage.setItem("vault.token", t);
+    sessionStorage.setItem("vault.mode", "demo");
+  }, token(role));
   await page.goto(path);
 }
 

@@ -4,10 +4,17 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { ApiError, errorText, getToken, setToken, vault, type Collection, type Me, type Stats } from "@/lib/api";
 
 const COLLECTION_KEY = "vault.collection";
+const MODE_KEY = "vault.mode";
+
+export type Mode = "demo" | "real";
 
 interface Session {
   me: Me;
+  /** Collections for the current mode only: demo collections in Demo mode, the rest in Real mode. */
   collections: Collection[];
+  allCollections: Collection[];
+  mode: Mode;
+  setMode: (mode: Mode) => void;
   collection: Collection | null;
   setCollectionId: (id: number) => void;
   refresh: () => void;
@@ -52,6 +59,22 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [collectionId, setCollectionIdState] = useState<number | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
   const [nonce, setNonce] = useState(0);
+  const [storedMode, setStoredMode] = useState<Mode | null>(() => {
+    try {
+      const m = sessionStorage.getItem(MODE_KEY);
+      return m === "demo" || m === "real" ? m : null;
+    } catch {
+      return null;
+    }
+  });
+  const setMode = useCallback((m: Mode) => {
+    setStoredMode(m);
+    try {
+      sessionStorage.setItem(MODE_KEY, m);
+    } catch {
+      /* storage unavailable */
+    }
+  }, []);
 
   const refresh = useCallback(() => setNonce((n) => n + 1), []);
   useEffect(() => {
@@ -127,22 +150,30 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(() => {
+    // End the session on the server too, so the token stops working everywhere. Best effort.
+    vault.logout().catch(() => undefined);
     setToken(null);
     setState({ phase: "signed_out" });
   }, []);
 
   const value = useMemo<Session | null>(() => {
     if (state.phase !== "ready") return null;
+    // Default to Real mode once the organization has its own collections; until then, Demo mode.
+    const mode: Mode = storedMode ?? (state.collections.some((c) => !c.is_demo) ? "real" : "demo");
+    const shown = state.collections.filter((c) => Boolean(c.is_demo) === (mode === "demo"));
     return {
       me: state.me,
-      collections: state.collections,
-      collection: state.collections.find((c) => c.id === collectionId) ?? null,
+      collections: shown,
+      allCollections: state.collections,
+      mode,
+      setMode,
+      collection: shown.find((c) => c.id === collectionId) ?? shown[0] ?? null,
       setCollectionId,
       refresh,
       stats,
       signOut,
     };
-  }, [state, collectionId, setCollectionId, refresh, stats, signOut]);
+  }, [state, collectionId, setCollectionId, refresh, stats, signOut, storedMode, setMode]);
 
   const stateValue = useMemo(() => ({ state, refresh }), [state, refresh]);
   return (

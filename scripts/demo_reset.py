@@ -109,6 +109,8 @@ def main() -> int:
 
     with connect(Settings(data_dir=data_dir, _env_file=None).db_path) as conn:
         cid = conn.execute("SELECT id FROM collections WHERE name = ?", (COLLECTION,)).fetchone()["id"]
+        # Fictional data: shown in Demo mode, kept out of Real mode (F10.11).
+        conn.execute("UPDATE collections SET is_demo = 1 WHERE id = ?", (cid,))
         if not args.no_proposal:
             analyst = conn.execute("SELECT id FROM users WHERE username = 'analyst'").fetchone()["id"]
             pid = create_proposal(conn, cid, analyst, "Organize by project, document type and year")
@@ -128,7 +130,8 @@ def main() -> int:
         f"  collection: {COLLECTION} (id {cid}), {done}/{docs} documents processed, {findings} findings, "
         f"{pending} proposal(s) pending\n"
         f"  tokens: {data_dir / 'dev_tokens.json'} (never share or commit)\n"
-        f"  serve:  VAULT_DATA_DIR={data_dir} vault serve"
+        f"  serve:  VAULT_DATA_DIR={data_dir} VAULT_DEMO_LOGIN=true vault serve\n"
+        f"  sign in with the Demo buttons (VAULT_DEMO_LOGIN=true), or a token from the file above"
     )
     return 0 if done == docs and docs > 0 else 1
 

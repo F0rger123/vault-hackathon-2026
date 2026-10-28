@@ -34,6 +34,9 @@ During the hackathon, open a GitHub issue labelled `security`. Do not include se
 
 ## Known gaps
 
+- **Sign-in (F10.11):** people sign in with a username and password. Passwords are stored as scrypt hashes, at least 10 characters, set with `vault set-password`. Each sign-in issues a session token that expires after 12 hours, and signing out revokes it on the server. 5 failed attempts lock a username for a minute, and wrong or unknown usernames get the same answer.
+- **Demo sign-in:** one-click demo sign-in exists only when `VAULT_DEMO_LOGIN=true`. That is for a laptop showing fictional data; never turn it on for a shared or real deployment.
+- **Meta API key:** a key pasted on the Security screen is stored in `<data_dir>/secrets/` (git-ignored) and is never returned by the API or written to the audit log. Owner-only permissions are applied on POSIX; on Windows the file inherits the data folder's permissions.
 - Tokens can be revoked (`POST /tokens/{id}/revoke`, `vault revoke`), which takes effect on the next request. They can also be issued with an expiry (`vault token --ttl-days`). Demo tokens and the CLI default still never expire, and there is no login UI beyond pasting a token. SSO is on the roadmap.
 - There are no per-document ACLs. Every authenticated role can read every collection.
 - Rate limiting is not implemented.

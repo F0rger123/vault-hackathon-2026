@@ -64,7 +64,15 @@ One command rebuilds the demo from nothing: a fresh database in `data/demo/` (gi
 .\scripts\demo_reset.ps1                      # Windows PowerShell; same arguments
 ```
 
-Then serve it with `VAULT_DATA_DIR=data/demo vault serve` and sign in with a token from `data/demo/dev_tokens.json`. Run the reset again before every rehearsal. The script only deletes a directory it created (marked by a `.vault-demo` file) and refuses anything else, including `data/runtime/`.
+Then serve it with `VAULT_DATA_DIR=data/demo VAULT_DEMO_LOGIN=true vault serve`, and sign in with the **Demo: admin / analyst / viewer** buttons. A token from `data/demo/dev_tokens.json` also works. Run the reset again before every rehearsal. The script only deletes a directory it created (marked by a `.vault-demo` file) and refuses anything else, including `data/runtime/`.
+
+## Signing in with a password
+
+```bash
+vault set-password admin        # asks twice; at least 10 characters
+```
+
+The sign-in screen then accepts that username and password. Sessions last 12 hours (`VAULT_SESSION_TTL_HOURS`). No Meta API key or internet account is needed: VAULT uses Meta Llama locally through Ollama.
 
 ## Docker Compose
 
