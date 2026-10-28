@@ -37,6 +37,8 @@ class Settings(BaseSettings):
     # A worker holds back a new document while free RAM is below this floor, for up to memory_wait_s (F05.6).
     min_free_memory_mb: int = 256
     memory_wait_s: float = 60.0
+    # Reuse earlier model answers for unchanged documents in processing jobs (development runs; F04.9).
+    response_cache: bool = False
 
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
 
