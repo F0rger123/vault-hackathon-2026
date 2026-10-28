@@ -108,6 +108,10 @@ def task_issue(task: str) -> dict:
     )
     match = [i for i in found if i["title"].startswith(f"[{task}]")]
     if not match:
+        # GitHub search lags a minute or so behind new issues, so fall back to a plain listing.
+        recent = json.loads(gh("issue", "list", "--state", "open", "--json", "number,title", "--limit", "300"))
+        match = [i for i in recent if i["title"].startswith(f"[{task}]")]
+    if not match:
         sys.exit(f"no open issue titled [{task}] ...; create it from .github/ISSUE_TEMPLATE/task.md first")
     return match[0]
 
