@@ -26,3 +26,31 @@ Notes:
 - The prompt was tuned while looking at aggregate train and held-out scores, so held-out numbers are slightly
   optimistic. A fresh dataset seed should be used for the final reported figures (task F11.4).
 - Rating accuracy below 1.0 is mostly drawings where the model attaches one rating to several parts.
+
+## Corrections experiment (F07.3, 2026-10-28)
+
+Question: do corrections a reviewer makes on some documents improve accuracy on documents nobody corrected?
+Run with `python -m evaluation.corrections_experiment --provider <p> --out evaluation/results`. A simulated
+reviewer looks only at the 105 train documents, and for each one with a wrong `doc_type` or `project` picks a
+line of that document's own text as a `when_contains` rule, through the real corrections API. A phrase is
+accepted only if no train document containing it has a different true value. The collection is then
+reprocessed and scored. Held-out ground truth is read only for the final scores. No model weights change.
+
+| Provider | Train docs wrong before (type / project) | Rules created | Held-out doc_type before → after | Held-out project before → after |
+|---|---|---|---|---|
+| Heuristic (not AI) | 9 / 16 | 5 | 0.889 → **0.978** | 0.800 → 0.822 |
+| Llama 3 8B, prompt v3 | 2 / 10 | 0 | 0.978 → 0.978 | 0.889 → 0.889 |
+
+Files: `corrections-heuristic-20261028-011548.json`, `corrections-ollama-20261028-013024.json`.
+
+What this shows, and what it does not:
+
+- For the rule-based extractor, one rule ("Witness" means inspection report) fixed 6 train documents and
+  lifted held-out document-type accuracy by 4 documents. That is real generalisation to unseen files.
+- The other four heuristic rules tie an inspector's name to a project. They work here only because each
+  fictional inspector belongs to one project; on real archives that would be a weak rule. The held-out project
+  gain is one document.
+- For Llama 3, no candidate phrase passed the safety test (every phrase in the wrong documents also appears in
+  documents with a different true value, or contains digits), so no rule was created and nothing changed.
+  The model's remaining errors are not the kind a single text rule can fix.
+- Both Llama 3 passes completed 150/150 documents (443 s and 431 s, 2 workers).
