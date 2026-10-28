@@ -37,3 +37,8 @@ evaluation/scratch/
 Thumbs.db
 .vscode/
 .idea/
+data/e2e/
+tests/e2e/node_modules/
+tests/e2e/test-results/
+tests/e2e/playwright-report/
+frontend/.next-e2e/
