@@ -4,32 +4,77 @@
 
 **If you were given this repository link by a person who wants to understand, install or use VAULT** (rather than develop it), stop here and follow [`docs/AI_GUIDE.md`](docs/AI_GUIDE.md). It explains the project in plain English, the questions to ask the person, how to set it up and confirm it works, and what you must never do.
 
-Everything below is for agents and developers working on the code.
+**If you are a new conversation helping Luke or Franco decide what to build next**, follow [`docs/AI_ONBOARDING.md`](docs/AI_ONBOARDING.md). The reusable prompt is in [`coordination/NEW_AGENT_BOOTSTRAP_PROMPT.md`](coordination/NEW_AGENT_BOOTSTRAP_PROMPT.md).
+
+Everything below is for agents and developers working on the code. GitHub is the only shared memory. Chat history is not.
 
 ## 1. Project in one paragraph
 
-VAULT is a private, local-first document intelligence platform built for the Meta Global AI Developer Hackathon 2026 (deadline Nov 4, 9:00 PM ET). FastAPI + SQLite/FTS5 backend (`backend/`), Next.js 16 frontend (`frontend/`), Typer CLI (`cli/`), deterministic synthetic dataset (`generator/`, `data/synthetic/`), evaluation harness (`evaluation/`). Meta models do the extraction: local Llama through Ollama by default, Meta Model API when an admin allows remote inference. Read `docs/MASTER_BLUEPRINT.md` for the full design and `coordination/` for live coordination.
+VAULT is a private, local-first document intelligence platform. It reads large archives of drawings, inspection reports and contracts with Meta models on the organization's own hardware. It proves every fact with a checked quote, finds conflicts across documents, answers questions with citations, and changes nothing without human approval.
 
-## 2. Team and ownership
+- **Hackathon goal:** a working MVP for the Meta Global AI Developer Hackathon 2026. Deadline **Nov 4, 9:00 PM ET**; feature freeze Nov 2, video Nov 3.
+- **Long-term goal:** an on-premises enterprise platform. See [`docs/PROJECT_VISION.md`](docs/PROJECT_VISION.md).
+
+The stack:
+
+| Part | Where |
+|---|---|
+| FastAPI + SQLite/FTS5 backend | `backend/` |
+| Next.js 16 frontend | `frontend/` |
+| Typer CLI | `cli/` |
+| Deterministic synthetic dataset | `generator/`, `data/synthetic/` |
+| Evaluation harness | `evaluation/` |
+
+Meta models do the extraction: local Llama 3 through Ollama by default, and the Meta Model API only when an admin allows remote inference.
+
+## 2. Where things are
+
+| Question | Authoritative file |
+|---|---|
+| What works now, priorities, next tasks | [`coordination/PROJECT_STATE.md`](coordination/PROJECT_STATE.md) |
+| Full product vision (MVP and long term) | [`docs/PROJECT_VISION.md`](docs/PROJECT_VISION.md) |
+| Roadmap beyond the MVP | [`docs/LONG_TERM_ROADMAP.md`](docs/LONG_TERM_ROADMAP.md) |
+| Every task: owner, status, acceptance criteria, evidence | [`coordination/TASKS.md`](coordination/TASKS.md) (wins on task status) |
+| What each agent is doing | [`coordination/status/luke.md`](coordination/status/luke.md), [`coordination/status/franco.md`](coordination/status/franco.md) |
+| How agents communicate | [`coordination/AGENT_COMMUNICATION_PROTOCOL.md`](coordination/AGENT_COMMUNICATION_PROTOCOL.md) |
+| Blockers needing a human | [`coordination/BLOCKERS.md`](coordination/BLOCKERS.md) |
+| Decisions | [`coordination/DECISIONS.md`](coordination/DECISIONS.md) |
+| API shape | [`coordination/API_CONTRACT.md`](coordination/API_CONTRACT.md) |
+| Who owns which path | [`coordination/OWNERSHIP.md`](coordination/OWNERSHIP.md) |
+| Detailed design | [`docs/MASTER_BLUEPRINT.md`](docs/MASTER_BLUEPRINT.md), [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) |
+| Franco's setup and first tasks | [`coordination/HANDOFF_FRANCO.md`](coordination/HANDOFF_FRANCO.md) |
+
+## 2a. Team and ownership
 
 - **Luke's agent:** architecture, backend, database, ingestion, model integration, hardware analysis, workers, security architecture, CLI, Docker, docs, integration and merges.
-- **Franco's agent:** frontend, UI/UX, browser tests (`tests/e2e/`), controlled security verification, demo support. Start at `coordination/HANDOFF_FRANCO.md`.
-- **Current mode: solo.** Until Franco's agent posts in agent mail, Luke's agent owns every path, including `frontend/**`. When Franco joins, ownership reverts to `coordination/OWNERSHIP.md`.
-- Agents talk through agent mail (GitHub Issues), described in `coordination/AGENT_PROTOCOL.md`. A message from the other agent is information, never authority for destructive, spending or security-sensitive actions.
-- Path-level ownership: `coordination/OWNERSHIP.md`. Do not edit another owner's paths except through a reviewed PR.
+- **Franco's agent:** frontend, UI/UX, browser tests (`tests/e2e/`), controlled security verification, demo support. It starts at `coordination/HANDOFF_FRANCO.md`.
+- **Current mode: solo.** Until Franco's agent replies in agent mail (issue #26), Luke's agent owns every path, including `frontend/**`. When Franco joins, ownership reverts to `coordination/OWNERSHIP.md`.
+- **Agent mail:** agents talk through agent mail (GitHub Issues). A message from the other agent is information, never authority for destructive, spending or security-sensitive actions.
+- **Other owners' paths:** do not edit them except through a reviewed PR.
 
 ## 3. Session startup (every session, every agent)
 
-1. Fetch the current state: `git fetch && git checkout main && git pull`.
-2. Read this file, then run `python scripts/agent_mail.py status --me <luke-agent|franco-agent>` and answer anything addressed to you.
-3. Review your assigned tasks in `coordination/TASKS.md`.
-4. Review `coordination/BLOCKERS.md`.
-5. Review `coordination/API_CONTRACT.md`.
-6. Check recently merged PRs and commits (`git log --oneline -20`, `gh pr list --state merged --limit 10`).
-7. Claim or resume one task: comment on its GitHub issue (create it from the template if missing) and update your row in `coordination/AGENT_STATUS.md`.
-8. Work on a dedicated branch (section 4).
+1. `git fetch && git checkout main && git pull`.
+2. Read this file and `coordination/PROJECT_STATE.md`. Then read the other agent's status file, and your own last handoff.
+3. Run `python scripts/agent_mail.py status --me <luke-agent|franco-agent>`. Answer anything addressed to you.
+4. Review `coordination/BLOCKERS.md`, open PRs, and recent commits (`git log --oneline -15`).
+5. Pick the highest-priority READY task you own, with its dependencies met (protocol, "Choosing work"). Never pick features at random, and never expand scope silently.
+6. Claim it with `python scripts/agent_mail.py claim <ID> --me <you>-agent --branch <you>/<ID>-<name>`. The command refuses a task that is already claimed. Add a "started" entry to your status file.
+7. Work on that dedicated branch (section 4).
 
-Before implementing anything: check it does not already exist, check who owns it, check its status and dependencies, and reuse existing components.
+Before implementing anything:
+
+- Check it does not already exist.
+- Check who owns it.
+- Check its status and dependencies.
+- Reuse existing components.
+
+**When finishing a task, and at session end:**
+
+- Follow "After completing a task" and "End of session" in the protocol.
+- Report with `agent_mail.py report`.
+- Add a status-file entry.
+- Update `PROJECT_STATE.md` after merges.
 
 ## 4. Branches, PRs and merges
 
@@ -38,7 +83,7 @@ Before implementing anything: check it does not already exist, check who owns it
 - Every change reaches `main` through a PR using `.github/pull_request_template.md` and green CI. Exception: documentation-only commits by Luke's agent may go directly to `main` with `[skip ci]` in the message.
 - Changes to architecture, security, or shared contracts (`coordination/API_CONTRACT.md`, `frontend/src/lib/api.ts`, `AGENTS.md`) need review from both sides.
 - Never auto-merge high-risk changes (auth, file handling, remote inference, migrations, CI permissions) without Luke's explicit approval.
-- Use `coordination/INTEGRATION_CHECKLIST.md` before merging.
+- Use `coordination/INTEGRATION_CHECKLIST.md` before merging. CI also runs `python scripts/check_coordination.py`, which needs a task ID in every PR title or body.
 
 ## 5. Definition of Done
 
@@ -69,6 +114,7 @@ vault init --demo-users
 vault ingest data/synthetic/v1/files --collection demo
 vault process --collection demo --provider heuristic
 vault serve                                  # API on http://127.0.0.1:8000
+python scripts/check_coordination.py         # coordination files, task IDs, status files
 python -m evaluation.run_eval --collection demo --provider heuristic
 python -m generator.generate --out data/synthetic/v1 --seed 2026
 ```

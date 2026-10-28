@@ -1,6 +1,6 @@
 # VAULT Master Blueprint
 
-This is the engineering source of truth for VAULT. Other documents go deeper on single topics. If they disagree with this file, fix whichever is wrong and log the decision in `coordination/DECISIONS.md`.
+This is the engineering design reference for VAULT. **For current status, read [`coordination/PROJECT_STATE.md`](../coordination/PROJECT_STATE.md) and [`coordination/TASKS.md`](../coordination/TASKS.md)**, because status notes in this file date from 2026-10-26. For the full product vision, read [`docs/PROJECT_VISION.md`](PROJECT_VISION.md). Other documents go deeper on single topics. If they disagree with this file, fix whichever is wrong and log the decision in `coordination/DECISIONS.md`.
 
 - Repository: https://github.com/F0rger123/vault-hackathon-2026
 - Event: Meta Global AI Developer Hackathon 2026 (Cerebral Valley), Indie track

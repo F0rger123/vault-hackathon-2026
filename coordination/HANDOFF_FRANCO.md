@@ -10,7 +10,7 @@ Welcome to VAULT. This page has everything you and your coding agent need to sta
 > **Update 2026-10-26: VAULT is being built in solo mode.** Luke's agent is building everything, including
 > the frontend, so the project does not depend on you being available. If you join, nothing here is wasted:
 > your agent's first step is `python scripts/agent_mail.py status --me franco-agent`, then read
-> `coordination/AGENT_PROTOCOL.md`, pick open `owner:franco` issues (or any READY task) and claim them.
+> `coordination/AGENT_COMMUNICATION_PROTOCOL.md`, pick open `owner:franco` issues (or any READY task) and claim them.
 > Frontend screens may already exist by then; treat them as yours to improve rather than to rebuild.
 
 ## 1. What VAULT is (one paragraph)
@@ -33,7 +33,9 @@ Browser (Next.js 16, frontend/)  --HTTP + Bearer token-->  FastAPI (backend/)  -
 - The `heuristic` provider exists for tests and as an evaluation baseline. Whenever its output appears, label it "rule-based, not AI".
 - Full API reference: `coordination/API_CONTRACT.md`. TypeScript types: `frontend/src/lib/api.ts`.
 
-## 3. Current state (2026-10-26, `main` at `7174dbc`)
+## 3. Current state (snapshot from 2026-10-26, `main` at `7174dbc`)
+
+> This section is a historical snapshot. For live status, read [`PROJECT_STATE.md`](PROJECT_STATE.md) and [`status/luke.md`](status/luke.md). Since this snapshot, F06.4 (investigation API) and F10.10 (Ask panel) have been built, and the test count is 46.
 
 Working and tested locally (33 backend tests passing; `scripts/e2e_smoke.py` runs the whole workflow over HTTP with 25/25 checks passing): upload and validation, hashing and de-duplication, PDF/text extraction, hardware profile, inventory, measured runtime estimate, background jobs with progress/cancel/resume, full-text and filtered search with page references, cross-document rating conflicts with verified evidence, corrections with versioned rules, proposals with admin approval and copy-only export, audit log, and all ten security test cases. Local Llama 3 8B through Ollama does the real extraction (prompt v3: held-out doc type 0.956, all 10 planted conflicts found); a multi-agent coordinator runs security screening, model lanes and review.
 
@@ -113,11 +115,13 @@ The screens exist, so the most useful work is proving they work and finding what
 | Order | Task | What |
 |---|---|---|
 | 1 | F11.5 | Playwright end-to-end tests in `tests/e2e/` covering the required tests listed under F10.1–F10.9. This moves those nine tasks from REVIEW to VERIFIED. |
-| 2 | F09.7 | OWASP ZAP baseline scan against your local stack only; file findings as issues |
+| 2 | F09.7 support | Luke's agent is running the ZAP baseline (F09.7). Help by checking any UI findings it files. |
 | 3 | F10.x fixes | Anything the tests or a fresh pair of eyes find wrong on the six screens (phone width, keyboard, empty and error states) |
 | 4 | F10.10 | Investigation screen, once Luke publishes the `POST /investigations` contract (F06.4) |
 
-Luke's agent is working on F06.4 (backend) and may touch `frontend/src/components/views/investigate.tsx` for a first version of F10.10. Claim a task in its issue before you start so the two agents do not collide.
+F06.4 and a first version of F10.10 (the Ask panel in `frontend/src/components/views/investigate.tsx`) are built; F10.10 is in REVIEW for you to improve. Claim a task with `python scripts/agent_mail.py claim <ID> --me franco-agent` before you start, so the two agents do not collide.
+
+**CI for the browser tests:** `.github/workflows/` is Luke's. When your Playwright suite runs locally, open your PR with the test files, and send Luke's agent a `review-request` asking for the CI job. Or include the job in your PR and ask for Luke's review.
 
 ## 7. Files you own and files to avoid
 
@@ -127,7 +131,7 @@ Luke's agent is working on F06.4 (backend) and may touch `frontend/src/component
 
 **Change only through a reviewed PR:** `coordination/API_CONTRACT.md` (and the matching types in `frontend/src/lib/api.ts`), `AGENTS.md`, `coordination/OWNERSHIP.md`.
 
-**You may update directly in your PRs:** your task entries in `coordination/TASKS.md` (status, PR, evidence) and your row in `coordination/AGENT_STATUS.md`.
+**You may update directly in your PRs:** your task entries in `coordination/TASKS.md` (status, PR, evidence) and your own status file `coordination/status/franco.md`.
 
 ## 8. Branches, tests and pull requests
 
@@ -151,7 +155,7 @@ Agents do not share memory. Everything goes through the repository:
 
 - **GitHub Issues:** task claims, questions, blockers (`blocker` label), security findings (`security` label).
 - **Pull requests:** all code changes and reviews.
-- **`coordination/AGENT_STATUS.md`:** update your row at the start and end of each session (what you are on, what is next, anything blocking).
+- **`coordination/status/franco.md`:** add an entry when you start, block, open a PR, or end a session (format in `coordination/AGENT_UPDATES.md`). Claim tasks with `python scripts/agent_mail.py claim <ID> --me franco-agent`.
 - **`coordination/BLOCKERS.md`:** anything that needs a human decision.
 - Humans talk directly as usual; record any decision that affects the code in `coordination/DECISIONS.md`.
 
@@ -186,12 +190,15 @@ backend; you own the frontend (frontend/**) and browser tests (tests/e2e/**).
 
 Start every session by:
 1. git fetch && git checkout main && git pull
-2. Reading AGENTS.md, coordination/HANDOFF_FRANCO.md, coordination/API_CONTRACT.md,
-   coordination/TASKS.md (F10 and F11.5), coordination/BLOCKERS.md, and the latest merged PRs.
+2. Reading AGENTS.md, coordination/PROJECT_STATE.md, coordination/status/luke.md,
+   coordination/HANDOFF_FRANCO.md, coordination/API_CONTRACT.md, coordination/TASKS.md (F10 and F11.5),
+   coordination/BLOCKERS.md, and the latest merged PRs. Run
+   python scripts/agent_mail.py status --me franco-agent and answer anything addressed to you.
 3. Reading frontend/AGENTS.md and the Next.js 16 guides in frontend/node_modules/next/dist/docs/ before
    writing Next.js code. Next 16 differs from what you may remember.
-4. Picking the next READY task assigned to franco, commenting on (or creating) its GitHub issue to claim it,
-   and creating a branch named franco/<TASK-ID>-<short-name>.
+4. Picking the next READY task assigned to franco, claiming it with
+   python scripts/agent_mail.py claim <TASK-ID> --me franco-agent --branch franco/<TASK-ID>-<short-name>,
+   and creating that branch.
 
 Rules:
 - Build against the endpoints in API_CONTRACT.md only. If you need a backend change, open an issue for Luke;
@@ -205,7 +212,9 @@ Rules:
 - Accessibility: semantic HTML, keyboard navigation, visible focus, labelled controls, works at 375 px.
 - Before a PR: npm run lint, npx tsc --noEmit, npm run build (and Playwright tests when they exist). Include
   screenshots. Update the task in coordination/TASKS.md to REVIEW with the PR link and evidence, and update
-  your row in coordination/AGENT_STATUS.md.
+  coordination/status/franco.md (format: coordination/AGENT_UPDATES.md). Run
+  python scripts/agent_mail.py report <TASK-ID> --me franco-agent --status review --body "<PR link, tests>".
+- End every session with a handoff entry in coordination/status/franco.md, pushed to your branch.
 - Never mark a task DONE yourself; never merge your own PR; never invent test results.
 - Keep chat replies short; put details in the repo.
 

@@ -49,6 +49,25 @@ jobs:
       - run: npx next typegen && npx tsc --noEmit
       - run: npm run build
 
+  # Keeps the files that let a fresh agent session resume valid (coordination/AGENT_COMMUNICATION_PROTOCOL.md).
+  coordination:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Coordination files
+        if: github.event_name != 'pull_request'
+        run: python scripts/check_coordination.py
+      - name: Coordination files and PR task ID
+        if: github.event_name == 'pull_request'
+        # Passed through env, never interpolated into the script, so PR text cannot inject shell commands.
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: python scripts/check_coordination.py --pr-title "$PR_TITLE" --pr-body "$PR_BODY"
+
   dependency-audit:
     runs-on: ubuntu-latest
     steps:

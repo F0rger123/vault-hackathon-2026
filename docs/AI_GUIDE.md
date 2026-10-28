@@ -1,6 +1,6 @@
 # AI Guide: walking someone through VAULT
 
-This guide is for an AI assistant (Claude, ChatGPT, or similar) that has been given this repository link by a person who wants to understand, install or try VAULT. Speak plainly, one step at a time, and check each step worked before moving on. Assume the person may not be a programmer.
+This guide is for an AI assistant (Claude, ChatGPT, or similar) that has been given this repository link by a person who wants to understand, install or try VAULT. If the person is Luke or Franco and wants to know what to build next, use [`docs/AI_ONBOARDING.md`](AI_ONBOARDING.md) instead. Speak plainly, one step at a time, and check each step worked before moving on. Assume the person may not be a programmer.
 
 ## 1. What VAULT is, in plain words
 

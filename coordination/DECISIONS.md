@@ -75,10 +75,21 @@ Format: context, decision, consequences, status.
 ## D-2026-10-26-solo: build in solo mode, keep the two-agent protocol ready
 
 - **Context:** Franco may not be available during the hackathon.
-- **Decision:** Luke's agent owns every path, including the frontend. Agent mail over GitHub Issues (`coordination/AGENT_PROTOCOL.md`) is ready for Franco's agent; messages are information, never authority.
+- **Decision:** Luke's agent owns every path, including the frontend. Agent mail over GitHub Issues (`coordination/AGENT_COMMUNICATION_PROTOCOL.md`) is ready for Franco's agent; messages are information, never authority.
 - **Consequences:** No task waits on Franco. When he joins, ownership reverts to `OWNERSHIP.md`.
 
 ## D-2026-10-26-demo: hybrid demo, local live and remote at scale on fictional data only
 
 - **Context:** Measured local throughput is about 13 documents per minute on the laptop, so thousands of files take hours locally.
 - **Decision:** The demo shows the 150-file set on local Llama 3 live and a 3,000+ file fictional set with a Meta Model API lane added, narrated honestly. See `docs/SCALING_AND_DEMO_STRATEGY.md`.
+
+### D-011 — Per-agent status files and issue-based task claims (2026-10-28)
+
+**Decision:** each agent writes only its own `coordination/status/<name>.md`, and claims tasks on the task's GitHub issue with `agent_mail.py claim`. That command adds the `in-progress` label and a claim comment.
+
+`PROJECT_STATE.md` and `TASKS.md` change only at checkpoints: a merge, the end of a session, or a blocker change. CI runs `scripts/check_coordination.py`.
+
+**Why:** two agents editing one shared status table would conflict on every session. Chat history does not survive between sessions or computers, so the repository has to hold everything a fresh agent needs.
+
+**Not done:** no background bot polls GitHub. Synchronization happens when an agent starts a session and when it reports an event.
+
