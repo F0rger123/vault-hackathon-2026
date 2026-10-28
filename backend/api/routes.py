@@ -37,6 +37,8 @@ from backend.security import login as signin
 from backend.security.auth import Principal, list_tokens, revoke_token
 from backend.security.files import FileRejected, contained, safe_join
 from backend.storage.db import dumps, loads, now
+from backend.workers import training
+from backend.workers.corrections import record_correction
 from backend.workers.importer import candidate_files, create_import_job, import_one
 from backend.workers.jobs import create_process_job
 from backend.workers.layout_request import interpret as interpret_layout
@@ -506,26 +508,8 @@ def add_correction(
 ) -> dict:
     """Record a human correction. With `when_contains`, also publish a new policy version with a rule."""
     _row(conn.execute("SELECT id FROM documents WHERE id = ?", (document_id,)).fetchone())
-    # body.field is a validated Literal, so the column name cannot be attacker-controlled.
-    x = conn.execute(
-        f"SELECT {body.field} AS v FROM extractions WHERE document_id = ? ORDER BY id DESC LIMIT 1", (document_id,)
-    ).fetchone()  # noqa: S608
-    old = x["v"] if x else None
-    conn.execute(
-        "INSERT INTO corrections (document_id, field, old_value, new_value, note, created_by, created_at) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?)",
-        (document_id, body.field, old, body.value, body.note, p.user_id, now()),
-    )
-    version = None
-    if body.when_contains:
-        row = conn.execute("SELECT version, rules FROM policies ORDER BY version DESC LIMIT 1").fetchone()
-        rules = loads(row["rules"], []) if row else []
-        rules.append({"when_contains": body.when_contains, "field": body.field, "value": body.value})
-        version = (row["version"] if row else 1) + 1
-        conn.execute(
-            "INSERT INTO policies (version, rules, created_by, created_at) VALUES (?, ?, ?, ?)",
-            (version, dumps(rules), p.user_id, now()),
-        )
+    result = record_correction(conn, p.user_id, document_id, body.field, body.value, body.when_contains, body.note)
+    version = result["policy_version"]
     audit.record(
         conn,
         p.username,
@@ -534,13 +518,62 @@ def add_correction(
         target=f"document:{document_id}",
         detail={"field": body.field, "policy_version": version},
     )
-    return {
-        "document_id": document_id,
-        "field": body.field,
-        "old_value": old,
-        "new_value": body.value,
-        "policy_version": version,
-    }
+    return result
+
+
+# ---------- training (F07.6) ----------
+
+
+@router.get("/training/{collection_id}")
+def training_report(collection_id: int, conn=Depends(get_conn), _: Principal = Depends(require("findings:read"))):
+    """Grade the latest reading of a collection against known right answers. Changes nothing."""
+    _collection(conn, collection_id)
+    return {"report": training.grade(conn, collection_id), "history": training.history(conn, collection_id)}
+
+
+@router.post("/training/{collection_id}/grade")
+def training_grade(collection_id: int, conn=Depends(get_conn), p: Principal = Depends(require("jobs:create"))):
+    """Grade and keep the result in the history, so the next test can be compared with this one."""
+    _collection(conn, collection_id)
+    report = training.grade(conn, collection_id)
+    hist = training.save_grade(conn, report)
+    audit.record(conn, p.username, "training.grade", "allowed", target=f"collection:{collection_id}")
+    return {"report": report, "history": hist}
+
+
+@router.get("/training/{collection_id}/suggestions")
+def training_suggestions(
+    collection_id: int, conn=Depends(get_conn), _: Principal = Depends(require("corrections:create"))
+) -> list[dict]:
+    _collection(conn, collection_id)
+    return training.suggest_rules(conn, collection_id)
+
+
+@router.post("/training/{collection_id}/apply-suggestions")
+def training_apply(collection_id: int, conn=Depends(get_conn), p: Principal = Depends(require("corrections:create"))):
+    """Publish every suggested rule as a correction. Re-read the collection afterwards to see the effect."""
+    _collection(conn, collection_id)
+    applied = []
+    for rule in training.suggest_rules(conn, collection_id):
+        res = record_correction(
+            conn,
+            p.user_id,
+            rule["document_id"],
+            rule["field"],
+            rule["value"],
+            rule["when_contains"],
+            "Suggested by Training from practice-set mistakes",
+        )
+        applied.append({**rule, "policy_version": res["policy_version"]})
+    audit.record(
+        conn,
+        p.username,
+        "training.apply_rules",
+        "allowed",
+        target=f"collection:{collection_id}",
+        detail={"rules": len(applied)},
+    )
+    return {"applied": applied}
 
 
 @router.get("/policies")

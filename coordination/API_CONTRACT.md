@@ -271,6 +271,22 @@ Really processes a random sample with the chosen provider (results are saved as 
 - **Response 201:** `{"document_id": 5, "field": "doc_type", "old_value": "other", "new_value": "inspection_report", "policy_version": 2}` (`policy_version` is `null` when no rule was created)
 - **Errors:** 401, 403, 404, 422
 
+### `GET /training/{collection_id}` (F07.6)
+- **Permission:** `findings:read`
+- **Response 200:** `{report, history}`. It changes nothing.
+  - `report` is `{source, graded_documents, read_documents, read_by[], fields: {train, heldout}: {field: {correct, total, rate}}, conflicts, mistakes[], readiness: {ready, reason}}`.
+  - Demo collections are graded against the synthetic ground truth. Real collections are graded against labelled examples.
+  - `mistakes` come from the practice set only.
+
+### `POST /training/{collection_id}/grade` (F07.6)
+- **Permission:** `jobs:create`
+- **Response 200:** the same shape. The summary is also saved to `history`, which keeps the last 20.
+
+### `GET /training/{collection_id}/suggestions` · `POST /training/{collection_id}/apply-suggestions` (F07.6)
+- **Permission:** `corrections:create`
+- **Suggestions:** rules from practice-set mistakes, each 100% precise on the practice set: `[{document_id, field, value, when_contains, fixes_train_docs}]`.
+- **Apply:** publishes each rule as a correction with a new policy version, and returns `{applied: [...]}`. Re-read the collection to see the effect.
+
 ### `GET /policies`
 - **Permission:** `documents:read`
 - **Response 200:** `[{"version": 2, "rules": [{"when_contains", "field", "value"}], "created_at": …}]`

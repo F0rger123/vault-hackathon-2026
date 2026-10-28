@@ -1,5 +1,7 @@
 # Demo Storyboard (target ≤ 3:00)
 
+The word-for-word narration and click path are in [`DEMO_SCRIPT.md`](DEMO_SCRIPT.md).
+
 Rule: show only features that really work, on fictional data. If something is not ready by Nov 2, cut its segment or narrate it as future work; never fake it. Status on 2026-10-27 is given for each segment. Reset the demo before every take with `scripts/demo_reset.sh` (see `docs/DEPLOYMENT.md`).
 
 | Time | Segment | On screen | Narration (draft) | Status |

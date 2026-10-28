@@ -20,13 +20,13 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 | F04 AI Model System | 10 | 6 | 0 | 0 | 1 | 2 | 1 | 0 |
 | F05 Parallel Processing | 9 | 8 | 0 | 0 | 0 | 0 | 1 | 0 |
 | F06 Search & Investigation | 6 | 5 | 0 | 0 | 0 | 1 | 0 | 0 |
-| F07 Teaching & Corrections | 5 | 4 | 0 | 0 | 0 | 1 | 0 | 0 |
+| F07 Teaching & Corrections | 6 | 5 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F08 Actions & Organization | 5 | 4 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F09 Security | 9 | 9 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F10 User Interface | 11 | 11 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F11 Synthetic Data & Evaluation | 7 | 6 | 0 | 1 | 0 | 0 | 0 | 0 |
 | F12 Deployment & Submission | 8 | 4 | 0 | 0 | 0 | 2 | 2 | 0 |
-| **Total** | **91** | **76** | **1** | **1** | **1** | **8** | **4** | **0** |
+| **Total** | **92** | **77** | **1** | **1** | **1** | **8** | **4** | **0** |
 
 **Recorded evidence used below**
 
@@ -701,6 +701,28 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 - **Verification evidence:** `test_examples_are_stored_and_selected_by_similarity` passes. Held-out improvement not yet measured (F07.3).
 
 ## F08 — Actions & Organization
+
+#### F07.6 — Training screen: graded test, teach, re-test, readiness
+
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F07.2, F07.3, F07.5, F10.11
+- **Description:** Grade how well VAULT reads a collection against known answers. Teach it with suggested rules or labelled examples, re-read, and see the held-out score change. When the targets are met, move to Real mode.
+- **Implementation scope:**
+  - `backend/workers/training.py`.
+  - `backend/workers/rule_suggestions.py`, moved out of the F07.3 experiment.
+  - `backend/workers/corrections.py`, which is now shared, and has one fixed SQL query per field.
+  - The `/training/*` routes, and the UI page `/training`.
+- **Acceptance criteria:**
+  - Demo collections grade against the ground truth, and real collections against labelled examples.
+  - Suggested rules never break a practice document.
+  - A re-test shows the held-out change, and the readiness rule points to Real mode.
+- **Required tests:** `tests/integration/test_training.py`; e2e `055-training`.
+- **Blockers:** none
+- **Related PR/commit:** branch `luke/F07.6-training`
+- **Verification evidence (2026-10-28):**
+  - **`test_training.py`, 3 tests:** a 150-document demo collection is graded with 10 of 10 conflicts and 0 false alarms; suggestions are applied once only; after a re-read the held-out doc_type rises; real collections grade against 12 labelled examples; viewers get 403 for grade and apply, and anonymous callers 401.
+  - **e2e `055-training`:** in the browser, grade, suggest, apply, re-read and re-grade; the history shows a "+" change.
+  - **Overall:** e2e 18 of 18; pytest 100 passed.
+  - **Honest limits:** the model's weights never change; improvement comes from rules and examples, measured on the held-out set.
 
 #### F08.1 — Organization proposals
 - **Description:** Build a copy plan from a folder pattern using only `{project}`, `{doc_type}`, `{year}`.
