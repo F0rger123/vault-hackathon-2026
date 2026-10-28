@@ -34,6 +34,8 @@ class Settings(BaseSettings):
     max_workers: int = 0  # 0 = choose from hardware profile
     job_max_attempts: int = 3
     model_timeout_s: float = 120.0
+    # Reuse earlier model answers for unchanged documents in processing jobs (development runs; F04.9).
+    response_cache: bool = False
 
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
 

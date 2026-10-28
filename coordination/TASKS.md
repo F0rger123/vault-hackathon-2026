@@ -401,14 +401,22 @@ Last updated: 2026-10-28 (Luke's agent, solo mode). `main` at `8094701`. **Time 
 
 #### F04.9 — Response caching for repeated development runs
 - **Description:** Cache model responses by (document SHA-256, provider, model, prompt version, policy version) to avoid paying twice.
-- **Priority:** P1 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F04.3
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F04.3
 - **Scope:** provider wrapper; cache table.
 - **Expected behavior:** Re-processing an unchanged document with the same settings makes no model call.
 - **Acceptance criteria:** Second run of a job makes zero provider calls.
 - **Required tests:** unit test with a counting fake provider.
-- **Blockers:** Design to be finalised; matters most once paid API calls start.
+- **Blockers:** none
 - **Related PR/commit:** —
-- **Verification evidence:** —
+- **Verification evidence (2026-10-28):**
+  - **Code:** `backend/providers/cache.py`, `CachingProvider`.
+    - Cache key: provider, model, a hash of `prompting.py`, the page text, filename, policy rules and examples.
+    - Writes are atomic, and paths go through `safe_join`.
+    - Off unless `VAULT_RESPONSE_CACHE=true`, and only used for processing jobs, so estimates and measurements still time real calls. The rules baseline is never wrapped.
+  - **Tests:** `tests/unit/test_response_cache.py` (4 tests): a second run makes 0 model calls; text, rule or example changes miss; a corrupt entry is replaced; the cache is off by default.
+  - **Live, Llama 3 through the CLI, 19 Cobalt PDFs, 2 workers:**
+    - Run 1: 79 s, 19 cache entries written.
+    - Run 2: 5 s, still 19 entries, so no model call was made.
 
 ---
 
