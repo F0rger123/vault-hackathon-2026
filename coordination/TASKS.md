@@ -19,14 +19,14 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 | F03 Hardware & Collection Analysis | 5 | 5 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F04 AI Model System | 10 | 6 | 0 | 0 | 1 | 2 | 1 | 0 |
 | F05 Parallel Processing | 9 | 8 | 0 | 0 | 0 | 0 | 1 | 0 |
-| F06 Search & Investigation | 6 | 4 | 0 | 0 | 0 | 2 | 0 | 0 |
+| F06 Search & Investigation | 6 | 5 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F07 Teaching & Corrections | 5 | 4 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F08 Actions & Organization | 5 | 3 | 0 | 0 | 0 | 2 | 0 | 0 |
 | F09 Security | 9 | 8 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F10 User Interface | 10 | 10 | 0 | 0 | 0 | 0 | 0 | 0 |
-| F11 Synthetic Data & Evaluation | 7 | 5 | 0 | 1 | 0 | 1 | 0 | 0 |
+| F11 Synthetic Data & Evaluation | 7 | 6 | 0 | 1 | 0 | 0 | 0 | 0 |
 | F12 Deployment & Submission | 8 | 4 | 0 | 0 | 0 | 2 | 2 | 0 |
-| **Total** | **90** | **70** | **1** | **1** | **1** | **13** | **4** | **0** |
+| **Total** | **90** | **72** | **1** | **1** | **1** | **11** | **4** | **0** |
 
 **Recorded evidence used below**
 
@@ -1030,9 +1030,10 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 - **Expected behavior:** Honest numbers, including where the model is worse than the baseline.
 - **Acceptance criteria:** Report committed.
 - **Required tests:** `python -m evaluation.run_eval --collection demo-ollama --provider ollama`.
-- **Blockers:** Full run in progress since 2026-10-26.
+- **Blockers:** none. The final run is scheduled for Nov 1, on frozen code.
 - **Related PR/commit:** —
 - **Verification evidence:** — `E-LLM-2` (on the tuning dataset; a fresh-seed run is still needed).
+- **Dry run (2026-10-28):** fresh seed 2027 on dataset v2. Llama 3 held-out: doc_type 0.918, project 0.857, rating conflicts 10 of 10 at precision 1.0, quantity conflicts 0 of 5. Results are in `evaluation/results/fresh-seed-2027/` and `SUMMARY.md`.
 
 #### F11.5 — End-to-end browser tests
 - **Description:** Playwright tests for the main demo flow against a locally seeded backend.

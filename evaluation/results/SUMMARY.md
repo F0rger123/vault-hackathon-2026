@@ -70,3 +70,15 @@ Files are in `evaluation/results/v2/`. Dataset v2 has 165 files: 10 rating, 5 qu
 - **Next step:** the quantity fix for Llama needs its own prompt work and a full re-evaluation (F04.5 or F11.4), not a one-line change.
 - **Part recall is 0.954 for every provider:** the 5 scanned pages have no text until OCR exists (F02.6).
 
+## Fresh-seed practice run (F11.4 dry run, 2026-10-28)
+
+Files are in `evaluation/results/fresh-seed-2027/`. The dataset was generated with `--seed 2027 --dataset-version 2`: 165 files that no prompt was ever tuned on. It is not committed, and the same command recreates it. Code was `main` plus F06.5. This is a rehearsal: the final F11.4 run happens on frozen code on Nov 1.
+
+| Held-out | Doc type | Project | Date | Rating accuracy | Rating conflicts | Material | Quantity | Time |
+|---|---|---|---|---|---|---|---|---|
+| Llama 3 8B, local | **0.918** | **0.857** | 0.881 | 0.827 | **10/10**, precision 1.0 | 5/5 | 0/5 | 533 s |
+| Rules baseline (not AI) | 0.898 | 0.816 | 0.952 | 0.836 | 10/10, precision 1.0 | 5/5 | 5/5 | 2 s |
+
+- **On unseen data:** Llama 3 still beats the rules baseline on document type and project, and finds every planted pressure conflict with no false alarms.
+- **Quantities:** Llama still misses quantity conflicts (see F06.5).
+
