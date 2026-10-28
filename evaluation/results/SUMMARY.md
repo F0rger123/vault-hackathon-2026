@@ -54,3 +54,17 @@ What this shows, and what it does not:
   documents with a different true value, or contains digits), so no rule was created and nothing changed.
   The model's remaining errors are not the kind a single text rule can fix.
 - Both Llama 3 passes completed 150/150 documents (443 s and 431 s, 2 workers).
+
+## Plain-language layout requests (F08.4, 2026-10-28)
+
+`layout-requests-ollama-2026-10-28.json`, Llama 3 8B (`llama3:latest`) through Ollama, temperature 0.
+
+| Split | Correct |
+|---|---|
+| Tuning requests (8) | 8 / 8 |
+| Held-out requests (8), written after the prompt was final | 8 / 8 |
+
+- **How the prompt got here:** the first prompt got only 2 of the first 5 requests right. The model added fields nobody asked for, and never answered "unsupported" (for example, "by department" became `{project}/{year}/{doc_type}`). The final prompt adds three rules and three short examples.
+- **Safety held throughout:** the model only ever picked patterns from the allowed list. A request containing `../../Windows/System32` produced `unsupported`. Any answer outside the list is rejected in code anyway.
+- **Scope of these numbers:** they come from 16 hand-written requests, not a benchmark.
+

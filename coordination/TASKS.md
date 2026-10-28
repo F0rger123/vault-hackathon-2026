@@ -712,7 +712,7 @@ Last updated: 2026-10-28 (Luke's agent, solo mode). `main` at `8094701`. **Time 
 
 #### F08.4 — Natural-language organization requests
 - **Description:** A Meta model turns "Organize by department then date" into an allowed pattern; the user still previews and approves.
-- **Priority:** P1 · **Owner:** luke · **Status:** BACKLOG · **Dependencies:** F08.1, F04.2
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F08.1, F04.2
 - **Scope:** model output validated against the pattern whitelist.
 - **Expected behavior:** Invalid model output is rejected, never executed.
 - **Acceptance criteria:** 5 sample instructions map to valid patterns.
@@ -720,6 +720,14 @@ Last updated: 2026-10-28 (Luke's agent, solo mode). `main` at `8094701`. **Time 
 - **Blockers:** none
 - **Related PR/commit:** —
 - **Verification evidence:** —
+- **Related PR/commit:** branch `luke/F08.4-layout-request`, issue #44
+- **Verification evidence (2026-10-28):**
+  - **Code:** `backend/workers/layout_request.py` and `POST /proposals/interpret`. The UI button "Suggest a pattern from this request" is on Approvals.
+  - **Tests:**
+    - `tests/unit/test_layout_request.py` (15 tests, fake provider): path traversal, unknown fields, shell text, non-JSON and non-object answers are all rejected; rule-based fallback.
+    - `tests/integration/test_layout_route.py`: the audit never stores the instruction; 401, 403 for viewer and for remote, and 422 are covered.
+    - New e2e test: a suggestion fills the pattern. e2e 14 of 14.
+  - **Live, Llama 3:** 8 of 8 tuning requests and 8 of 8 held-out requests (`evaluation/results/layout-requests-ollama-2026-10-28.json`). The first prompt scored 2 of 5, which is recorded in `SUMMARY.md`.
 
 #### F08.5 — Export to a searchable database file
 - **Description:** Export extractions as CSV/SQLite for downstream tools.
