@@ -5,14 +5,26 @@ import type { Evidence, Finding } from "@/lib/api";
 import { humanize } from "@/lib/format";
 import { cx, Tag, VerifiedMark } from "./ui";
 
-function formatValue(v: number): string {
+function formatValue(v: number | string): string {
+  if (typeof v === "string") return v;
   return Number.isInteger(v) ? String(v) : v.toFixed(1);
 }
 
-export function groupByValue(evidence: Evidence[]): { value: number; items: Evidence[] }[] {
-  const map = new Map<number, Evidence[]>();
+/** The value with its unit, for the kind of disagreement: "600 psi", "4 units", or a material name. */
+export function valueText(kind: Finding["kind"], v: number | string): string {
+  if (kind === "quantity_conflict") return `${formatValue(v)} ${v === 1 ? "unit" : "units"}`;
+  if (kind === "material_conflict") return formatValue(v);
+  return `${formatValue(v)} psi`;
+}
+
+export function groupByValue(evidence: Evidence[]): { value: number | string; items: Evidence[] }[] {
+  const map = new Map<number | string, Evidence[]>();
   for (const e of evidence) map.set(e.value, [...(map.get(e.value) ?? []), e]);
-  return [...map.entries()].sort((a, b) => a[0] - b[0]).map(([value, items]) => ({ value, items }));
+  return [...map.entries()]
+    .sort((a, b) =>
+      typeof a[0] === "number" && typeof b[0] === "number" ? a[0] - b[0] : String(a[0]).localeCompare(String(b[0])),
+    )
+    .map(([value, items]) => ({ value, items }));
 }
 
 /** Revision triangle, as used on drawings to mark a changed value. */
@@ -28,9 +40,12 @@ export function RevMark({ n }: { n: number }) {
 }
 
 /** Mark the conflicting number inside a verbatim quote, like a redline on the drawing. */
-function Quote({ quote, value }: { quote: string; value: number }) {
+function Quote({ quote, value }: { quote: string; value: number | string }) {
   const needle = formatValue(value);
-  const re = new RegExp(`(^|[^\\d.])(${needle.replace(".", "\\.")}(?:\\.0)?(?:\\s*psi)?)(?![\\d])`, "i");
+  const re =
+    typeof value === "string"
+      ? new RegExp(`(^|\\W)(${needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})(?!\\w)`, "i")
+      : new RegExp(`(^|[^\\d.])(${needle.replace(".", "\\.")}(?:\\.0)?(?:\\s*psi)?)(?![\\d])`, "i");
   const m = re.exec(quote);
   if (!m) return <>{quote}</>;
   const start = m.index + m[1].length;
@@ -49,6 +64,8 @@ function Quote({ quote, value }: { quote: string; value: number }) {
 const KIND_TEXT: Record<Finding["kind"], string> = {
   rating_conflict: "Rating conflict",
   part_number_collision: "Part number used by several projects",
+  quantity_conflict: "Quantity conflict",
+  material_conflict: "Material conflict",
 };
 
 export function FindingRedline({
@@ -76,7 +93,7 @@ export function FindingRedline({
             {groups.map((g, i) => (
               <span key={g.value}>
                 {i > 0 && <span className="text-muted"> vs </span>}
-                <span className="font-semibold text-redline tabular-nums">{formatValue(g.value)} psi</span>
+                <span className="font-semibold text-redline tabular-nums">{valueText(finding.kind, g.value)}</span>
               </span>
             ))}
             <span className="text-muted"> across {docs} {docs === 1 ? "document" : "documents"}</span>
@@ -94,7 +111,7 @@ export function FindingRedline({
             <section key={g.value} className="min-w-0 bg-panel px-4 py-3">
               <h4 className="flex items-center gap-2 text-sm">
                 <RevMark n={gi + 1} />
-                <span className="font-semibold text-redline tabular-nums">{formatValue(g.value)} psi</span>
+                <span className="font-semibold text-redline tabular-nums">{valueText(finding.kind, g.value)}</span>
                 <span className="text-muted">
                   in {g.items.length} {g.items.length === 1 ? "document" : "documents"}
                 </span>

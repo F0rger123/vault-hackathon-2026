@@ -237,7 +237,8 @@ export interface Evidence {
   document_id: number;
   filename: string;
   doc_type: string;
-  value: number;
+  /** psi or a quantity (numbers), or a material name (F06.5). */
+  value: number | string;
   page: number | null;
   quote: string | null;
   verified: boolean;
@@ -247,7 +248,7 @@ export interface Evidence {
 export interface Finding {
   id: number;
   collection_id: number;
-  kind: "rating_conflict" | "part_number_collision";
+  kind: "rating_conflict" | "part_number_collision" | "quantity_conflict" | "material_conflict";
   key: string;
   summary: string;
   status: "verified" | "needs_review";

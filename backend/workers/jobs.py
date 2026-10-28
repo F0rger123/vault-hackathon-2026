@@ -9,6 +9,7 @@ import threading
 from backend.agents.orchestrator import TERMINAL, Orchestrator
 from backend.core.config import Settings
 from backend.storage.db import connect, dumps, now
+from backend.workers.importer import run_import
 
 __all__ = ["TERMINAL", "JobRunner", "create_process_job"]
 
@@ -49,7 +50,13 @@ class JobRunner:
             t = self._threads.get(job_id)
             if t and t.is_alive():
                 return
-            t = threading.Thread(target=Orchestrator(self.settings, job_id).run, name=f"job-{job_id}", daemon=True)
+            with connect(self.settings.db_path) as conn:
+                row = conn.execute("SELECT kind FROM jobs WHERE id = ?", (job_id,)).fetchone()
+            if row and row["kind"] == "import":
+                target = lambda: run_import(self.settings, job_id)  # noqa: E731
+            else:
+                target = Orchestrator(self.settings, job_id).run
+            t = threading.Thread(target=target, name=f"job-{job_id}", daemon=True)
             self._threads[job_id] = t
             t.start()
 

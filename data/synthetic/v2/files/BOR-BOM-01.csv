@@ -1,0 +1,8 @@
+# PARTS LIST - Project: Borealis - issued 2023-02-03
+part_number,description,material,rated_psi,qty
+RV-2741,Relief valve,Bronze C95800,600 psi,5
+PV-5595,Gate valve,Bronze C95800,1500 psi,4
+PS-6413,Pressure switch,Inconel 625,1500 psi,3
+HX-5828,Plate heat exchanger,Bronze C95800,600 psi,3
+PV-5320,Gate valve,A105 carbon steel,900 psi,3
+PS-2967,Pressure switch,Bronze C95800,1500 psi,5

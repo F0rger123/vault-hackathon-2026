@@ -1,0 +1,6 @@
+# PARTS LIST - Project: Borealis - issued 2023-12-10
+part_number,description,material,rated_psi,qty
+PS-2967,Pressure switch,Duplex 2205,1500 psi,5
+PV-5595,Gate valve,Bronze C95800,1500 psi,4
+HX-2047,Plate heat exchanger,Duplex 2205,600 psi,3
+PV-6766,Gate valve,316L stainless,600 psi,4

@@ -60,6 +60,25 @@ def score(conn, collection: str, provider: str, manifest: dict) -> dict:
         )
     }
     tp = len(planted & found)
+    by_kind = {}
+    for kind in sorted({a["kind"] for a in manifest["anomalies"]} - {"rating_conflict", "injection"}):
+        want = {(a["part_number"], a["project"].casefold()) for a in manifest["anomalies"] if a["kind"] == kind}
+        got = set()
+        for f in conn.execute(
+            """SELECT f.key, f.evidence FROM findings f JOIN collections c ON c.id = f.collection_id
+               WHERE c.name = ? AND f.kind = ?""",
+            (collection, kind),
+        ):
+            for e in json.loads(f["evidence"])[:1]:
+                got.add((f["key"], (e.get("project") or "").casefold()))
+        hit = len(want & got)
+        by_kind[kind] = {
+            "planted": len(want),
+            "found": len(got),
+            "true_positive": hit,
+            "recall": round(hit / len(want), 3) if want else None,
+            "precision": round(hit / len(got), 3) if got else None,
+        }
     return {
         "provider": provider,
         "model": model,
@@ -78,6 +97,7 @@ def score(conn, collection: str, provider: str, manifest: dict) -> dict:
             "precision": round(tp / len(found), 3) if found else None,
             "note": "findings reflect the most recent processing run of the collection",
         },
+        "other_conflicts": by_kind,
     }
 
 

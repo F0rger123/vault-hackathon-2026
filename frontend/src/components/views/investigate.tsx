@@ -51,6 +51,8 @@ export function InvestigateView() {
     all: findings.data?.length ?? 0,
     rating_conflict: findings.data?.filter((f) => f.kind === "rating_conflict").length ?? 0,
     part_number_collision: findings.data?.filter((f) => f.kind === "part_number_collision").length ?? 0,
+    quantity_conflict: findings.data?.filter((f) => f.kind === "quantity_conflict").length ?? 0,
+    material_conflict: findings.data?.filter((f) => f.kind === "material_conflict").length ?? 0,
   };
 
   const searchFor = (q: Query) => {
@@ -78,6 +80,8 @@ export function InvestigateView() {
                   ["all", "All"],
                   ["rating_conflict", "Rating conflicts"],
                   ["part_number_collision", "Part number collisions"],
+                  ["quantity_conflict", "Quantity conflicts"],
+                  ["material_conflict", "Material conflicts"],
                 ] as const
               ).map(([id, label]) => (
                 <button

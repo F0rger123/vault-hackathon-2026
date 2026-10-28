@@ -1,0 +1,6 @@
+# PARTS LIST - Project: Alpha - issued 2023-04-22
+part_number,description,material,rated_psi,qty
+FL-8494,Weld-neck flange,A105 carbon steel,2500 psi,5
+PV-6234,Gate valve,Bronze C95800,1500 psi,2
+RV-9032,Relief valve,Duplex 2205,300 psi,7
+FL-6696,Weld-neck flange,Duplex 2205,900 psi,2

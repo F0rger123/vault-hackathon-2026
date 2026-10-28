@@ -10,23 +10,23 @@ This file is the single source of truth for what is planned, in progress, and ve
 
 ## Progress dashboard
 
-Last updated: 2026-10-28 (Luke's agent, solo mode). `main` at `8094701`. **Time left:** 7 days to the Nov 4, 9:00 PM ET deadline; feature freeze Nov 2, video Nov 3. PR #32 (F09.6) merged; open: #33 (F01.9), #34 (F09.7).
+Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main` at `9fafa5f`. **Time left:** 7 days to the Nov 4, 9:00 PM ET deadline; feature freeze Nov 2, video Nov 3. Open PRs: #45 (F08.4), #47 (F02.7) and #49 (F09.8), all waiting for Luke.
 
 | Feature | Subtasks | VERIFIED | REVIEW | IN_PROGRESS | READY | BACKLOG | BLOCKED | DEFERRED |
 |---|---|---|---|---|---|---|---|---|
 | F01 Project Foundation | 9 | 8 | 1 | 0 | 0 | 0 | 0 | 0 |
 | F02 File Ingestion | 7 | 5 | 0 | 0 | 0 | 2 | 0 | 0 |
 | F03 Hardware & Collection Analysis | 5 | 5 | 0 | 0 | 0 | 0 | 0 | 0 |
-| F04 AI Model System | 10 | 5 | 1 | 0 | 1 | 2 | 1 | 0 |
+| F04 AI Model System | 10 | 6 | 0 | 0 | 1 | 2 | 1 | 0 |
 | F05 Parallel Processing | 9 | 8 | 0 | 0 | 0 | 0 | 1 | 0 |
-| F06 Search & Investigation | 6 | 4 | 0 | 0 | 0 | 2 | 0 | 0 |
+| F06 Search & Investigation | 6 | 5 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F07 Teaching & Corrections | 5 | 4 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F08 Actions & Organization | 5 | 3 | 0 | 0 | 0 | 2 | 0 | 0 |
 | F09 Security | 9 | 8 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F10 User Interface | 10 | 10 | 0 | 0 | 0 | 0 | 0 | 0 |
-| F11 Synthetic Data & Evaluation | 7 | 5 | 0 | 1 | 0 | 1 | 0 | 0 |
+| F11 Synthetic Data & Evaluation | 7 | 6 | 0 | 1 | 0 | 0 | 0 | 0 |
 | F12 Deployment & Submission | 8 | 4 | 0 | 0 | 0 | 2 | 2 | 0 |
-| **Total** | **90** | **69** | **2** | **1** | **1** | **13** | **4** | **0** |
+| **Total** | **90** | **72** | **1** | **1** | **1** | **11** | **4** | **0** |
 
 **Recorded evidence used below**
 
@@ -236,7 +236,7 @@ Last updated: 2026-10-28 (Luke's agent, solo mode). `main` at `8094701`. **Time 
 
 #### F02.7 — Path import for large server-side collections
 - **Description:** Admin imports a directory inside `VAULT_IMPORT_ROOTS`; progress reporting for long imports.
-- **Priority:** P1 · **Owner:** luke · **Status:** BACKLOG · **Dependencies:** F02.1
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F02.1
 - **Scope:** `POST /collections/{id}/import-path` exists and enforces containment (S7). Missing: running as a background job with progress and resume.
 - **Expected behavior:** A 10,000-file directory imports as a job with live progress.
 - **Acceptance criteria:** Import job visible in `/jobs`; cancel works.
@@ -248,6 +248,15 @@ Last updated: 2026-10-28 (Luke's agent, solo mode). `main` at `8094701`. **Time 
 ---
 
 ## F03 — Hardware & Collection Analysis
+- **Related PR/commit:** branch `luke/F02.7-path-import-job`. This is a high-risk change (file handling), so it waits for Luke's approval before merge.
+- **Verification evidence (2026-10-28):** `tests/integration/test_import_job.py` has 4 tests:
+  - 123 files across nested folders: 120 imported and 3 fake PDFs rejected with reasons; the job is listed in `/jobs`;
+  - cancel stops a 1,500-file import early;
+  - resume after a simulated crash, run twice, never duplicates a document;
+  - paths outside the roots and non-admin callers are still refused with 403.
+- **Existing coverage:** S7 still passes.
+- **Containment:** the background job re-checks containment when it starts, in case `VAULT_IMPORT_ROOTS` changed.
+- **Suite:** pytest 66 passed; bandit clean.
 
 #### F03.1 — CPU, RAM, disk and GPU detection
 - **Description:** psutil for CPU/RAM/disk; `nvidia-smi` for NVIDIA GPUs; graceful when no GPU.
@@ -361,7 +370,7 @@ Last updated: 2026-10-28 (Luke's agent, solo mode). `main` at `8094701`. **Time 
 
 #### F04.5 — Extraction quality tuning for local Llama
 - **Description:** Improve prompt, add few-shot examples and per-type hints so `llama3` 8B extracts ratings, dates and correct document types.
-- **Priority:** P0 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F04.2, F11.4
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F04.2, F11.4
 - **Scope:** `backend/providers/prompting.py`; evaluation runs on the held-out split only.
 - **Expected behavior:** Measurable improvement over the first run on held-out data.
 - **Acceptance criteria:** Held-out doc_type accuracy and rating accuracy reported before and after; improvement recorded honestly even if small.
@@ -369,6 +378,7 @@ Last updated: 2026-10-28 (Luke's agent, solo mode). `main` at `8094701`. **Time 
 - **Blockers:** none
 - **Related PR/commit:** —
 - **Verification evidence:** Baseline weakness recorded in `E-LLM-1`. `E-LLM-2`: prompt v3 lifts held-out doc_type to 0.956 and conflict recall to 10/10.
+- **Status note (2026-10-28):** the acceptance criteria are met by `E-LLM-2`. Held-out doc_type and rating accuracy are reported before and after tuning (doc_type 0.822 to 0.956, rating 0.291 to 0.797). The fresh-seed check is part of F11.4.
 
 #### F04.6 — Muse Glimmer 30B local test
 - **Description:** Try `muse-glimmer:30b` (Apache-2.0, text + image) through Ollama with CPU/GPU split.
@@ -601,7 +611,7 @@ Last updated: 2026-10-28 (Luke's agent, solo mode). `main` at `8094701`. **Time 
 
 #### F06.5 — Additional relationship checks
 - **Description:** Same part number with different descriptions or materials across projects; contract quantities vs parts lists.
-- **Priority:** P1 · **Owner:** luke · **Status:** BACKLOG · **Dependencies:** F06.3, F11.1
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F06.3, F11.1
 - **Scope:** new finding kinds; generator must plant them first.
 - **Expected behavior:** New kinds appear with evidence like rating conflicts.
 - **Acceptance criteria:** Planted cases found with precision ≥ 0.9.
@@ -609,6 +619,13 @@ Last updated: 2026-10-28 (Luke's agent, solo mode). `main` at `8094701`. **Time 
 - **Blockers:** none
 - **Related PR/commit:** —
 - **Verification evidence:** —
+- **Related PR/commit:** branch `luke/F06.5-more-conflicts`
+- **Verification evidence (2026-10-28):**
+  - **New finding kinds:** `quantity_conflict` and `material_conflict`. They compare the same part within one project only, and each comes with quotes verified in the source. The rules baseline now reads material and quantity from CSV columns and from "qty N" or "quantity N".
+  - **Dataset v2, rules baseline:** 5 of 5 material and 5 of 5 quantity conflicts at precision 1.0; rating conflicts still 10 of 10. v1 still has exactly its 10 rating findings, with no new false alarms.
+  - **Llama 3:** material 5 of 5, quantity 0 of 5. A prompt tweak fixed quantities but broke ratings (0.82 to 0.10), so it was reverted. Details are in `evaluation/results/SUMMARY.md`.
+  - **Tests:** `tests/integration/test_more_conflicts.py` (extraction, plus an Alpha v2 end-to-end check with verified quotes). Full suite 66 passed.
+  - **UI:** Investigate has new filters and value labels (units, materials).
 
 #### F06.6 — Semantic (embedding) retrieval
 - **Description:** Local embeddings for fuzzy queries alongside FTS5.
@@ -1028,9 +1045,10 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 - **Expected behavior:** Honest numbers, including where the model is worse than the baseline.
 - **Acceptance criteria:** Report committed.
 - **Required tests:** `python -m evaluation.run_eval --collection demo-ollama --provider ollama`.
-- **Blockers:** Full run in progress since 2026-10-26.
+- **Blockers:** none. The final run is scheduled for Nov 1, on frozen code.
 - **Related PR/commit:** —
 - **Verification evidence:** — `E-LLM-2` (on the tuning dataset; a fresh-seed run is still needed).
+- **Dry run (2026-10-28):** fresh seed 2027 on dataset v2. Llama 3 held-out: doc_type 0.918, project 0.857, rating conflicts 10 of 10 at precision 1.0, quantity conflicts 0 of 5. Results are in `evaluation/results/fresh-seed-2027/` and `SUMMARY.md`.
 
 #### F11.5 — End-to-end browser tests
 - **Description:** Playwright tests for the main demo flow against a locally seeded backend.
@@ -1050,7 +1068,7 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 
 #### F11.6 — Dataset v2 (scanned pages, more anomaly kinds)
 - **Description:** Add rasterised/scanned PDFs, duplicate part numbers with conflicting descriptions, contract quantity mismatches.
-- **Priority:** P1 · **Owner:** luke · **Status:** BACKLOG · **Dependencies:** F11.1
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F11.1
 - **Scope:** generator v2 with its own manifest; v1 stays frozen.
 - **Expected behavior:** Deterministic like v1.
 - **Acceptance criteria:** Determinism check passes.
@@ -1060,6 +1078,13 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 - **Verification evidence:** —
 
 ---
+- **Related PR/commit:** branch `luke/F11.6-dataset-v2`
+- **Verification evidence (2026-10-28):** `python -m generator.generate --dataset-version 2` writes `data/synthetic/v2/` (165 files, 22 planted anomalies). The new planted problems are 5 quantity conflicts, 5 material conflicts, and 5 scanned image-only PDFs with 0 extractable text characters.
+  - Regenerating v1 with the changed generator is byte-identical, PNGs included.
+  - Two v2 runs are identical, excluding PNGs and scanned PDFs.
+  - `tests/unit/test_dataset_v2.py`: v2 is a superset of v1 with unchanged shared files, and the planted counts are right.
+  - CI has a new "Dataset v2 is deterministic" step.
+  - Detecting the new kinds is F06.5.
 
 #### F11.7 — Scale dataset generator (thousands of files, photos, markings)
 

@@ -1,0 +1,6 @@
+# PARTS LIST - Project: Driftwood - issued 2021-09-28
+part_number,description,material,rated_psi,qty
+RV-1565,Relief valve,A105 carbon steel,600 psi,3
+BV-3521,Ball valve,Inconel 625,2500 psi,8
+BV-3508,Ball valve,316L stainless,300 psi,1
+FL-9004,Weld-neck flange,316L stainless,1500 psi,6
