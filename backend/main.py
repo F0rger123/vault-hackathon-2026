@@ -35,6 +35,8 @@ def create_app(settings: Settings | None = None, resume_jobs: bool = True) -> Fa
         response.headers.setdefault("X-Frame-Options", "DENY")
         response.headers.setdefault("Referrer-Policy", "no-referrer")
         response.headers.setdefault("Cache-Control", "no-store")
+        # Stops other sites embedding API responses. The UI's CORS fetch() calls are not affected by CORP.
+        response.headers.setdefault("Cross-Origin-Resource-Policy", "same-site")
         return response
 
     @app.exception_handler(Exception)

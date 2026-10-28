@@ -761,14 +761,21 @@ Last updated: 2026-10-26 night (Luke's agent, solo mode, full audit). `main` at 
 
 #### F09.7 — Controlled security verification against the running app
 - **Description:** OWASP ZAP baseline scan against the local stack and manual abuse cases through the UI.
-- **Priority:** P1 · **Owner:** luke (franco may claim) · **Status:** READY · **Dependencies:** F01.2, F01.4
+- **Priority:** P1 · **Owner:** luke (franco may claim) · **Status:** VERIFIED · **Dependencies:** F01.2, F01.4
 - **Scope:** Only `127.0.0.1` targets we run ourselves.
 - **Expected behavior:** Findings filed as GitHub issues labelled `security`.
 - **Acceptance criteria:** ZAP report summarised in `docs/SECURITY.md` with actual outcomes.
 - **Required tests:** ZAP baseline scan.
 - **Blockers:** none
-- **Related PR/commit:** —
-- **Verification evidence:** —
+- **Related PR/commit:** branch `luke/F09.7-zap-baseline`
+- **Verification evidence (2026-10-28, local):**
+  - **Scans:** ZAP stable `zap-baseline.py` against the frontend, and an authenticated `zap-api-scan.py` (active) against the API. Both images ran in an isolated Docker network on this machine.
+  - **Before:** frontend 0 FAIL, 7 WARN; API 0 FAIL, 3 WARN.
+  - **Fixed:** security headers in `next.config.ts`; `Cross-Origin-Resource-Policy` on the API.
+  - **After:** frontend 0 FAIL, 3 WARN; API 0 FAIL, 3 WARN. Every remaining warning is accepted with a reason in `docs/SECURITY.md`.
+  - **UI under the new CSP:** all six screens load and the Ask panel answers, with no console errors.
+  - **Tests:** `pytest`: 42 passed, including the new header test.
+  - **Issues:** no `security` issues filed, because there were no failures and nothing is left to fix.
 
 #### F09.8 — Token lifecycle
 - **Description:** Token revocation endpoint, expiry, and CLI listing.

@@ -41,6 +41,27 @@ During the hackathon, open a GitHub issue labelled `security`. Do not include se
 - The frontend keeps the token in `sessionStorage`. This is acceptable for a localhost MVP, but an httpOnly cookie session is planned.
 - Injection detection is pattern-based and incomplete. The real defence is structural: VAULT has no action surface for model output.
 
+## OWASP ZAP scans (F09.7, 2026-10-28)
+
+**Target.** Our own stack only. The backend and frontend Docker images ran in an isolated Docker network on the development laptop, with nothing published to the internet. ZAP `ghcr.io/zaproxy/zaproxy:stable` ran two scans:
+
+- `zap-baseline.py` (spider and passive) against the frontend.
+- `zap-api-scan.py` against the backend's OpenAPI description. This scan includes active attacks and ran authenticated as the demo admin. The token went in through an environment variable; it never appears in the reports, which were checked for `vlt_`.
+
+**Result.** 0 failures in both scans. The warnings and what was done about each:
+
+| Warning (ZAP rule) | Where | Decision |
+|---|---|---|
+| Missing anti-clickjacking header (10020), missing `X-Content-Type-Options` (10021), CSP not set (10038), Permissions-Policy not set (10063), `X-Powered-By` leaks the framework (10037) | frontend | **Fixed.** `frontend/next.config.ts` now sends CSP, `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy: no-referrer`, a Permissions-Policy and `Cross-Origin-Opener-Policy`, and turns off `X-Powered-By`. The rescan no longer reports these. |
+| CSP allows `script-src 'unsafe-inline'` (10055) | frontend | **Accepted.** Next.js puts inline bootstrap scripts on statically rendered pages. Removing `'unsafe-inline'` needs per-request nonces, which would make every page render dynamically. The pages show no user-controlled HTML, and React escapes rendered text. Revisit with nonces after the hackathon. |
+| Cross-Origin-Embedder-Policy missing (90004) | frontend | **Accepted.** VAULT does not need cross-origin isolation (no `SharedArrayBuffer`). |
+| Cross-Origin-Resource-Policy missing or invalid (90004) | API | **Partly fixed.** The API now sends `Cross-Origin-Resource-Policy: same-site`. ZAP accepts only `same-origin`, but the UI and API are on different ports, so `same-site` is the deliberate setting. The UI's CORS `fetch()` calls are not affected. |
+| Non-storable content (10049) | frontend | Informational. Pages are dynamic. |
+| Server error response (100000) | API | **Expected.** `POST /system/capacity/calibrate` returned 503 because no Ollama ran inside the scan network. That route reports a missing provider as 503 by design. No 500 responses occurred. |
+| Unix timestamp disclosure (10096) | API | **False positive.** These are the audit log's own timestamps and job IDs, returned to an authenticated admin. |
+
+The UI was rechecked after the header change. All six screens load in Chromium with the new CSP, and the Ask panel answers a question, with no console errors or CSP violations. `tests/security/test_security.py::test_security_headers_on_every_response` keeps the API headers in place.
+
 ## Tooling
 
 | Tool | Status |
