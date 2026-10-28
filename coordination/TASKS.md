@@ -17,7 +17,7 @@ Last updated: 2026-10-28 (Luke's agent, solo mode). `main` at `8094701`. **Time 
 | F01 Project Foundation | 9 | 8 | 1 | 0 | 0 | 0 | 0 | 0 |
 | F02 File Ingestion | 7 | 5 | 0 | 0 | 0 | 2 | 0 | 0 |
 | F03 Hardware & Collection Analysis | 5 | 4 | 1 | 0 | 0 | 0 | 0 | 0 |
-| F04 AI Model System | 10 | 3 | 3 | 0 | 1 | 2 | 1 | 0 |
+| F04 AI Model System | 10 | 4 | 2 | 0 | 1 | 2 | 1 | 0 |
 | F05 Parallel Processing | 9 | 7 | 0 | 0 | 0 | 1 | 1 | 0 |
 | F06 Search & Investigation | 6 | 4 | 0 | 0 | 0 | 2 | 0 | 0 |
 | F07 Teaching & Corrections | 5 | 4 | 0 | 0 | 0 | 1 | 0 | 0 |
@@ -26,7 +26,7 @@ Last updated: 2026-10-28 (Luke's agent, solo mode). `main` at `8094701`. **Time 
 | F10 User Interface | 10 | 10 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F11 Synthetic Data & Evaluation | 7 | 5 | 0 | 1 | 0 | 1 | 0 | 0 |
 | F12 Deployment & Submission | 8 | 4 | 0 | 0 | 0 | 2 | 2 | 0 |
-| **Total** | **90** | **65** | **5** | **1** | **1** | **14** | **4** | **0** |
+| **Total** | **90** | **66** | **4** | **1** | **1** | **14** | **4** | **0** |
 
 **Recorded evidence used below**
 
@@ -387,14 +387,17 @@ Last updated: 2026-10-28 (Luke's agent, solo mode). `main` at `8094701`. **Time 
 
 #### F04.8 — Privacy disclosure per provider
 - **Description:** Every extraction stores provider, model and locality; UI and API show whether data left the machine.
-- **Priority:** P0 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F04.1
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F04.1
 - **Scope:** `extractions.locality`, `ProviderInfo.privacy`, dashboard badge.
 - **Expected behavior:** A user can tell for each document which model processed it and where.
 - **Acceptance criteria:** Document detail shows provider/model/locality; dashboard badge shows the default provider's locality.
 - **Required tests:** integration assertion on `extraction.provider`; UI check pending.
-- **Blockers:** UI not checked in a browser yet.
+- **Blockers:** none
 - **Related PR/commit:** `7390fac`
-- **Verification evidence:** API part covered by `E-TEST-1`.
+- **Verification evidence:** API part covered by `E-TEST-1`. UI (2026-10-28):
+  - Playwright checks that the document drawer shows "Read by Rules baseline (regex-rules-v1) on this machine".
+  - It checks that the overview labels Llama 3 "On this machine", the Meta Model API "Remote", and the rules baseline "On this machine".
+  - Suite: 13 of 13 passed.
 
 #### F04.9 — Response caching for repeated development runs
 - **Description:** Cache model responses by (document SHA-256, provider, model, prompt version, policy version) to avoid paying twice.
