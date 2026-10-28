@@ -227,3 +227,12 @@ def test_ollama_unreachable_is_reported_not_crashing(monkeypatch):
     monkeypatch.setattr(httpx, "get", fail)
     info = OllamaProvider(Settings(_env_file=None)).info()
     assert info.available is False and "not reachable" in info.detail
+
+
+def test_security_headers_on_every_response(client):
+    """F09.7: headers the ZAP baseline checks for, on success and on error responses."""
+    for r in (client.get("/api/v1/health"), client.get("/api/v1/collections")):
+        assert r.headers["X-Content-Type-Options"] == "nosniff"
+        assert r.headers["X-Frame-Options"] == "DENY"
+        assert r.headers["Cross-Origin-Resource-Policy"] == "same-site"
+        assert r.headers["Cache-Control"] == "no-store"
