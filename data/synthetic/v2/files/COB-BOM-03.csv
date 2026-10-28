@@ -1,0 +1,6 @@
+# PARTS LIST - Project: Cobalt - issued 2021-05-24
+part_number,description,material,rated_psi,qty
+PV-9437,Gate valve,Inconel 625,600 psi,2
+FL-5958,Weld-neck flange,316L stainless,1500 psi,3
+FL-8470,Weld-neck flange,Bronze C95800,600 psi,2
+PS-2981,Pressure switch,Bronze C95800,1500 psi,4

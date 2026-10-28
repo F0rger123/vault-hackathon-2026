@@ -149,8 +149,13 @@ Rejections do not fail the request. `duplicate: true` means identical bytes alre
 
 ### `POST /collections/{collection_id}/import-path`
 - **Permission:** `settings:write` (admin)
-- **Body:** `{"path": "D:/archive/project-alpha"}` (server-side path, must sit inside `VAULT_IMPORT_ROOTS`)
-- **Response 200:** `{"accepted": 120, "rejected": [{"filename", "reason"}]}` (rejected list capped at 200)
+- **Body:** `{"path": "D:/archive/project-alpha", "background": false}`. The path is server-side and must sit inside `VAULT_IMPORT_ROOTS`.
+- **Response 200, `background: false`:** `{"accepted": 120, "rejected": [{"filename", "reason"}]}`. The rejected list is capped at 200.
+- **Response 200, `background: true` (F02.7):** a Job with `kind: "import"`.
+  - `total` is the number of files found; `done` and `failed` update live while the job runs.
+  - When it finishes, `params.rejected` lists up to 200 `{filename, reason}` entries.
+  - `POST /jobs/{id}/cancel` stops it. After a restart it resumes, and files already stored are de-duplicated.
+  - Import jobs have no model lanes, so the UI's run board lists only `kind: "process"` jobs.
 - **Errors:** 401, 403 (path imports disabled, or path outside allowed roots), 404, 422
 
 ### `GET /collections/{collection_id}/inventory`

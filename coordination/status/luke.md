@@ -4,16 +4,47 @@ Last updated: 2026-10-28
 
 ## Now
 
-- **Task:** F11.5 browser tests, in a PR on branch `luke/F11.5-e2e`.
-- **Merged today:** PR #32 (F09.6), PR #33 (F01.9) and PR #34 (F09.7).
-- **Next:** the highest READY Luke task: F12.1 and F12.2 verification, then F11.4 on Nov 1.
+- **Merged 2026-10-28:**
+  - #32 (F09.6), #33 (F01.9), #34 (F09.7), #35 (F11.5);
+  - #37 (F12.1), #38 (F12.2), #39 (F04.8), #40 (F03.5);
+  - #41 (F04.9), #43 (F05.6).
+- **Merged since:** #51 (F11.6 dataset v2), #53 (F06.5 quantity and material conflicts).
+- **Open:** #45 (F08.4), #47 (F02.7), #49 (F09.8). All three have green CI or have CI running. Each needs Luke; see "Waiting on".
+- **Next:** F11.6 dataset v2 and F06.5, the new conflict kinds. F11.4 is scheduled for Nov 1.
 
 ## Waiting on
 
-- **Luke:** blockers B1–B5 ([`../BLOCKERS.md`](../BLOCKERS.md)).
+- **Luke, PRs to review and merge:**
+  - [#45](https://github.com/F0rger123/vault-hackathon-2026/pull/45), F08.4 plain-language layout requests. CI is green. My merge was blocked by the session's permission check, which flagged it as "merge without review". It adds a new endpoint, a UI button and a contract change.
+  - [#47](https://github.com/F0rger123/vault-hackathon-2026/pull/47), F02.7 background path imports. High-risk (file handling); I will not merge it myself.
+  - [#49](https://github.com/F0rger123/vault-hackathon-2026/pull/49), F09.8 token revocation and expiry. High-risk (auth and a migration); I will not merge it myself.
+- **Luke, decision: OCR for scanned pages (F02.6).** Choose one of three:
+  - Tesseract: a separate Windows install, Apache-2.0.
+  - A Python OCR package: about 100 MB of dependencies.
+  - Skip OCR for the hackathon. This is my suggestion: the 5 scanned v2 pages are documented as unreadable without it.
+- **Luke, blockers:** B1 rules, B2 Meta API key, B3 licence, B4 partner credits, B5 Muse Glimmer ([`../BLOCKERS.md`](../BLOCKERS.md)).
+- **Luke, optional:** allow force-pushes to my own `luke/*` branches. One was refused when I tried to clean up a bad commit; I closed PR #36 instead, and it contained no secrets.
 - **Franco's agent:** has not joined. The welcome message (#26) has no reply yet.
 
 ## Updates
+
+### 2026-10-28 17:10 UTC · F11.6, F06.5 · completed; F11.4 · dry run
+- **Merged:** dataset v2 (#51) and quantity and material conflict checks (#53).
+- **Rules baseline:** 5 of 5 and 5 of 5. Llama 3 finds materials 5 of 5 but quantities 0 of 5; a prompt fix broke ratings, so it was reverted.
+- **F11.4 dry run on fresh seed 2027:** Llama 3 held-out doc_type 0.918 and rating conflicts 10 of 10. The final run is Nov 1.
+- **Unblocked Luke work left:** only the F11.4 final run, which is scheduled. Everything else waits on Luke (PRs, B1–B5, OCR choice).
+
+### 2026-10-28 23:30 UTC · loop checkpoint · handoff
+- **Verified and merged:**
+  - F11.5 browser tests: 14 tests in CI, and they found a sign-in race.
+  - F12.1 CLI tests and F12.2 Docker Compose end to end.
+  - F04.8 privacy disclosure in the UI.
+  - F03.5 estimate compared with the actual run: Llama estimates run about 2x high, because of model load.
+  - F04.9 response cache: a second Llama run took 5 s instead of 79 s.
+  - F05.6 worker fault tests and a memory guard.
+- **Built, waiting for Luke:** F08.4 (Llama 3 scored 8 of 8 on held-out requests), F02.7 and F09.8.
+- **Mistake:** PR #36 accidentally included build output and demo-file copies, because `git add -A` ran on a branch without the new ignore rules. It held no secrets; it was closed unmerged and replaced by #37. I now stage named files only.
+- **Tests on main:** pytest 62, e2e 13 (14 with #45).
 
 ### 2026-10-28 20:00 UTC · F11.5 · review
 - **Changes:** Playwright suite in `tests/e2e/` with 13 tests over every screen, all three roles and phone width. `npm test` seeds, serves and runs everything. Added a CI job, `e2e`.

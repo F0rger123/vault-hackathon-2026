@@ -32,6 +32,7 @@ from backend.security import audit
 from backend.security.auth import Principal
 from backend.security.files import FileRejected, contained, safe_join
 from backend.storage.db import dumps, loads, now
+from backend.workers.importer import candidate_files, create_import_job, import_one
 from backend.workers.jobs import create_process_job
 from backend.workers.layout_request import interpret as interpret_layout
 from backend.workers.processing import process_document
@@ -199,6 +200,7 @@ async def upload(
 def import_path(
     collection_id: int,
     body: ImportPath,
+    request: Request,
     conn=Depends(get_conn),
     settings: Settings = Depends(get_settings),
     p: Principal = Depends(require("settings:write")),
@@ -213,15 +215,17 @@ def import_path(
     except FileRejected as exc:
         audit.record(conn, p.username, "document.import_path", "denied", detail={"reason": str(exc)})
         raise HTTPException(status_code=403, detail=str(exc)) from exc
+    if body.background:
+        job_id = create_import_job(conn, collection_id, base, p.user_id)
+        audit.record(
+            conn, p.username, "document.import_path", "allowed", target=f"job:{job_id}", detail={"background": True}
+        )
+        request.app.state.runner.start(job_id)
+        return _job(conn, job_id)
     accepted, rejected = 0, []
-    for path in sorted(base.rglob("*"))[:20000]:
-        if not path.is_file() or path.is_symlink():
-            continue
+    for path in candidate_files(base):
         try:
-            contained(path, [base])
-            if path.stat().st_size > settings.max_upload_mb * 1024 * 1024:
-                raise FileRejected("file exceeds upload limit")
-            ingest_bytes(conn, settings, collection_id, path.name, path.read_bytes())
+            import_one(conn, settings, collection_id, base, path)
             accepted += 1
         except FileRejected as exc:
             rejected.append({"filename": path.name, "reason": str(exc)})

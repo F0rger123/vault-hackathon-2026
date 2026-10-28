@@ -1,0 +1,97 @@
+{
+  "provider": "heuristic",
+  "model": "regex-rules-v1",
+  "collection": "v2",
+  "documents_scored": 165,
+  "generated_at": "2026-10-28T16:32:19",
+  "splits": {
+    "train": {
+      "doc_type": {
+        "correct": 103,
+        "total": 116,
+        "rate": 0.888
+      },
+      "project": {
+        "correct": 95,
+        "total": 116,
+        "rate": 0.819
+      },
+      "doc_date": {
+        "correct": 95,
+        "total": 98,
+        "rate": 0.969
+      },
+      "evidence_verified_docs": {
+        "correct": 116,
+        "total": 116,
+        "rate": 1.0
+      },
+      "part_recall": {
+        "correct": 308,
+        "total": 317,
+        "rate": 0.972
+      },
+      "rating_accuracy": {
+        "correct": 246,
+        "total": 308,
+        "rate": 0.799
+      }
+    },
+    "heldout": {
+      "doc_type": {
+        "correct": 43,
+        "total": 49,
+        "rate": 0.878
+      },
+      "project": {
+        "correct": 40,
+        "total": 49,
+        "rate": 0.816
+      },
+      "doc_date": {
+        "correct": 40,
+        "total": 42,
+        "rate": 0.952
+      },
+      "part_recall": {
+        "correct": 124,
+        "total": 130,
+        "rate": 0.954
+      },
+      "rating_accuracy": {
+        "correct": 106,
+        "total": 124,
+        "rate": 0.855
+      },
+      "evidence_verified_docs": {
+        "correct": 49,
+        "total": 49,
+        "rate": 1.0
+      }
+    }
+  },
+  "conflicts": {
+    "planted": 10,
+    "found": 10,
+    "true_positive": 10,
+    "recall": 1.0,
+    "precision": 1.0,
+    "note": "findings reflect the most recent processing run of the collection"
+  },
+  "other_conflicts": {
+    "material_conflict": {
+      "planted": 5,
+      "found": 5,
+      "true_positive": 5,
+      "recall": 1.0,
+      "precision": 1.0
+    },
+    "quantity_conflict": {
+      "planted": 5,
+      "found": 5,
+      "true_positive": 5,
+      "recall": 1.0,
+      "precision": 1.0
+    }
+  }
+}
