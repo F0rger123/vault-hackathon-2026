@@ -22,11 +22,11 @@ Last updated: 2026-10-28 (Luke's agent, solo mode). `main` at `8094701`. **Time 
 | F06 Search & Investigation | 6 | 4 | 0 | 0 | 0 | 2 | 0 | 0 |
 | F07 Teaching & Corrections | 5 | 4 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F08 Actions & Organization | 5 | 3 | 0 | 0 | 0 | 2 | 0 | 0 |
-| F09 Security | 9 | 7 | 0 | 0 | 1 | 1 | 0 | 0 |
+| F09 Security | 9 | 8 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F10 User Interface | 10 | 0 | 10 | 0 | 0 | 0 | 0 | 0 |
 | F11 Synthetic Data & Evaluation | 7 | 4 | 0 | 1 | 1 | 1 | 0 | 0 |
 | F12 Deployment & Submission | 8 | 2 | 2 | 0 | 0 | 2 | 2 | 0 |
-| **Total** | **90** | **51** | **17** | **1** | **3** | **14** | **4** | **0** |
+| **Total** | **90** | **52** | **17** | **1** | **2** | **14** | **4** | **0** |
 
 **Recorded evidence used below**
 
