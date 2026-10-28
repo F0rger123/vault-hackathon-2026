@@ -10,14 +10,14 @@ This file is the single source of truth for what is planned, in progress, and ve
 
 ## Progress dashboard
 
-Last updated: 2026-10-28 (Luke's agent, solo mode). `main` at `8094701`. **Time left:** 7 days to the Nov 4, 9:00 PM ET deadline; feature freeze Nov 2, video Nov 3. PR #32 (F09.6) merged; open: #33 (F01.9), #34 (F09.7).
+Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main` at `9fafa5f`. **Time left:** 7 days to the Nov 4, 9:00 PM ET deadline; feature freeze Nov 2, video Nov 3. Open PRs: #45 (F08.4), #47 (F02.7) and #49 (F09.8), all waiting for Luke.
 
 | Feature | Subtasks | VERIFIED | REVIEW | IN_PROGRESS | READY | BACKLOG | BLOCKED | DEFERRED |
 |---|---|---|---|---|---|---|---|---|
 | F01 Project Foundation | 9 | 8 | 1 | 0 | 0 | 0 | 0 | 0 |
 | F02 File Ingestion | 7 | 5 | 0 | 0 | 0 | 2 | 0 | 0 |
 | F03 Hardware & Collection Analysis | 5 | 5 | 0 | 0 | 0 | 0 | 0 | 0 |
-| F04 AI Model System | 10 | 5 | 1 | 0 | 1 | 2 | 1 | 0 |
+| F04 AI Model System | 10 | 6 | 0 | 0 | 1 | 2 | 1 | 0 |
 | F05 Parallel Processing | 9 | 8 | 0 | 0 | 0 | 0 | 1 | 0 |
 | F06 Search & Investigation | 6 | 4 | 0 | 0 | 0 | 2 | 0 | 0 |
 | F07 Teaching & Corrections | 5 | 4 | 0 | 0 | 0 | 1 | 0 | 0 |
@@ -26,7 +26,7 @@ Last updated: 2026-10-28 (Luke's agent, solo mode). `main` at `8094701`. **Time 
 | F10 User Interface | 10 | 10 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F11 Synthetic Data & Evaluation | 7 | 5 | 0 | 1 | 0 | 1 | 0 | 0 |
 | F12 Deployment & Submission | 8 | 4 | 0 | 0 | 0 | 2 | 2 | 0 |
-| **Total** | **90** | **69** | **2** | **1** | **1** | **13** | **4** | **0** |
+| **Total** | **90** | **70** | **1** | **1** | **1** | **13** | **4** | **0** |
 
 **Recorded evidence used below**
 
@@ -361,7 +361,7 @@ Last updated: 2026-10-28 (Luke's agent, solo mode). `main` at `8094701`. **Time 
 
 #### F04.5 — Extraction quality tuning for local Llama
 - **Description:** Improve prompt, add few-shot examples and per-type hints so `llama3` 8B extracts ratings, dates and correct document types.
-- **Priority:** P0 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F04.2, F11.4
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F04.2, F11.4
 - **Scope:** `backend/providers/prompting.py`; evaluation runs on the held-out split only.
 - **Expected behavior:** Measurable improvement over the first run on held-out data.
 - **Acceptance criteria:** Held-out doc_type accuracy and rating accuracy reported before and after; improvement recorded honestly even if small.
@@ -369,6 +369,7 @@ Last updated: 2026-10-28 (Luke's agent, solo mode). `main` at `8094701`. **Time 
 - **Blockers:** none
 - **Related PR/commit:** —
 - **Verification evidence:** Baseline weakness recorded in `E-LLM-1`. `E-LLM-2`: prompt v3 lifts held-out doc_type to 0.956 and conflict recall to 10/10.
+- **Status note (2026-10-28):** the acceptance criteria are met by `E-LLM-2`. Held-out doc_type and rating accuracy are reported before and after tuning (doc_type 0.822 to 0.956, rating 0.291 to 0.797). The fresh-seed check is part of F11.4.
 
 #### F04.6 — Muse Glimmer 30B local test
 - **Description:** Try `muse-glimmer:30b` (Apache-2.0, text + image) through Ollama with CPU/GPU split.

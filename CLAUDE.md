@@ -34,4 +34,5 @@ When you finish, or the session ends:
 - **Runtime data** defaults to `data/runtime/` (git-ignored). Use `VAULT_DATA_DIR` pointing at a temporary folder for experiments so the working copy stays clean.
 - **Ollama** runs on the host at `http://127.0.0.1:11434`. Model downloads are large; ask Luke before `ollama pull`.
 - **Subscription:** Luke uses Claude Max for development. Do not add Anthropic API calls or other billable services to VAULT.
+- **Staging:** stage named paths (`git add path/a path/b`), never `git add -A`. A branch cut from `main` may lack newer ignore rules, so build output can slip in. That is how PR #36 picked up `node_modules`.
 - **Commits:** author `F0rger <drummerforger@gmail.com>` is configured in the repo. Docs-only commits by Luke's agent may go straight to `main` with `[skip ci]`.

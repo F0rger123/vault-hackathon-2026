@@ -6,49 +6,51 @@ The two-minute snapshot. Read this first in a new session. Detail lives in the l
 
 | | |
 |---|---|
-| Last updated | 2026-10-28 (Luke's agent) |
-| Latest verified commit on `main` | `8094701` (PR #31 merged; CI green on GitHub) |
+| Last updated | 2026-10-28 (Luke's agent, loop checkpoint) |
+| Latest verified commit on `main` | `9fafa5f` (PR #43 merged; CI green on GitHub) |
 | Phase | MVP build. Feature freeze **Nov 2**, video **Nov 3**, deadline **Nov 4, 9:00 PM ET** |
-| Team mode | **Solo.** Luke's agent owns every path until Franco's agent posts in agent mail ([`OWNERSHIP.md`](OWNERSHIP.md)). |
+| Team mode | **Solo.** Luke's agent owns every path until Franco's agent replies on [#26](https://github.com/F0rger123/vault-hackathon-2026/issues/26) ([`OWNERSHIP.md`](OWNERSHIP.md)). |
 
 ## What works (verified, with evidence in `TASKS.md`)
 
 - **Import:** content validation, hashing, de-duplication, read-only originals, page text.
-- **Planning:** hardware profile, sample benchmark and runtime estimate.
+- **Planning:** hardware profile, sample benchmark and runtime estimate. Each run is compared with its estimate (F03.5).
 - **Local Meta Llama 3 extraction** through Ollama, with checked quotes. Held-out document type 0.956, project 0.889.
-- **Processing:** parallel lanes, retries, cancel and resume. Coordinator, security-gate and reviewer agents.
+- **Response cache** for repeated development runs (F04.9). It is off by default.
+- **Processing:** parallel lanes, retries, cancel and resume, plus a free-memory guard (F05.6). Coordinator, security-gate and reviewer agents.
 - **Search and findings:** search with filters. Rating conflicts with evidence (10 of 10 planted, 0 false alarms).
 - **Natural-language investigation** with numbered, checked citations (F06.4).
 - **Corrections:** corrections become versioned rules, and teach by example works. Measured on held-out documents (F07.3).
 - **Actions:** proposals, approval, copy-only export.
-- **Security:** audit log, and security tests S1–S10.
+- **Security:**
+  - audit log and security tests S1–S10;
+  - Semgrep, Trivy, pip-audit and npm audit in CI (F09.6);
+  - ZAP scans with 0 failures, and security headers (F09.7).
+- **Web interface (F10.1–F10.10):** six screens, covered by 13 Playwright browser tests in CI (F11.5). Each document shows which model read it and where (F04.8).
+- **CLI** (F12.1) and **Docker Compose** (F12.2): both verified end to end.
 - **Demo reset** in about 12 s (F12.6).
-- **Tests:** 47 pytest tests, a 25-check HTTP end-to-end smoke, and 13 Playwright browser tests.
-- **Web interface (F10.1–F10.10):** six screens, all covered by browser tests (F11.5).
+- **Tests on `main`:** 62 pytest, 13 e2e, and a 25-check HTTP smoke.
+
+## Built, waiting for Luke's review
+
+- [#45](https://github.com/F0rger123/vault-hackathon-2026/pull/45), **F08.4:** plain-language layout requests. Llama 3 scored 8 of 8 on held-out requests. My merge was refused by the session's permission check.
+- [#47](https://github.com/F0rger123/vault-hackathon-2026/pull/47), **F02.7:** large path imports as background jobs. High-risk: file handling.
+- [#49](https://github.com/F0rger123/vault-hackathon-2026/pull/49), **F09.8:** token revocation and expiry. High-risk: auth and a migration.
 
 ## Partly working
 
-- **Meta Model API lane (F04.3, F05.9):** code and tests exist. It has never run with a real key (blocker B2).
-- **CLI and Docker Compose (F12.1, F12.2):** both work locally. Both images rebuilt and checked on 2026-10-28 in PR #32. Not yet tested on a clean machine.
+- **Meta Model API lane (F04.3, F05.9):** the code and tests exist, but it has never run with a real key (blocker B2).
 
 ## Broken
 
 - Nothing known. Report breakages in [`BLOCKERS.md`](BLOCKERS.md) or as a `bug` issue.
 
-## Current priorities (Luke)
-
-1. **F09.6 scanning:** merged in PR #32. CI now runs Semgrep and Trivy and fails the build on findings.
-2. **F01.9 coordination system:** this PR. It adds the project memory, protocol and automated checks.
-3. **F09.7 ZAP scans:** [PR #34](https://github.com/F0rger123/vault-hackathon-2026/pull/34). 0 failures; security headers added.
-4. **F11.5:** Playwright browser tests. This is Franco's when he joins.
-5. **F12.7 video and F12.8 submission:** these need B1 and B3 first.
-
 ## Who is doing what
 
 | | Now | Next | Status file |
 |---|---|---|---|
-| Luke's agent | Merging PRs #33 and #34 | F11.5 browser tests, while solo | [`status/luke.md`](status/luke.md) |
-| Franco's agent | Not joined yet | F11.5 browser tests ([`HANDOFF_FRANCO.md`](HANDOFF_FRANCO.md)) | [`status/franco.md`](status/franco.md) |
+| Luke's agent | 3 PRs waiting for Luke | F11.6 dataset v2, then F06.5 new conflict kinds | [`status/luke.md`](status/luke.md) |
+| Franco's agent | Not joined yet | Extend `tests/e2e/`, then fix F10.x screens ([`HANDOFF_FRANCO.md`](HANDOFF_FRANCO.md)) | [`status/franco.md`](status/franco.md) |
 
 ## Open blockers
 
@@ -64,20 +66,16 @@ Detail: [`BLOCKERS.md`](BLOCKERS.md).
 - **D-004:** Llama 3 8B is the default local model.
 - **D-005:** remote inference needs both admin approval and confirmation on each job.
 - **D-006 and D-007:** originals are read-only, and exports are copies.
-- **Orchestrator:** a coordinator agent assigns work to model lanes.
+- **D-011:** each agent has its own status file, and task claims go on GitHub issues.
 
 All decisions: [`DECISIONS.md`](DECISIONS.md).
 
 ## Next integration milestone
 
-**Feature freeze, Nov 2.** All F10 screens covered by browser tests. F09.6 and F09.7 merged. Final evaluation figures committed (F11.4). Demo rehearsed from `scripts/demo_reset.py`.
+**Feature freeze, Nov 2.** PRs #45, #47 and #49 reviewed. Final evaluation figures committed (F11.4). Demo rehearsed from `scripts/demo_reset.py`.
 
 ## Next three recommended tasks
 
-1. **F11.5** (P1, in review; issue [#20](https://github.com/F0rger123/vault-hackathon-2026/issues/20)): Playwright tests for sign-in, import, run, investigate and approvals.
-   - **Owner:** Franco once he joins, Luke's agent while solo.
-   - **Why READY:** F10.1 is in REVIEW, not VERIFIED, but F11.5 is the task that verifies F10.x, so it can start.
-2. **F11.4** (Luke, P0, IN_PROGRESS): a final full local Llama evaluation on fresh seeds, to produce the submission figures.
-   - **Why not first despite P0:** it must run on the final code, so it is scheduled for Nov 1, just before the freeze. It is a GPU run of about 15 minutes.
-   - **If extraction code changes after that run,** run it again.
-3. **B1 and B3** (Luke personally): verify the hackathon rules and choose a licence. These unblock F12.4, F12.5, F12.7 (video) and F12.8 (submission).
+1. **Review PRs #45, #47 and #49** (Luke personally).
+2. **F11.6 and F06.5** (Luke's agent, P1): dataset v2 with new kinds of planted disagreement (part descriptions, contract quantities), and the checks that find them.
+3. **F11.4** (Luke's agent, P0, scheduled for Nov 1): the final full local Llama evaluation on fresh seeds, run on the final code. Then **B1 and B3** (Luke), which unblock the video and the submission.
