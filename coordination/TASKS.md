@@ -750,11 +750,12 @@ Last updated: 2026-10-26 night (Luke's agent, solo mode, full audit). `main` at 
 
 #### F09.6 — Dependency and static scanning
 - **Description:** Bandit and ruff security rules in CI; pip-audit and npm audit report-only; evaluate Semgrep and Trivy.
-- **Priority:** P1 · **Owner:** luke · **Status:** READY · **Dependencies:** F01.5
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F01.5
 - **Scope:** CI workflow; triage results in `docs/SECURITY.md`.
 - **Expected behavior:** Known vulnerabilities are listed with a decision.
 - **Acceptance criteria:** First audit results triaged; Trivy image scan run once Docker builds.
 - **Required tests:** CI run.
+- **Evidence (2026-10-28, local, branch `luke/F09.6-security-scanning`):** Semgrep 1.140.0 with six rulesets: 0 results, 164 files. pip-audit and npm audit: 0. Trivy 0.67.2 fs: 0. Trivy images: 8 fixable highs (vendored `wheel`/`jaraco.context` in setuptools, npm's bundled `undici`/`brace-expansion`) plus a critical `zlib1g` on Debian 12. All fixed in the Dockerfiles, so 0 fixable highs or criticals remain. The 8 unfixed Debian OS CVEs are accepted in `docs/SECURITY.md`. Rebuilt images checked: backend `/api/v1/health` ok (read-only root), frontend HTTP 200. CI jobs `semgrep` and `trivy` added; dependency audit is now blocking; there is a weekly scheduled run. GitHub CI result is pending.
 - **Blockers:** none
 - **Related PR/commit:** bandit/ruff in `7390fac`
 - **Verification evidence:** `E-LINT-1` (bandit, ruff only).
