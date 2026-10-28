@@ -13,6 +13,8 @@ PART_RE = re.compile(r"\b([A-Z]{2,4}-\d{3,5}(?:-[A-Z0-9]{1,4})?)\b")
 PSI_RE = re.compile(r"(?<![\d.,])(\d+(?:\.\d+)?)\s*psi\b", re.IGNORECASE)
 DATE_RE = re.compile(r"\b(20\d{2}-\d{2}-\d{2})\b")
 PROJECT_RE = re.compile(r"\bProject[:\s]+([A-Z][A-Za-z0-9-]+)")
+QTY_RE = re.compile(r"\b(?:qty|quantity)[:\s]+(\d{1,6})\b", re.IGNORECASE)
+CSV_COLUMNS = {"material": "material", "qty": "quantity", "quantity": "quantity"}
 STAMP_RE = re.compile(r"\b(APPROVED|REJECTED|RELEASED|VOID|CONFIDENTIAL|QA ACCEPTED)\b[^\n]{0,40}")
 
 TYPE_KEYWORDS = [
@@ -65,7 +67,14 @@ class HeuristicProvider(Provider):
 
         components: dict[str, Component] = {}
         for page_no, page in enumerate(pages, start=1):
+            header: dict[int, str] = {}  # CSV column index -> component field, from a header row
             for line in page.splitlines():
+                cells = [c.strip() for c in line.split(",")] if "," in line else []
+                if cells and not PART_RE.search(line):
+                    found = {i: CSV_COLUMNS[c.casefold()] for i, c in enumerate(cells) if c.casefold() in CSV_COLUMNS}
+                    if found:
+                        header = found
+                    continue
                 parts = PART_RE.findall(line)
                 if not parts:
                     continue
@@ -76,6 +85,7 @@ class HeuristicProvider(Provider):
                     if rating is not None and comp.pressure_rating_psi is None:
                         comp.pressure_rating_psi = rating
                         evidence.append(EvidenceQuote(field=f"components.{p}", quote=line.strip()[:400], page=page_no))
+                    _fill_other_fields(comp, line, cells, header)
 
         stamps = sorted({m.group(0).strip() for m in STAMP_RE.finditer(text)})[:20]
         first_line = next((ln.strip() for ln in text.splitlines() if ln.strip()), None)
@@ -89,6 +99,19 @@ class HeuristicProvider(Provider):
             stamps=stamps,
             evidence=evidence[:60],
         )
+
+
+def _fill_other_fields(comp: Component, line: str, cells: list[str], header: dict[int, str]) -> None:
+    """Material and quantity: from labelled CSV columns, or from "qty N" / "quantity N" in a text line."""
+    if header and len(cells) > max(header):
+        for i, field_name in header.items():
+            value = cells[i]
+            if field_name == "quantity" and value.isdigit() and comp.quantity is None:
+                comp.quantity = int(value)
+            elif field_name == "material" and value and comp.material is None:
+                comp.material = value[:80]
+    elif comp.quantity is None and (m := QTY_RE.search(line)):
+        comp.quantity = int(m.group(1))
 
 
 def _page_of(pages: list[str], quote: str) -> int:

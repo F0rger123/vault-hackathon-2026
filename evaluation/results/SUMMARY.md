@@ -54,3 +54,19 @@ What this shows, and what it does not:
   documents with a different true value, or contains digits), so no rule was created and nothing changed.
   The model's remaining errors are not the kind a single text rule can fix.
 - Both Llama 3 passes completed 150/150 documents (443 s and 431 s, 2 workers).
+
+## Quantity and material conflicts on dataset v2 (F06.5, 2026-10-28)
+
+Files are in `evaluation/results/v2/`. Dataset v2 has 165 files: 10 rating, 5 quantity and 5 material conflicts planted.
+
+| Run | Rating conflicts | Material conflicts | Quantity conflicts | Held-out rating accuracy |
+|---|---|---|---|---|
+| Rules baseline (not AI), `heuristic-20261028-163219.json` | 10 / 10, precision 1.0 | 5 / 5, precision 1.0 | 5 / 5, precision 1.0 | 0.855 |
+| Llama 3 8B, prompt v3 (committed), `ollama-20261028-163636.json` | 10 / 10, precision 1.0 | 5 / 5, precision 1.0 | **0 / 5** | 0.823 |
+| Llama 3 8B, prompt v3 plus one sentence asking for material and quantity, `ollama-20261028-164442.json` | **0 / 10** (1 false) | 5 / 5 | 5 / 5 | **0.097** |
+
+- **Why Llama misses quantities:** with the committed prompt, Llama reads materials but leaves contract quantities empty. The prompt never asks for them.
+- **Why the extra sentence was reverted:** asking for quantity fixed quantities but broke pressure ratings. The model began putting the wrong numbers in the psi field. Pressure conflicts are the core demo, so the extra sentence is not committed.
+- **Next step:** the quantity fix for Llama needs its own prompt work and a full re-evaluation (F04.5 or F11.4), not a one-line change.
+- **Part recall is 0.954 for every provider:** the 5 scanned pages have no text until OCR exists (F02.6).
+
