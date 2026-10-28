@@ -16,7 +16,7 @@ Last updated: 2026-10-28 (Luke's agent, solo mode). `main` at `8094701`. **Time 
 |---|---|---|---|---|---|---|---|---|
 | F01 Project Foundation | 9 | 8 | 1 | 0 | 0 | 0 | 0 | 0 |
 | F02 File Ingestion | 7 | 5 | 0 | 0 | 0 | 2 | 0 | 0 |
-| F03 Hardware & Collection Analysis | 5 | 4 | 1 | 0 | 0 | 0 | 0 | 0 |
+| F03 Hardware & Collection Analysis | 5 | 5 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F04 AI Model System | 10 | 4 | 2 | 0 | 1 | 2 | 1 | 0 |
 | F05 Parallel Processing | 9 | 7 | 0 | 0 | 0 | 1 | 1 | 0 |
 | F06 Search & Investigation | 6 | 4 | 0 | 0 | 0 | 2 | 0 | 0 |
@@ -26,7 +26,7 @@ Last updated: 2026-10-28 (Luke's agent, solo mode). `main` at `8094701`. **Time 
 | F10 User Interface | 10 | 10 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F11 Synthetic Data & Evaluation | 7 | 5 | 0 | 1 | 0 | 1 | 0 | 0 |
 | F12 Deployment & Submission | 8 | 4 | 0 | 0 | 0 | 2 | 2 | 0 |
-| **Total** | **90** | **66** | **4** | **1** | **1** | **14** | **4** | **0** |
+| **Total** | **90** | **67** | **3** | **1** | **1** | **14** | **4** | **0** |
 
 **Recorded evidence used below**
 
@@ -295,14 +295,21 @@ Last updated: 2026-10-28 (Luke's agent, solo mode). `main` at `8094701`. **Time 
 
 #### F03.5 — Estimate calibration against actual runs
 - **Description:** Compare the estimate with the real duration of the following full job and record the error.
-- **Priority:** P1 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F03.4, F05.1
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F03.4, F05.1
 - **Scope:** store estimate per collection; report "estimated vs actual" on job completion.
 - **Expected behavior:** Users see how accurate past estimates were on this machine.
 - **Acceptance criteria:** One recorded calibration for heuristic and one for Ollama.
 - **Required tests:** integration test asserting the stored comparison.
-- **Blockers:** The full 150-document Ollama run (started 2026-10-26) must finish first.
-- **Related PR/commit:** —
-- **Verification evidence:** Pending. Calibration point: estimate 1,007–4,956 s vs actual 654 s (v1) and 408 s (v3); the 3-doc sample included model load, so estimates ran high.
+- **Blockers:** none
+- **Related PR/commit:** branch `luke/F03.5-estimate-check`
+- **Verification evidence (2026-10-28):**
+  - **Code:** `backend/core/estimates.py` stores the latest estimate per collection and provider in `settings_kv` (no migration). `GET /jobs/{id}` returns `estimate_check`. The run board shows a line such as "Estimated 1 min 32 s to 3 min 44 s from a 3-document sample; this run was 2.1x faster than estimated."
+  - **Tests:** `tests/unit/test_estimates.py` (3 tests) and an `estimate_check` assertion in `test_full_vertical_slice`.
+  - **Recorded calibrations, local API, 20 Borealis files:**
+    - Heuristic: estimated 0.0–0.0 s, actual 0.1 s, within range thanks to the 1 s slack.
+    - Llama 3 (Ollama, 2 workers): estimated 92.3–224.0 s, actual 74.9 s; `actual_vs_estimate` 0.47, so the estimate ran high.
+  - **Cause of the high Llama estimate:** the 3-document sample includes the model load, which matches the earlier calibration point.
+- **Earlier evidence:** Calibration point: estimate 1,007–4,956 s vs actual 654 s (v1) and 408 s (v3); the 3-doc sample included model load, so estimates ran high.
 
 ---
 
