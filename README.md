@@ -16,7 +16,7 @@
 <h3 align="center">Point it at a drawer full of drawings, inspection reports and contracts.<br>It reads every page, proves every fact with a quote, and redlines the places where your documents disagree.<br>Nothing leaves the machine.</h3>
 
 > [!TIP]
-> **🤖 Pasted this link into Claude or ChatGPT?** Read [`AGENTS.md`](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/AGENTS.md) and [`docs/AI_GUIDE.md`](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/docs/AI_GUIDE.md) first, then [`llms.txt`](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/llms.txt). They explain the project in plain words and walk a person through setting it up.
+> **🤖 Pasted this link into Claude or ChatGPT?** To install or try VAULT, read [`docs/AI_GUIDE.md`](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/docs/AI_GUIDE.md). To help a team member build it, read [`coordination/PROJECT_STATE.md`](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/coordination/PROJECT_STATE.md) and [`docs/AI_ONBOARDING.md`](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/docs/AI_ONBOARDING.md). Then read [`AGENTS.md`](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/AGENTS.md) and [`llms.txt`](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/llms.txt).
 
 ## The problem
 

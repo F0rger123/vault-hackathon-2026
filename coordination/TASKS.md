@@ -10,23 +10,23 @@ This file is the single source of truth for what is planned, in progress, and ve
 
 ## Progress dashboard
 
-Last updated: 2026-10-26 night (Luke's agent, solo mode, full audit). `main` at `7174dbc`. **Time left:** 9 days to the Nov 4, 9:00 PM ET deadline; feature freeze Nov 2, video Nov 3.
+Last updated: 2026-10-28 (Luke's agent, solo mode). `main` at `8094701`. **Time left:** 7 days to the Nov 4, 9:00 PM ET deadline; feature freeze Nov 2, video Nov 3. Open PRs: #32 (F09.6, CI green; this file still says READY until it merges), and the F01.9 coordination PR.
 
 | Feature | Subtasks | VERIFIED | REVIEW | IN_PROGRESS | READY | BACKLOG | BLOCKED | DEFERRED |
 |---|---|---|---|---|---|---|---|---|
-| F01 Project Foundation | 8 | 8 | 0 | 0 | 0 | 0 | 0 | 0 |
+| F01 Project Foundation | 9 | 8 | 0 | 1 | 0 | 0 | 0 | 0 |
 | F02 File Ingestion | 7 | 5 | 0 | 0 | 0 | 2 | 0 | 0 |
 | F03 Hardware & Collection Analysis | 5 | 4 | 1 | 0 | 0 | 0 | 0 | 0 |
 | F04 AI Model System | 10 | 3 | 3 | 0 | 1 | 2 | 1 | 0 |
 | F05 Parallel Processing | 9 | 7 | 0 | 0 | 0 | 1 | 1 | 0 |
-| F06 Search & Investigation | 6 | 3 | 0 | 0 | 0 | 3 | 0 | 0 |
-| F07 Teaching & Corrections | 5 | 3 | 0 | 0 | 1 | 1 | 0 | 0 |
+| F06 Search & Investigation | 6 | 4 | 0 | 0 | 0 | 2 | 0 | 0 |
+| F07 Teaching & Corrections | 5 | 4 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F08 Actions & Organization | 5 | 3 | 0 | 0 | 0 | 2 | 0 | 0 |
 | F09 Security | 9 | 6 | 0 | 0 | 2 | 1 | 0 | 0 |
-| F10 User Interface | 10 | 0 | 9 | 0 | 0 | 1 | 0 | 0 |
+| F10 User Interface | 10 | 0 | 10 | 0 | 0 | 0 | 0 | 0 |
 | F11 Synthetic Data & Evaluation | 7 | 4 | 0 | 1 | 1 | 1 | 0 | 0 |
-| F12 Deployment & Submission | 8 | 1 | 2 | 0 | 1 | 2 | 2 | 0 |
-| **Total** | **89** | **47** | **15** | **1** | **6** | **16** | **4** | **0** |
+| F12 Deployment & Submission | 8 | 2 | 2 | 0 | 0 | 2 | 2 | 0 |
+| **Total** | **90** | **50** | **16** | **2** | **4** | **14** | **4** | **0** |
 
 **Recorded evidence used below**
 
@@ -133,13 +133,38 @@ Last updated: 2026-10-26 night (Luke's agent, solo mode, full audit). `main` at 
 
 - **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F01.6
 - **Description:** GitHub-issue mailboxes for each coding agent, protocol document, solo-mode ownership note.
-- **Implementation scope:** `scripts/agent_mail.py status/inbox/send/reply/close`; labels agent-msg, to:luke-agent, to:franco-agent; `coordination/AGENT_PROTOCOL.md`.
+- **Implementation scope:** `scripts/agent_mail.py status/inbox/send/reply/close`; labels agent-msg, to:luke-agent, to:franco-agent; `coordination/AGENT_COMMUNICATION_PROTOCOL.md`.
 - **Expected behavior:** Either agent can send, list, answer and close messages; messages never grant authority for destructive or spending actions.
 - **Acceptance criteria:** Either agent can send, list, answer and close messages; messages never grant authority for destructive or spending actions.
 - **Required tests:** see verification evidence
 - **Blockers:** none
 - **Related PR/commit:** branch `luke/F05-agent-orchestrator`
 - **Verification evidence:** Manual: status run 2026-10-26; welcome message sent as issue #26.
+
+#### F01.9 — Permanent project memory and coordination checks
+
+- **Priority:** P1 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F01.6, F01.8
+- **Description:** Make the repository enough for any new agent or chat to resume. It needs a vision, a project snapshot, per-agent status files, a communication protocol, onboarding for a new chat, a bootstrap prompt, task claims through issues, and automated validation.
+- **Implementation scope:**
+  - Docs: `docs/PROJECT_VISION.md`, `docs/LONG_TERM_ROADMAP.md`, `docs/AI_ONBOARDING.md`.
+  - Coordination: `coordination/PROJECT_STATE.md`, `AGENT_COMMUNICATION_PROTOCOL.md`, `AGENT_UPDATES.md`, `NEW_AGENT_BOOTSTRAP_PROMPT.md`, `status/{luke,franco}.md`.
+  - Scripts: `agent_mail.py claim/report`, `scripts/check_coordination.py`.
+  - CI: the `coordination` job.
+- **Expected behavior:** a fresh session reads `PROJECT_STATE.md` and its status files, and knows the next task. Claims are visible on GitHub. CI rejects broken coordination files and PRs without a task ID.
+- **Acceptance criteria:**
+  - Every file above exists, and `check_coordination.py` passes.
+  - `claim` refuses a task that the other agent holds.
+  - Three bootstrap scenarios are checked against the repository (new Luke session, new Franco session, new ChatGPT chat).
+- **Required tests:** `tests/unit/test_check_coordination.py`; CI `coordination` job.
+- **Blockers:** none
+- **Verification evidence (2026-10-28, local):**
+  - `pytest -p no:warnings`: 46 passed, including 5 new tests. Those cover the real repository passing the check, the PR task-ID rule, an unknown task, a missing section, a stale date, a missing file, and `claim` refusing a task held by the other agent.
+  - `check_coordination.py`: ok.
+  - `agent_mail.py status` ran against GitHub and lists claimed tasks.
+  - **Scenario check:** a fresh subagent with no conversation context read only the repository and answered all three bootstrap scenarios correctly. It picked F09.7 for Luke and F11.5 for Franco, with the right claim commands, and drafted a valid Part B prompt.
+  - **Gaps it reported, now fixed:** stale `TASKS.md` dashboard; unexplained priority order; stale `HANDOFF_FRANCO.md` section 3 and F09.7 owner; ambiguous F11.5 owner and CI handoff; three different definitions of "Franco joined" (now one: a reply on #26); blocker owners.
+  - **Gap not fixed:** README uses 157 files in places and 150 in others. Left for a README pass.
+  - **Caveat:** this was a simulated check by a subagent reading local files, not a real separate Claude or ChatGPT session on another computer.
 
 ## F02 — File Ingestion
 

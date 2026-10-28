@@ -4,6 +4,27 @@ All project rules live in [`AGENTS.md`](AGENTS.md). Read it first, including sec
 
 @AGENTS.md
 
+## Mandatory at the start of every Claude Code session
+
+These steps apply even if this conversation has no history. Do them before writing any code:
+
+1. `git fetch && git checkout main && git pull`. Then compare with the open PRs (`gh pr list`). Newer work may exist on branches.
+2. Read `AGENTS.md` (loaded above) and `coordination/PROJECT_STATE.md`.
+3. Read the other agent's status file (`coordination/status/franco.md` or `coordination/status/luke.md`), then your own.
+4. Run `python scripts/agent_mail.py status --me <luke-agent|franco-agent>`. Answer anything addressed to you.
+5. Review `coordination/BLOCKERS.md`.
+6. Find the next task you are assigned: the highest-priority READY task in `coordination/TASKS.md`. If the user named a task, check its owner and status first.
+7. Claim it (`agent_mail.py claim`) before you edit files.
+
+When you finish, or the session ends:
+
+- Run the tests and `python scripts/check_coordination.py`.
+- Update `TASKS.md` and your status file.
+- Run `agent_mail.py report`.
+- Push the changes.
+
+**Never silently overwrite another agent's changes.** If a file you are about to edit changed on `main` or on the other agent's branch, merge or rebase first. If both of you changed the same lines, stop and ask.
+
 ## Claude Code notes
 
 - **Platform:** Luke develops on Windows 11. Both a PowerShell tool and a Git Bash tool may be available; use bash syntax in Bash and PowerShell syntax in PowerShell. Do not mix them.
