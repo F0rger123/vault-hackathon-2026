@@ -19,6 +19,8 @@ from backend.api.schemas import (
     RemoteToggle,
 )
 from backend.core.config import Settings
+from backend.core.estimates import compare as compare_estimate
+from backend.core.estimates import record_estimate
 from backend.core.hardware import estimate_runtime, profile_hardware, recommend_workers
 from backend.indexing.investigate import investigate
 from backend.indexing.search import search as run_search
@@ -291,6 +293,7 @@ def estimate(
     workers, reason = recommend_workers(hw, info.locality, info.name)
     overlap = 0.15 if info.name == "ollama" else 0.9
     est = estimate_runtime(timings, total, workers, overlap)
+    record_estimate(conn, collection_id, info.name, est.to_dict())
     audit.record(
         conn,
         p.username,
@@ -504,6 +507,7 @@ def _job(conn, job_id: int) -> dict:
             (job_id,),
         ).fetchall()
     ]
+    job["estimate_check"] = compare_estimate(conn, job)
     return job
 
 

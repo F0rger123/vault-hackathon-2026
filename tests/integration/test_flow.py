@@ -41,6 +41,11 @@ def test_full_vertical_slice(client, tokens, dataset, settings):
     ).json()
     job = wait_job(client, tokens["analyst"], job["id"])
     assert job["status"] == "completed" and job["done"] == len(files)
+    # F03.5: the finished job is compared with the estimate made just before it.
+    check = job["estimate_check"]
+    assert check["provider"] == "heuristic" and check["sample_size"] == 3
+    assert check["actual_s"] >= 0 and check["estimated_low_s"] <= check["estimated_high_s"]
+    assert isinstance(check["within_range"], bool)
 
     # Every planted rating conflict is found, with verified evidence from at least two documents.
     manifest = json.loads((dataset / "manifest.json").read_text())

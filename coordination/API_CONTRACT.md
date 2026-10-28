@@ -241,6 +241,10 @@ Really processes a random sample with the chosen provider (results are saved as 
 ### `GET /jobs/{job_id}`
 - **Permission:** `jobs:read`
 - **Response 200:** Job. **Errors:** 401, 403, 404
+- **`estimate_check` (F03.5):** present on every Job; `null` unless the job is finished, has one lane, and an estimate for that collection and provider was made before it started.
+  - Fields: `{provider, estimated_at, estimated_low_s, estimated_high_s, actual_s, within_range, actual_vs_estimate, estimated_workers, job_workers, sample_size}`.
+  - The estimate is scaled to the number of documents the job processed.
+  - `actual_vs_estimate` is actual time divided by the middle of the estimated range: 1.0 means exactly as estimated, and 0.5 means twice as fast.
 
 ### `POST /jobs/{job_id}/cancel`
 - **Permission:** `jobs:cancel`
