@@ -25,7 +25,10 @@ test("overview shows the seeded archive, findings and a local-only privacy postu
   await expect(main).toContainText(/Findings\s*10/);
   await expect(main).toContainText("Rating conflict");
   await expect(main).toContainText("Remote inference is off");
-  await expect(main).toContainText("Rules baseline");
+  // F04.8: each provider is labelled with where document text goes.
+  await expect(main).toContainText(/Meta Llama 3 via Ollama\s*On this machine/);
+  await expect(main).toContainText(/Meta Model API \(Muse Spark\)\s*Remote/);
+  await expect(main).toContainText(/Rules baseline\s*On this machine/);
 
   await page.getByRole("button", { name: "Sign out" }).click();
   await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();

@@ -26,6 +26,8 @@ test("search filters by document type and opens a document", async ({ page }) =>
   const drawer = page.getByRole("dialog");
   await expect(drawer).toBeVisible();
   await expect(drawer).toContainText(name);
+  // F04.8: every extraction says which model read it and whether the text left the machine.
+  await expect(drawer).toContainText("Read by Rules baseline (regex-rules-v1) on this machine");
   await page.keyboard.press("Escape");
   await expect(drawer).toBeHidden();
 });
