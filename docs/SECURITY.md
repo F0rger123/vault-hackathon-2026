@@ -34,7 +34,7 @@ During the hackathon, open a GitHub issue labelled `security`. Do not include se
 
 ## Known gaps
 
-- Tokens are long-lived, there is no expiry yet, and there is no login UI beyond pasting a token. SSO is on the roadmap.
+- Tokens can be revoked (`POST /tokens/{id}/revoke`, `vault revoke`), which takes effect on the next request. They can also be issued with an expiry (`vault token --ttl-days`). Demo tokens and the CLI default still never expire, and there is no login UI beyond pasting a token. SSO is on the roadmap.
 - There are no per-document ACLs. Every authenticated role can read every collection.
 - Rate limiting is not implemented.
 - Workers share the API process. There is no OS-level sandbox around PDF parsing yet. A separate worker process with resource limits is planned.

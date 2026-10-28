@@ -22,11 +22,11 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 | F06 Search & Investigation | 6 | 5 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F07 Teaching & Corrections | 5 | 4 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F08 Actions & Organization | 5 | 4 | 0 | 0 | 0 | 1 | 0 | 0 |
-| F09 Security | 9 | 8 | 0 | 0 | 0 | 1 | 0 | 0 |
+| F09 Security | 9 | 9 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F10 User Interface | 10 | 10 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F11 Synthetic Data & Evaluation | 7 | 6 | 0 | 1 | 0 | 0 | 0 | 0 |
 | F12 Deployment & Submission | 8 | 4 | 0 | 0 | 0 | 2 | 2 | 0 |
-| **Total** | **90** | **74** | **1** | **1** | **1** | **9** | **4** | **0** |
+| **Total** | **90** | **75** | **1** | **1** | **1** | **8** | **4** | **0** |
 
 **Recorded evidence used below**
 
@@ -856,7 +856,7 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 
 #### F09.8 — Token lifecycle
 - **Description:** Token revocation endpoint, expiry, and CLI listing.
-- **Priority:** P1 · **Owner:** luke · **Status:** BACKLOG · **Dependencies:** F09.1
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F09.1
 - **Scope:** `api_tokens.revoked` exists; endpoints missing.
 - **Expected behavior:** Revoked token returns 401 immediately.
 - **Acceptance criteria:** Test revokes and re-checks.
@@ -866,6 +866,12 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 - **Verification evidence:** —
 
 ---
+- **Related PR/commit:** branch `luke/F09.8-token-lifecycle`. This is high-risk (auth and a migration), so it waits for Luke's approval before merge.
+- **Verification evidence (2026-10-28):**
+  - **Migration 4:** adds `expires_at`, `revoked_at` and `last_used_at`. It was applied to a copy of the dev database: schema 4, and the 3 existing tokens keep `expires_at = NULL`, so they still work.
+  - **Security tests:** a revoked token gets 401 on the next request; an expired token gets 401; the listing never includes the token or its hash; viewers and analysts get 403 and anonymous callers 401; an unknown id gives 404.
+  - **CLI test:** `vault tokens` shows no token values; `vault token --ttl-days`; `vault revoke`; revoking twice exits 1.
+  - **Suite:** pytest passes; ruff and bandit clean.
 
 #### F09.9 — Sensitivity-aware routing
 

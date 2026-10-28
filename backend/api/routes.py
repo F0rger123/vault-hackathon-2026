@@ -29,7 +29,7 @@ from backend.ingest.service import ensure_collection, ingest_bytes
 from backend.providers import PROVIDER_NAMES, get_provider
 from backend.providers.base import ProviderError
 from backend.security import audit
-from backend.security.auth import Principal
+from backend.security.auth import Principal, list_tokens, revoke_token
 from backend.security.files import FileRejected, contained, safe_join
 from backend.storage.db import dumps, loads, now
 from backend.workers.importer import candidate_files, create_import_job, import_one
@@ -86,6 +86,22 @@ def health() -> dict:
 @router.get("/me")
 def me(p: Principal = Depends(require("system:read"))) -> dict:
     return {"username": p.username, "role": p.role}
+
+
+@router.get("/tokens")
+def tokens(conn=Depends(get_conn), _: Principal = Depends(require("users:manage"))) -> list[dict]:
+    """Every API token's metadata (F09.8). The token value and its hash are never returned."""
+    return list_tokens(conn)
+
+
+@router.post("/tokens/{token_id}/revoke")
+def revoke(token_id: int, conn=Depends(get_conn), p: Principal = Depends(require("users:manage"))) -> dict:
+    """Revoke a token. Requests using it get 401 from the next call on."""
+    if not conn.execute("SELECT 1 FROM api_tokens WHERE id = ?", (token_id,)).fetchone():
+        raise HTTPException(status_code=404, detail="token not found")
+    changed = revoke_token(conn, token_id)
+    audit.record(conn, p.username, "token.revoke", "allowed", target=f"token:{token_id}", detail={"changed": changed})
+    return next(t for t in list_tokens(conn) if t["id"] == token_id)
 
 
 @router.get("/system/hardware")

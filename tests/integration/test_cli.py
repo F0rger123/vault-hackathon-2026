@@ -71,3 +71,16 @@ def test_unknown_collection_is_a_clear_error(cli_env):
     result = runner.invoke(app, ["findings", "--collection", "nope"])
     assert result.exit_code != 0
     assert "no collection named 'nope'" in result.output
+
+
+def test_token_listing_and_revocation(cli_env):
+    run("init", "--demo-users")
+    out = run("tokens")
+    assert "admin" in out and "never" in out and "vlt_" not in out
+    out = run("token", "temp", "--role", "viewer", "--ttl-days", "7")
+    assert out.strip().startswith("vlt_")
+    temp_id = next(line.split()[0] for line in run("tokens").splitlines() if " temp " in line)
+    assert f"token {temp_id} revoked" in run("revoke", temp_id)
+    assert "revoked" in next(line for line in run("tokens").splitlines() if " temp " in line)
+    result = runner.invoke(app, ["revoke", temp_id])
+    assert result.exit_code == 1 and "already revoked" in result.output
