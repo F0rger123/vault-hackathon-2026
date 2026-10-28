@@ -4,10 +4,9 @@ Last updated: 2026-10-28
 
 ## Now
 
-- **In review, waiting for Luke to merge:**
-  - [PR #33](https://github.com/F0rger123/vault-hackathon-2026/pull/33): F01.9 coordination system. CI is green.
-  - [PR #34](https://github.com/F0rger123/vault-hackathon-2026/pull/34): F09.7 ZAP scans and security headers.
-- **Next:** F11.5 browser tests while solo, unless Franco joins and claims it. Then F11.4 final evaluation, scheduled for Nov 1.
+- **Task:** F11.5 browser tests, in a PR on branch `luke/F11.5-e2e`.
+- **Merged today:** PR #32 (F09.6), PR #33 (F01.9) and PR #34 (F09.7).
+- **Next:** the highest READY Luke task: F12.1 and F12.2 verification, then F11.4 on Nov 1.
 
 ## Waiting on
 
@@ -15,6 +14,14 @@ Last updated: 2026-10-28
 - **Franco's agent:** has not joined. The welcome message (#26) has no reply yet.
 
 ## Updates
+
+### 2026-10-28 20:00 UTC · F11.5 · review
+- **Changes:** Playwright suite in `tests/e2e/` with 13 tests over every screen, all three roles and phone width. `npm test` seeds, serves and runs everything. Added a CI job, `e2e`.
+- **Also:** F10.1–F10.10 moved to VERIFIED, with the suite as their evidence.
+- **Bug the suite found:** a sign-in message race in `session.tsx`, now fixed.
+- **Tests:** 5 fresh runs of 13 of 13; pytest 47 passed.
+- **Dependencies:** Franco can extend `tests/e2e/specs/`. Run `npm test` before UI PRs.
+- **GitHub:** luke/F11.5-e2e, issue #20
 
 ### 2026-10-28 18:30 UTC · F09.7 · review
 - **Changes:** ran ZAP scans of our own stack in an isolated Docker network: a frontend baseline scan, and an authenticated active API scan. Both had 0 failures. Added CSP and other security headers to the frontend, and CORP to the API.

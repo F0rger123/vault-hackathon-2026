@@ -112,3 +112,34 @@ jobs:
             docker run --rm -v /var/run/docker.sock:/var/run/docker.sock $TRIVY image --quiet --exit-code 1 \
               --ignore-unfixed --severity HIGH,CRITICAL vault-hackathon-2026-$img:latest
           done
+
+  # Browser tests (F11.5): seeds a fresh demo, starts the API and a production UI build, runs Playwright.
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            tests/e2e/package-lock.json
+      - run: pip install -e .
+      - run: npm ci
+        working-directory: frontend
+      - run: npm ci && npx playwright install --with-deps chromium
+        working-directory: tests/e2e
+      - run: npx playwright test
+        working-directory: tests/e2e
+        env:
+          VAULT_PYTHON: python
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: tests/e2e/playwright-report
+          retention-days: 7
