@@ -25,8 +25,8 @@ Last updated: 2026-10-28 (Luke's agent, solo mode). `main` at `8094701`. **Time 
 | F09 Security | 9 | 8 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F10 User Interface | 10 | 10 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F11 Synthetic Data & Evaluation | 7 | 5 | 0 | 1 | 0 | 1 | 0 | 0 |
-| F12 Deployment & Submission | 8 | 3 | 1 | 0 | 0 | 2 | 2 | 0 |
-| **Total** | **90** | **64** | **6** | **1** | **1** | **14** | **4** | **0** |
+| F12 Deployment & Submission | 8 | 4 | 0 | 0 | 0 | 2 | 2 | 0 |
+| **Total** | **90** | **65** | **5** | **1** | **1** | **14** | **4** | **0** |
 
 **Recorded evidence used below**
 
