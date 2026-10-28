@@ -236,7 +236,7 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 
 #### F02.7 — Path import for large server-side collections
 - **Description:** Admin imports a directory inside `VAULT_IMPORT_ROOTS`; progress reporting for long imports.
-- **Priority:** P1 · **Owner:** luke · **Status:** BACKLOG · **Dependencies:** F02.1
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F02.1
 - **Scope:** `POST /collections/{id}/import-path` exists and enforces containment (S7). Missing: running as a background job with progress and resume.
 - **Expected behavior:** A 10,000-file directory imports as a job with live progress.
 - **Acceptance criteria:** Import job visible in `/jobs`; cancel works.
@@ -248,6 +248,15 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 ---
 
 ## F03 — Hardware & Collection Analysis
+- **Related PR/commit:** branch `luke/F02.7-path-import-job`. This is a high-risk change (file handling), so it waits for Luke's approval before merge.
+- **Verification evidence (2026-10-28):** `tests/integration/test_import_job.py` has 4 tests:
+  - 123 files across nested folders: 120 imported and 3 fake PDFs rejected with reasons; the job is listed in `/jobs`;
+  - cancel stops a 1,500-file import early;
+  - resume after a simulated crash, run twice, never duplicates a document;
+  - paths outside the roots and non-admin callers are still refused with 403.
+- **Existing coverage:** S7 still passes.
+- **Containment:** the background job re-checks containment when it starts, in case `VAULT_IMPORT_ROOTS` changed.
+- **Suite:** pytest 66 passed; bandit clean.
 
 #### F03.1 — CPU, RAM, disk and GPU detection
 - **Description:** psutil for CPU/RAM/disk; `nvidia-smi` for NVIDIA GPUs; graceful when no GPU.
