@@ -74,10 +74,10 @@ All decisions: [`DECISIONS.md`](DECISIONS.md).
 
 ## Next three recommended tasks
 
-1. **F09.7** (Luke, P1, READY): run a ZAP baseline against localhost and triage the results in `docs/SECURITY.md`.
-2. **F11.5** (P1, READY; issue [#20](https://github.com/F0rger123/vault-hackathon-2026/issues/20)): Playwright tests for sign-in, import, run, investigate and approvals.
+1. **F11.5** (P1, READY; issue [#20](https://github.com/F0rger123/vault-hackathon-2026/issues/20)): Playwright tests for sign-in, import, run, investigate and approvals.
    - **Owner:** Franco once he joins, Luke's agent while solo.
    - **Why READY:** F10.1 is in REVIEW, not VERIFIED, but F11.5 is the task that verifies F10.x, so it can start.
-3. **F11.4** (Luke, P0, IN_PROGRESS): a final full local Llama evaluation on fresh seeds, to produce the submission figures.
+2. **F11.4** (Luke, P0, IN_PROGRESS): a final full local Llama evaluation on fresh seeds, to produce the submission figures.
    - **Why third despite P0:** it must run on the final code, so it is scheduled for Nov 1, just before the freeze. It is a GPU run of about 15 minutes.
    - **If extraction code changes after that run,** run it again.
+3. **B1 and B3** (Luke personally): verify the hackathon rules and choose a licence. These unblock F12.4, F12.5, F12.7 (video) and F12.8 (submission).
