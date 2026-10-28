@@ -10,11 +10,11 @@ This file is the single source of truth for what is planned, in progress, and ve
 
 ## Progress dashboard
 
-Last updated: 2026-10-28 (Luke's agent, solo mode). `main` at `8094701`. **Time left:** 7 days to the Nov 4, 9:00 PM ET deadline; feature freeze Nov 2, video Nov 3. Open PRs: #32 (F09.6, CI green; this file still says READY until it merges), and the F01.9 coordination PR.
+Last updated: 2026-10-28 (Luke's agent, solo mode). `main` at `8094701`. **Time left:** 7 days to the Nov 4, 9:00 PM ET deadline; feature freeze Nov 2, video Nov 3. PR #32 (F09.6) merged; open: #33 (F01.9), #34 (F09.7).
 
 | Feature | Subtasks | VERIFIED | REVIEW | IN_PROGRESS | READY | BACKLOG | BLOCKED | DEFERRED |
 |---|---|---|---|---|---|---|---|---|
-| F01 Project Foundation | 9 | 8 | 0 | 1 | 0 | 0 | 0 | 0 |
+| F01 Project Foundation | 9 | 8 | 1 | 0 | 0 | 0 | 0 | 0 |
 | F02 File Ingestion | 7 | 5 | 0 | 0 | 0 | 2 | 0 | 0 |
 | F03 Hardware & Collection Analysis | 5 | 4 | 1 | 0 | 0 | 0 | 0 | 0 |
 | F04 AI Model System | 10 | 3 | 3 | 0 | 1 | 2 | 1 | 0 |
@@ -22,11 +22,11 @@ Last updated: 2026-10-28 (Luke's agent, solo mode). `main` at `8094701`. **Time 
 | F06 Search & Investigation | 6 | 4 | 0 | 0 | 0 | 2 | 0 | 0 |
 | F07 Teaching & Corrections | 5 | 4 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F08 Actions & Organization | 5 | 3 | 0 | 0 | 0 | 2 | 0 | 0 |
-| F09 Security | 9 | 6 | 0 | 0 | 2 | 1 | 0 | 0 |
+| F09 Security | 9 | 7 | 0 | 0 | 1 | 1 | 0 | 0 |
 | F10 User Interface | 10 | 0 | 10 | 0 | 0 | 0 | 0 | 0 |
 | F11 Synthetic Data & Evaluation | 7 | 4 | 0 | 1 | 1 | 1 | 0 | 0 |
 | F12 Deployment & Submission | 8 | 2 | 2 | 0 | 0 | 2 | 2 | 0 |
-| **Total** | **90** | **50** | **16** | **2** | **4** | **14** | **4** | **0** |
+| **Total** | **90** | **51** | **17** | **1** | **3** | **14** | **4** | **0** |
 
 **Recorded evidence used below**
 

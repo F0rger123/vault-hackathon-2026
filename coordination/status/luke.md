@@ -5,14 +5,13 @@ Last updated: 2026-10-28
 ## Now
 
 - **In review, waiting for Luke to merge:**
-  - [PR #32](https://github.com/F0rger123/vault-hackathon-2026/pull/32): F09.6 scanning. CI is green.
   - [PR #33](https://github.com/F0rger123/vault-hackathon-2026/pull/33): F01.9 coordination system. CI is green.
   - [PR #34](https://github.com/F0rger123/vault-hackathon-2026/pull/34): F09.7 ZAP scans and security headers.
 - **Next:** F11.5 browser tests while solo, unless Franco joins and claims it. Then F11.4 final evaluation, scheduled for Nov 1.
 
 ## Waiting on
 
-- **Luke:** merge PR #32, plus blockers B1–B5 ([`../BLOCKERS.md`](../BLOCKERS.md)).
+- **Luke:** blockers B1–B5 ([`../BLOCKERS.md`](../BLOCKERS.md)).
 - **Franco's agent:** has not joined. The welcome message (#26) has no reply yet.
 
 ## Updates

@@ -37,7 +37,7 @@ The two-minute snapshot. Read this first in a new session. Detail lives in the l
 
 ## Current priorities (Luke)
 
-1. **F09.6 scanning:** [PR #32](https://github.com/F0rger123/vault-hackathon-2026/pull/32). CI is green; it waits for Luke's merge.
+1. **F09.6 scanning:** merged in PR #32. CI now runs Semgrep and Trivy and fails the build on findings.
 2. **F01.9 coordination system:** this PR. It adds the project memory, protocol and automated checks.
 3. **F09.7 ZAP scans:** [PR #34](https://github.com/F0rger123/vault-hackathon-2026/pull/34). 0 failures; security headers added.
 4. **F11.5:** Playwright browser tests. This is Franco's when he joins.
@@ -47,7 +47,7 @@ The two-minute snapshot. Read this first in a new session. Detail lives in the l
 
 | | Now | Next | Status file |
 |---|---|---|---|
-| Luke's agent | PRs #32, #33 and #34 in review | F11.5 browser tests, while solo | [`status/luke.md`](status/luke.md) |
+| Luke's agent | Merging PRs #33 and #34 | F11.5 browser tests, while solo | [`status/luke.md`](status/luke.md) |
 | Franco's agent | Not joined yet | F11.5 browser tests ([`HANDOFF_FRANCO.md`](HANDOFF_FRANCO.md)) | [`status/franco.md`](status/franco.md) |
 
 ## Open blockers
