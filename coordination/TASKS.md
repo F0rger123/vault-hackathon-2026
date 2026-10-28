@@ -25,8 +25,8 @@ Last updated: 2026-10-28 (Luke's agent, solo mode). `main` at `8094701`. **Time 
 | F09 Security | 9 | 8 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F10 User Interface | 10 | 10 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F11 Synthetic Data & Evaluation | 7 | 5 | 0 | 1 | 0 | 1 | 0 | 0 |
-| F12 Deployment & Submission | 8 | 2 | 2 | 0 | 0 | 2 | 2 | 0 |
-| **Total** | **90** | **63** | **7** | **1** | **1** | **14** | **4** | **0** |
+| F12 Deployment & Submission | 8 | 3 | 1 | 0 | 0 | 2 | 2 | 0 |
+| **Total** | **90** | **64** | **6** | **1** | **1** | **14** | **4** | **0** |
 
 **Recorded evidence used below**
 
@@ -1045,14 +1045,14 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 
 #### F12.1 — Command-line interface
 - **Description:** `vault init`, `token`, `ingest`, `hardware`, `providers`, `estimate`, `process`, `search`, `findings`, `serve`.
-- **Priority:** P0 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F01.2
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F01.2
 - **Scope:** `cli/main.py`.
 - **Expected behavior:** Works against the local database without the server running.
 - **Acceptance criteria:** Manual end-to-end run on the synthetic dataset succeeded; automated CLI test missing.
 - **Required tests:** add `tests/integration/test_cli.py` using Typer's runner.
 - **Blockers:** none
 - **Related PR/commit:** `7390fac`
-- **Verification evidence:** Manual run 2026-10-26: 150 ingested, heuristic job completed in ~2 s, 10 findings printed.
+- **Verification evidence:** Manual run 2026-10-26: 150 ingested, heuristic job completed in ~2 s, 10 findings printed. 2026-10-28: `tests/integration/test_cli.py` (3 tests, Typer runner): `init --demo-users` (tokens written, never printed), `ingest`, `process` (all done, 0 failed), `search`, `findings` (BV-7891 conflict), remote provider refused with exit 2, unknown collection error. Full suite 50 passed.
 
 #### F12.2 — Docker Compose deployment
 - **Description:** Backend and frontend images, ports bound to 127.0.0.1, read-only backend container, optional Ollama profile.
