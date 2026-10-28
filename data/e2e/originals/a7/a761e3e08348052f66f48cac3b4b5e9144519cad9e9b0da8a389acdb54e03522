@@ -1,0 +1,8 @@
+# PARTS LIST - Project: Driftwood - issued 2024-04-24
+part_number,description,material,rated_psi,qty
+BV-3521,Ball valve,Inconel 625,2500 psi,8
+HX-1475,Plate heat exchanger,Duplex 2205,300 psi,6
+FL-9004,Weld-neck flange,316L stainless,1500 psi,6
+RV-1565,Relief valve,Duplex 2205,600 psi,3
+FL-7422,Weld-neck flange,Bronze C95800,1500 psi,4
+BV-6316,Ball valve,316L stainless,2500 psi,1
