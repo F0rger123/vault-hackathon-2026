@@ -4,11 +4,11 @@ Last updated: 2026-10-28
 
 ## Now
 
-- **Task:** F01.9 permanent project memory and coordination checks
-- **Branch:** `luke/F01.9-project-memory`
-- **State:** in progress
-- **Also open:** F09.6 in [PR #32](https://github.com/F0rger123/vault-hackathon-2026/pull/32). CI is green; it waits for Luke to merge.
-- **Next:** F09.7, the ZAP baseline scan against localhost.
+- **In review, waiting for Luke to merge:**
+  - [PR #32](https://github.com/F0rger123/vault-hackathon-2026/pull/32): F09.6 scanning. CI is green.
+  - [PR #33](https://github.com/F0rger123/vault-hackathon-2026/pull/33): F01.9 coordination system. CI is green.
+  - [PR #34](https://github.com/F0rger123/vault-hackathon-2026/pull/34): F09.7 ZAP scans and security headers.
+- **Next:** F11.5 browser tests while solo, unless Franco joins and claims it. Then F11.4 final evaluation, scheduled for Nov 1.
 
 ## Waiting on
 
@@ -16,6 +16,13 @@ Last updated: 2026-10-28
 - **Franco's agent:** has not joined. The welcome message (#26) has no reply yet.
 
 ## Updates
+
+### 2026-10-28 18:30 UTC · F09.7 · review
+- **Changes:** ran ZAP scans of our own stack in an isolated Docker network: a frontend baseline scan, and an authenticated active API scan. Both had 0 failures. Added CSP and other security headers to the frontend, and CORP to the API.
+- **Files:** frontend/next.config.ts, backend/main.py, docs/SECURITY.md, tests/security/test_security.py
+- **Tests:** 42 passed on that branch. All six screens and the Ask panel work under the CSP, with no console errors.
+- **Dependencies:** Franco must add any new external origin to the CSP in `next.config.ts`.
+- **GitHub:** PR #34, issue #9 (claimed with `agent_mail.py claim`, reported with `report`)
 
 ### 2026-10-28 17:30 UTC · F01.9 · review
 - **Changes:**
