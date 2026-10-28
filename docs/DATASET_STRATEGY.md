@@ -76,6 +76,18 @@ The split is deterministic: after sorting by type and filename, every 10th-posit
 
 Alternate-layout inspections have a `doc_date` of null in the ground truth, because their date is written out in words. They are excluded from date-accuracy scoring.
 
+## Contents of v2 (seed 2026, `--dataset-version 2`)
+
+`data/synthetic/v2/` holds every v1 file, byte for byte, plus 15 new files: 3 per project, made with their own random generator so v1 never changes.
+
+| New file | Planted problem | Ground truth |
+|---|---|---|
+| `{code}-CTR-004.pdf` | A supply agreement orders a different quantity of a part than the parts lists, drawings and other contracts | `quantity_conflict`, 5 planted |
+| `{code}-BOM-03.csv` | A parts list gives a part a different material than every other document | `material_conflict`, 5 planted |
+| `{code}-SCN-0001.pdf` | A scanned inspection report: the page is one image with no text layer, so it needs OCR (F02.6) | `layout: "scanned"` |
+
+The CI determinism check for v2 skips the scanned PDFs, for the same reason it skips the PNG stamps: their pixels depend on the Pillow/FreeType build.
+
 ## Expansion policy
 
 - Grow the dataset only when an evaluation question needs it. Examples: more layouts, scanned or noisy pages, multi-page contracts, material or quantity conflicts.

@@ -1,0 +1,6 @@
+# PARTS LIST - Project: Ember - issued 2023-05-07
+part_number,description,material,rated_psi,qty
+BV-2073,Ball valve,A105 carbon steel,300 psi,1
+PV-1247,Gate valve,Inconel 625,900 psi,2
+RV-9954,Relief valve,316L stainless,1500 psi,4
+FL-2385,Weld-neck flange,Duplex 2205,300 psi,1

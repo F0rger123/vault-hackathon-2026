@@ -1,0 +1,8 @@
+# PARTS LIST - Project: Alpha - issued 2021-11-12
+part_number,description,material,rated_psi,qty
+PV-7533,Gate valve,Bronze C95800,1500 psi,8
+PV-7043,Gate valve,Duplex 2205,900 psi,7
+PV-5706,Gate valve,A105 carbon steel,900 psi,1
+FL-8494,Weld-neck flange,316L stainless,2500 psi,5
+RV-9032,Relief valve,Duplex 2205,300 psi,7
+HX-8226,Plate heat exchanger,316L stainless,150 psi,2

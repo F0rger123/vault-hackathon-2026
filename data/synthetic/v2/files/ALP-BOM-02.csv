@@ -1,0 +1,8 @@
+# PARTS LIST - Project: Alpha - issued 2023-07-29
+part_number,description,material,rated_psi,qty
+PV-7533,Gate valve,Bronze C95800,1500 psi,8
+PV-5706,Gate valve,A105 carbon steel,900 psi,1
+BV-7891,Ball valve,Bronze C95800,1500 psi,8
+RV-9032,Relief valve,Duplex 2205,300 psi,7
+PV-7043,Gate valve,Duplex 2205,900 psi,7
+PV-6234,Gate valve,Bronze C95800,1500 psi,2
