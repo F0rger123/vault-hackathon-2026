@@ -21,12 +21,12 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 | F05 Parallel Processing | 9 | 8 | 0 | 0 | 0 | 0 | 1 | 0 |
 | F06 Search & Investigation | 6 | 5 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F07 Teaching & Corrections | 6 | 5 | 0 | 0 | 0 | 1 | 0 | 0 |
-| F08 Actions & Organization | 5 | 4 | 0 | 0 | 1 | 0 | 0 | 0 |
+| F08 Actions & Organization | 5 | 5 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F09 Security | 11 | 10 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F10 User Interface | 12 | 12 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F11 Synthetic Data & Evaluation | 7 | 6 | 0 | 1 | 0 | 0 | 0 | 0 |
 | F12 Deployment & Submission | 10 | 7 | 0 | 0 | 0 | 2 | 1 | 0 |
-| **Total** | **101** | **85** | **1** | **1** | **3** | **8** | **3** | **0** |
+| **Total** | **101** | **86** | **1** | **1** | **2** | **8** | **3** | **0** |
 
 **Recorded evidence used below**
 
@@ -825,14 +825,17 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 
 #### F08.5 — Export to a searchable database file
 - **Description:** Export extractions as CSV and JSON for downstream tools. Each row names its source document and page. Raised to P1 by the 2026-10-29 audit (vision F07, structured database generation).
-- **Priority:** P1 · **Owner:** luke · **Status:** READY · **Dependencies:** F08.3
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F08.3
 - **Scope:** a read-only download route per collection (`documents:read`), plus a button on the Investigate screen. It writes nothing on the server, so no approval step is needed.
 - **Expected behavior:** One row per component, with document fields and provenance.
 - **Acceptance criteria:** The file opens, and its row count matches the extractions.
-- **Required tests:** integration test.
+- **Required tests:** integration test; browser test.
 - **Blockers:** none
-- **Related PR/commit:** —
-- **Verification evidence:** —
+- **Related PR/commit:** branch `luke/F08.5-records-export`
+- **Verification evidence (2026-10-29):**
+  - **API:** `GET /collections/{id}/records?format=json|csv` needs `documents:read` and is audited as `records.export`.
+  - **Integration tests:** `tests/integration/test_records_export.py`, 3 tests. On dataset v1 there is one row per part across all 150 documents, and the count matches the extractions. Every verified quote is found on its cited page. The CSV parses to the same number of rows. Denied and missing cases return 401, 404 and 422. Formula cells (`=`, `+`, `@`) are escaped.
+  - **Interface:** an "Export as a table" panel on Investigate, covered by a Playwright download test.
 
 ---
 
