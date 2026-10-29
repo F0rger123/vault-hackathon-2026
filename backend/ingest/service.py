@@ -16,6 +16,7 @@ from PIL import Image
 from pypdf import PdfReader
 
 from backend.core.config import Settings
+from backend.ingest.office import office_pages
 from backend.security.files import FileRejected, validate_upload
 from backend.storage.db import now, transaction
 
@@ -45,6 +46,11 @@ def extract_pages(data: bytes, media_type: str, max_pages: int) -> list[str]:
             raise
         except Exception as exc:  # pypdf raises many exception types for malformed files
             raise FileRejected("PDF could not be parsed") from exc
+    if media_type.startswith("application/vnd.openxmlformats-officedocument."):
+        pages = office_pages(data, media_type, TEXT_PAGE_CHARS)
+        if len(pages) > max_pages:
+            raise FileRejected(f"Office file has more than {max_pages} pages")
+        return pages
     if media_type.startswith("image/"):
         try:
             with Image.open(io.BytesIO(data)) as img:

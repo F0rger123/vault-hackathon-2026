@@ -15,7 +15,7 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 | Feature | Subtasks | VERIFIED | REVIEW | IN_PROGRESS | READY | BACKLOG | BLOCKED | DEFERRED |
 |---|---|---|---|---|---|---|---|---|
 | F01 Project Foundation | 10 | 9 | 1 | 0 | 0 | 0 | 0 | 0 |
-| F02 File Ingestion | 8 | 6 | 0 | 0 | 1 | 1 | 0 | 0 |
+| F02 File Ingestion | 8 | 6 | 1 | 0 | 0 | 1 | 0 | 0 |
 | F03 Hardware & Collection Analysis | 6 | 6 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F04 AI Model System | 11 | 7 | 0 | 0 | 1 | 2 | 1 | 0 |
 | F05 Parallel Processing | 9 | 8 | 0 | 0 | 0 | 0 | 1 | 0 |
@@ -26,7 +26,7 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 | F10 User Interface | 12 | 12 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F11 Synthetic Data & Evaluation | 7 | 6 | 0 | 1 | 0 | 0 | 0 | 0 |
 | F12 Deployment & Submission | 10 | 7 | 0 | 0 | 0 | 2 | 1 | 0 |
-| **Total** | **101** | **86** | **1** | **1** | **2** | **8** | **3** | **0** |
+| **Total** | **101** | **86** | **2** | **1** | **1** | **8** | **3** | **0** |
 
 **Recorded evidence used below**
 
@@ -249,12 +249,21 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 
 #### F02.8 — Office documents (DOCX, XLSX, PPTX)
 
-- **Priority:** P1 · **Owner:** luke · **Status:** READY · **Dependencies:** F02.2, F02.4
+- **Priority:** P1 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F02.2, F02.4
 - **Description:** Read text from Word, Excel and PowerPoint files with the standard-library zip and XML readers, adding no dependency. Found missing by the 2026-10-29 audit (test B rejected them).
 - **Implementation scope:** `backend/security/files.py` (types and checks), `backend/ingest/service.py` (page text: one page per sheet or slide; Word in 4,000-character pages).
 - **Acceptance criteria:** All three formats import and are searchable. A zip bomb, an oversized member, and a macro-enabled file (`.docm`, `.xlsm`) are each rejected.
 - **Required tests:** unit tests per format; security tests for decompression limits.
 - **Blockers:** File handling is high risk, so Luke approves the merge.
+- **Related PR/commit:** branch `luke/F02.8-office-documents`
+- **Verification evidence (2026-10-29):**
+  - **Unit tests:** `tests/unit/test_office.py`, 18 tests. They cover:
+    - Word paragraphs and tables, read by the CSV column rules (part, material, quantity);
+    - Excel columns kept aligned across empty cells, with long sheets split and the header repeated;
+    - PowerPoint slides in order;
+    - rejected inputs: `.docm`, `.xlsm`, `.pptm`, `.zip`, a renamed macro file, a zip bomb (15 MB packed into under 100 KB), oversized and too many parts, billion-laughs, XXE, UTF-16 XML, and damaged files.
+  - **Integration test:** `tests/integration/test_office_upload.py`. Office files upload, process and turn up in search; `.docm` is rejected.
+  - **Status:** REVIEW until Luke approves the merge (file handling).
 
 #### F02.7 — Path import for large server-side collections
 - **Description:** Admin imports a directory inside `VAULT_IMPORT_ROOTS`; progress reporting for long imports.

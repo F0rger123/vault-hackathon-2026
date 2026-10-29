@@ -16,7 +16,7 @@ VAULT helps organizations understand large, sensitive document collections on th
 
 **In scope**
 
-- Collections of PDF, PNG, JPEG and text files (txt, md, csv, json, log), up to the configured size limit.
+- Collections of PDF, Word (docx), Excel (xlsx), PowerPoint (pptx), PNG, JPEG and text files (txt, md, csv, json, log), up to the configured size limit.
 - Extraction fields:
   - document type (engineering_drawing, inspection_report, contract, parts_list, revision_history, project_memo, other)
   - title, project, date, summary, parties

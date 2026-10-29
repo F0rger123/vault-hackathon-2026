@@ -28,7 +28,7 @@ Engineering firms, manufacturers and public agencies sit on thousands of documen
 
 | | | |
 |---|---|---|
-| **Reads everything** | PDFs, text, CSV spreadsheets and images. Each file is checked by what it really is, not its name, and the original is sealed read-only. Large folders import in the background. | 157 files, 0 failures |
+| **Reads everything** | PDFs, Word, Excel and PowerPoint files, text, CSV and images. Each file is checked by what it really is, not its name, and the original is sealed read-only. Large folders import in the background. | 157 files, 0 failures |
 | **Understands it with Meta Llama** | Llama 3 8B runs on the same computer through Ollama. It pulls out document type, project, dates, part numbers and pressure ratings. | 0.956 document-type accuracy on held-out files |
 | **Proves every fact** | Each extracted value has to match a verbatim quote on a stored page. A quote that isn't really there is flagged, not trusted. | Every finding links to page and quote |
 | **Catches disagreements** | Compares every document against every other and redlines conflicts: pressure ratings, quantities and materials that differ for the same part. | 10 of 10 planted rating conflicts, 0 false alarms, also on unseen data |

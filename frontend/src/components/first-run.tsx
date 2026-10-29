@@ -144,7 +144,7 @@ export function GettingStarted() {
     {
       done: (collection?.documents ?? 0) > 0,
       label: "Add documents",
-      detail: collection?.documents ? `${collection.documents} documents` : "PDF, text, CSV and images.",
+      detail: collection?.documents ? `${collection.documents} documents` : "PDF, Word, Excel, PowerPoint, text, CSV and images.",
       href: "/setup",
     },
     {

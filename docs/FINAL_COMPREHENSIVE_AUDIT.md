@@ -81,7 +81,7 @@ All runs used a temporary data folder and the real FastAPI app, through `TestCli
 | Folder and large path imports in the background, with resume | VERIFIED WORKING | F02.7, `test_import_job.py` |
 | PNG and JPEG | PARTIALLY WORKING | Stored and decoded, but no text is read. The page says "visual content not yet analysed" |
 | Scanned PDFs (OCR) | NOT IMPLEMENTED | F02.6 waits on Luke's OCR decision |
-| DOCX, XLSX, PPTX | NOT IMPLEMENTED | Rejected in test B. **Action:** F02.8 |
+| DOCX, XLSX, PPTX | VERIFIED WORKING (added after this audit, F02.8) | Word paragraphs and tables, Excel sheets and PowerPoint slides become pages. Zip bombs, macros and DTDs are rejected (`tests/unit/test_office.py`) |
 | Technical drawings and blueprints | PARTIALLY WORKING | Readable as PDF text. Drawing geometry and symbols are not understood |
 | Audio, video, CAD | INTENTIONALLY DEFERRED | Post-hackathon (roadmap) |
 

@@ -180,7 +180,7 @@ Every response carries `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY
 
 ### `POST /collections/{collection_id}/documents`
 - **Permission:** `documents:upload`
-- **Body:** `multipart/form-data` with one or more `files` fields (max 500 per request; each up to `VAULT_MAX_UPLOAD_MB`, default 50 MB). Accepted types by content: PDF, PNG, JPEG, UTF-8 text with extension `.txt .md .csv .json .log`.
+- **Body:** `multipart/form-data` with one or more `files` fields (max 500 per request; each up to `VAULT_MAX_UPLOAD_MB`, default 50 MB). Accepted types by content: PDF, PNG, JPEG, UTF-8 text with extension `.txt .md .csv .json .log`, and ZIP content named `.docx`, `.xlsx` or `.pptx` (stored with the Office media type). Other archives and macro-enabled Office files are rejected.
 - **Response 200:**
 ```json
 {"accepted": [{"document_id": 1, "filename": "ALP-DWG-0001.pdf", "sha256": "…", "duplicate": false,

@@ -208,7 +208,7 @@ function Library({ collectionId, canUpload, onUploaded }: { collectionId: number
                   : "Drop files here, or click to choose"}
               </span>
               <span className="text-xs text-muted">
-                PDF, text, CSV and images. Each file is checked before it is stored; originals are kept as they are.
+                PDF, Word, Excel, PowerPoint, text, CSV and images. Each file is checked before it is stored; originals are kept as they are.
               </span>
             </label>
             <input
