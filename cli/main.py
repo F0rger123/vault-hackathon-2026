@@ -319,6 +319,65 @@ def findings(collection: str = typer.Option("default"), refresh: bool = False):
                 typer.echo(f"    {e['filename']} p{e['page']}: {e['quote']}")
 
 
+transfer_app = typer.Typer(help="Move this VAULT to another computer in one encrypted file (F12.11)")
+app.add_typer(transfer_app, name="transfer")
+
+
+def _passphrase(confirm: bool) -> str:
+    return typer.prompt("Passphrase (at least 12 characters)", hide_input=True, confirmation_prompt=confirm)
+
+
+@transfer_app.command("export")
+def transfer_export(
+    out: Path = typer.Option(..., help="Where to write the pack, e.g. E:\\vault-2026-10-29.vaultpack"),
+    include_api_key: bool = typer.Option(False, help="Also carry the stored Meta API key"),
+):
+    """Write everything (database, brain, users, audit log and every original) to one encrypted file."""
+    from backend.core.transfer import TransferError, export_pack
+
+    s, cm = _db()
+    try:
+        summary = export_pack(s.data_dir, out, _passphrase(confirm=True), include_secrets=include_api_key)
+    except TransferError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    with cm as conn:
+        audit.record(conn, ACTOR, "vault.transfer_export", "allowed", detail=summary)
+    typer.echo(
+        f"Wrote {out.name}: {summary['originals']} documents, {summary['bytes'] / 2**20:.1f} MB before encryption. "
+        "Keep the passphrase separate from the file."
+    )
+
+
+@transfer_app.command("verify")
+def transfer_verify(pack: Path):
+    """Check a pack opens with the passphrase and every file matches its fingerprint. Writes nothing."""
+    from backend.core.transfer import TransferError, import_pack
+
+    try:
+        summary = import_pack(pack, _passphrase(confirm=False), Path(), verify_only=True)
+    except TransferError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    typer.echo(f"Pack is intact: {summary['files']} files, {summary['originals']} documents.")
+
+
+@transfer_app.command("import")
+def transfer_import(
+    pack: Path,
+    data_dir: Path = typer.Option(..., help="An empty folder for this VAULT's data on the new computer"),
+):
+    """Restore a pack into an empty folder, then start VAULT with VAULT_DATA_DIR pointing at it."""
+    from backend.core.transfer import TransferError, import_pack
+
+    try:
+        summary = import_pack(pack, _passphrase(confirm=False), data_dir)
+    except TransferError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    migrate(data_dir / "vault.db")
+    with connect(data_dir / "vault.db") as conn:
+        audit.record(conn, ACTOR, "vault.transfer_import", "allowed", detail=summary)
+    typer.echo(f"Restored {summary['originals']} documents. Start VAULT with VAULT_DATA_DIR={data_dir}")
+
+
 @app.command()
 def serve(host: str = "127.0.0.1", port: int = 8000):
     """Run the API server (binds to localhost by default)."""
