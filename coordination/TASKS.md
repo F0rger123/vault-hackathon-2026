@@ -25,8 +25,8 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 | F09 Security | 9 | 9 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F10 User Interface | 11 | 11 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F11 Synthetic Data & Evaluation | 7 | 6 | 0 | 1 | 0 | 0 | 0 | 0 |
-| F12 Deployment & Submission | 8 | 4 | 0 | 0 | 0 | 2 | 2 | 0 |
-| **Total** | **92** | **77** | **1** | **1** | **1** | **8** | **4** | **0** |
+| F12 Deployment & Submission | 8 | 5 | 0 | 0 | 0 | 2 | 1 | 0 |
+| **Total** | **92** | **78** | **1** | **1** | **1** | **8** | **3** | **0** |
 
 **Recorded evidence used below**
 
@@ -1204,14 +1204,15 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 
 #### F12.5 — Project licence decision
 - **Description:** Choose whether to add an open-source licence and which one.
-- **Priority:** P0 · **Owner:** luke · **Status:** BLOCKED · **Dependencies:** F12.4
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F12.4
 - **Scope:** `LICENSE`, `THIRD_PARTY_NOTICES.md`.
 - **Expected behavior:** Licence matches event rules and dependency licences.
 - **Acceptance criteria:** Luke's decision recorded in `DECISIONS.md`.
 - **Required tests:** none
-- **Blockers:** Luke's decision (`BLOCKERS.md` B3).
+- **Blockers:** none. Re-check against the hackathon rules once B1 is done.
 - **Related PR/commit:** —
 - **Verification evidence:** —
+- **Verification evidence (2026-10-28):** Luke chose Apache-2.0 (D-012). `LICENSE` holds the canonical text (SHA-256 of the apache.org file cfc7749b…3d30). `NOTICE` carries the copyright and the "Built with Meta Llama 3" attribution. The README, `pyproject.toml` and `frontend/package.json` are updated.
 
 #### F12.6 — Demo environment and seed script
 - **Description:** One script that resets a demo database, creates demo users, ingests the dataset and pre-processes it.

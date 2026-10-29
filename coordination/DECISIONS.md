@@ -93,3 +93,14 @@ Format: context, decision, consequences, status.
 
 **Not done:** no background bot polls GitHub. Synchronization happens when an agent starts a session and when it reports an event.
 
+### D-012 — Licence: Apache-2.0 (2026-10-28)
+
+**Decision:** Luke chose the Apache License 2.0. This replaces D-009, which was "no licence yet". The `LICENSE` and `NOTICE` files are in the root, with `license = "Apache-2.0"` in `pyproject.toml` and `frontend/package.json`.
+
+**Why:**
+- It is permissive and includes a patent grant, which companies and judges know and trust.
+- It is compatible with the Ollama and Meta Llama setup, because the weights are not redistributed.
+- Luke keeps the copyright, so commercial offerings (a hosted version, support, enterprise add-ons) remain possible.
+
+**Still to check:** if the official hackathon rules (B1) require a different licence, revisit this decision.
+
