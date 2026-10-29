@@ -18,10 +18,15 @@ Last updated: 2026-10-29
   - B5: Muse Glimmer download (optional).
   - B7: approve the Llama 3.2 Vision download (about 8 GB), so VAULT can read images and scanned pages offline.
 - **Luke, registration:** check that the Cerebral Valley registration lists you as a solo Indie entrant. Repository files do not change the registration.
-- **Luke, approval:** F02.8 Office documents is file handling, so it needs your OK to merge once its PR is green.
+- **Luke, approval:** merge PR #66 (F02.8 Office documents). CI is green, but it is file handling, so it needs your OK.
 - **Luke, Nov 3:** record the video from `docs/DEMO_SCRIPT.md`.
 
 ## Updates
+
+### 2026-10-29 · F12.10, F08.5 · completed; F02.8 · review
+- **Merged:** #62 turns off Next.js telemetry in every start path. #64 exports records as CSV or JSON, one row per part with file, page and quote, from a new panel on Investigate.
+- **PR #66 (F02.8), green and waiting for Luke:** Word, Excel and PowerPoint import, with zip-bomb, macro and DTD checks.
+- **Next:** nothing unblocked at P0/P1 until the F11.4 final run on Nov 1. F06.6 (semantic search, P2) needs an embedding model, which is a download, so it waits for Luke.
 
 ### 2026-10-29 · audit · completed
 - **Audit:** `docs/FINAL_COMPREHENSIVE_AUDIT.md`. Workflows A–E and G pass on a fresh VAULT, and real Llama 3 inference is verified. 115 pytest pass, every scan is clean, and CI is green.
