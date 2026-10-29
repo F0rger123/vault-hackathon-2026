@@ -10,7 +10,6 @@ Last updated: 2026-10-29
 
 ## Waiting on
 
-- **Luke, approval:** PR #72 (encrypted move to a new computer: cryptography and file handling) and PR #74 (redacted share packs, which write export files). Both have green CI.
 - **Luke, decision: OCR for scanned pages (F02.6).** Suggestion: skip it for the hackathon.
 - **Luke, blockers:**
   - B1: verify the hackathon rules.

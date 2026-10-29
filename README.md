@@ -151,7 +151,7 @@ The rules baseline is kept for comparison and offline tests and is labelled "not
 
 | Working and tested | Written, not yet run | Next |
 |---|---|---|
-| One-command start · One-click Meta model installs sized to the machine · Demo and Real modes · Password and one-click demo sign-in · Local Meta Llama extraction · PDF, Word, Excel, PowerPoint, text and CSV · Parallel lanes with retries, cancel and resume · Rating, quantity and material conflicts with verified quotes · Plain-English questions with checked citations · A brain per collection that asks about its gaps, with a map · Training: graded test, suggested rules, re-test · Approvals with copy-only export · Table export (CSV, JSON) · Security tests, Semgrep, Trivy and ZAP in CI · 150+ automated tests and 21 browser tests | In review: encrypted move to a new computer, and redacted share packs for outside parties · Meta Model API (Muse Spark) lane, waiting for an API key · Reading photos and scans, waiting for the Llama 3.2 Vision download | Final evaluation on frozen code (Nov 1) · Demo video (3 minutes) |
+| One-command start · One-click Meta model installs sized to the machine · Demo and Real modes · Password and one-click demo sign-in · Local Meta Llama extraction · PDF, Word, Excel, PowerPoint, text and CSV · Parallel lanes with retries, cancel and resume · Rating, quantity and material conflicts with verified quotes · Plain-English questions with checked citations · A brain per collection that asks about its gaps, with a map · Training: graded test, suggested rules, re-test · Approvals with copy-only export · Table export (CSV, JSON) · Encrypted move to a new computer · Redacted share packs for outside parties · Security tests, Semgrep, Trivy and ZAP in CI · 150+ automated tests and 21 browser tests | Meta Model API (Muse Spark) lane, waiting for an API key · Reading photos and scans, waiting for the Llama 3.2 Vision download | Final evaluation on frozen code (Nov 1) · Demo video (3 minutes) |
 
 Plans in detail: [docs/MASTER_BLUEPRINT.md](docs/MASTER_BLUEPRINT.md) and [coordination/TASKS.md](coordination/TASKS.md).
 
@@ -218,7 +218,7 @@ How to read it:
 - **Disk:** VAULT keeps a sealed copy of every original, plus its database and index. Plan on at least **twice the size of the archive** in free space.
 - **RAM:** 16 GB is enough for a laptop trial. Use 64 GB or more when many copies run at once, or with big archives.
 - **No graphics card:** it works, but expect a page every few seconds at best. Use Llama 3.2 3B and leave it overnight.
-- **Moving to a bigger machine later:** `vault transfer export` packs everything into one encrypted file, and `vault transfer import` restores it on the new machine. This feature is in review ([PR #72](https://github.com/F0rger123/vault-hackathon-2026/pull/72)).
+- **Moving to a bigger machine later:** `vault transfer export` packs everything into one encrypted file, and `vault transfer import` restores it on the new machine. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#moving-vault-to-a-new-computer).
 
 ## Keep it private
 

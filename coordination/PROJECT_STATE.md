@@ -45,10 +45,10 @@ The two-minute snapshot. Read this first in a new session. Detail lives in the l
 - **The brain map (F07.8).**
 - **Docs:** the pen-testing guide; a README with a hardware sizing guide.
 
-## Waiting for Luke's approval (CI green)
+## Merged 2026-10-30 (Luke approved)
 
-- **PR #72:** move VAULT to a new computer in one encrypted file.
-- **PR #74:** redacted share packs for outside parties, with a report.
+- **Move to a new computer (F12.11):** `vault transfer export`, `verify` and `import`, in one encrypted file.
+- **Share packs (F08.6):** redacted copies for outside parties, with a report of what was left out and why.
 
 ## Merged 2026-10-28 evening
 
@@ -75,7 +75,7 @@ The two-minute snapshot. Read this first in a new session. Detail lives in the l
 
 | | Now | Next | Status file |
 |---|---|---|---|
-| Luke's agent | PRs #72 and #74 wait for approval | F11.4 final evaluation (Nov 1) | [`status/luke.md`](status/luke.md) |
+| Luke's agent | All PRs merged | F11.4 final evaluation (Nov 1) | [`status/luke.md`](status/luke.md) |
 
 ## Open blockers
 
@@ -104,4 +104,4 @@ All decisions: [`DECISIONS.md`](DECISIONS.md).
 2. **Record the video** (Luke, Nov 3) from `docs/DEMO_SCRIPT.md`.
 3. **F11.4** (Luke's agent, P0, scheduled for Nov 1): the final full local Llama evaluation on fresh seeds, run on the final code.
 
-Luke's open decisions: merge #72 and #74; offline model install from a file; passkey sign-in with a hardware key; the vision download (B7).
+Luke's open decisions: offline model install from a file; passkey sign-in with a hardware key; the vision download (B7).
