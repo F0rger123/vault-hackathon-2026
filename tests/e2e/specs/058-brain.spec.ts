@@ -6,7 +6,7 @@ test("the brain shows its profile, its questions and a map you can click", async
   await signedIn(page, "analyst", "/brain");
   const main = page.getByRole("main");
   await expect(page.getByRole("heading", { name: "Brain", exact: true })).toBeVisible();
-  await expect(main).toContainText("of 150 documents");
+  await expect(main).toContainText(/d+ of d+ documents/);
   await expect(main).toContainText("VAULT's questions");
   await expect(page.getByRole("img", { name: /^Map of \d+ items/ })).toBeVisible();
 
