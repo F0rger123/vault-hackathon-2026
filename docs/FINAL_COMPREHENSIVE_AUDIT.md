@@ -6,6 +6,27 @@
 
 Every finding has a severity, the component, evidence, an action and a tracking task. Severity runs from **Critical** (a submission blocker) through **High**, **Medium** and **Low**.
 
+## 0. Fixed since this audit (2026-10-29 to 2026-10-30)
+
+| Gap found by the audit | Fix | PR |
+|---|---|---|
+| Next.js sent usage data off the machine | Turned off in every start path (F12.10) | #62 |
+| No table export | CSV and JSON, one row per part, with file, page and quote (F08.5) | #64 |
+| Word, Excel and PowerPoint rejected | Read with the standard library; zip bombs, macros and DTDs refused (F02.8) | #66 |
+| Setup needed command-line model downloads | One-click Meta model installs sized to the machine (F03.7) | #68 |
+| **Rules and examples applied to every collection** (found while building the brain) | Each collection keeps its own brain, and taught knowledge never crosses collections (F07.7, F07.8) | #70 |
+| No way to move to a bigger machine | `vault transfer`: one encrypted file, every file's fingerprint checked (F12.11) | #72 |
+| No safe way to share part of an archive | Share packs: redacted PDFs plus a report of what was left out and why (F08.6) | #74 |
+
+Still open:
+- reading images and scanned pages (waits for the B7 vision download);
+- per-collection permissions (F09.12, after the hackathon);
+- semantic search;
+- audio and video;
+- the official rules check (B1).
+
+The sections below are the audit as written on 2026-10-29.
+
 ## 1. Summary
 
 VAULT's core loop works end to end on this laptop with a real Meta model. The steps are:
