@@ -77,6 +77,22 @@ This is the whole roadmap, from what already works to research ideas. Task-level
 | Compliance pathways (SOC 2, ISO 27001; government frameworks only through proper accreditation) | Regulated buyers | Audit | Formal certification, never self-claimed |
 | Packaging, licensing, support and SLAs | Commercial deployment | Licence decision (B3) | Sellable product |
 
+## 5a. Luke's requests of 2026-10-29, and where each stands
+
+| Request | Status | Next step |
+|---|---|---|
+| Setup scans the machine and installs the Meta models that fit | **Built** (F03.7, merged) | None |
+| One brain per project or division, taught in plain words, that asks about its gaps | **Built** (PR #70, needs Luke's OK for its additive migration) | A scheduled self-check that re-reads only the documents a new answer affects |
+| A map of the brain you can click through | **Built in 2D** (PR #70) | 3D needs a library such as three.js, a new dependency, so Luke decides. The 2D map stays as the accessible default |
+| Photos: read them, find "the photo of X", show 50 candidates and learn from "not these" | Not built | Needs the Llama 3.2 Vision download (B7). Then describe each image locally, search the descriptions, and add "more like this / not these" feedback that becomes labelled examples. Recognising specific employees' faces is biometric data: it needs consent and a legal check, so only do it on Luke's explicit decision |
+| Video | Not built | Sample frames every few seconds and read them with the vision model; index the transcript (below) with timestamps. A terabyte of video needs the multi-machine queue (section 5) |
+| Audio | Not built | No Meta speech model runs in Ollama today. Options: Meta's open Seamless models (heavy, outside Ollama), or an open non-Meta transcriber, run locally. Either way the transcript then flows through the normal reading path |
+| Sort and label by markings, with named folders and subfolders | **Built**: plain-language layout requests (F08.4), approval, copy-only export | Choose an export folder inside an allowed root (file handling, needs Luke's OK). Originals are never moved, by design (D-006, D-007) |
+| Share only some data with a buyer (M&A data room) | Partly: filters and copy-only export exist | A "share pack": pick by project, type or marking, leave out CONFIDENTIAL and restricted documents, redact named fields, and add a manifest of what was left out and why |
+| Biometric or face unlock | Not built | Recommended: passkeys (WebAuthn). They use Windows Hello face or fingerprint, Touch ID or a YubiKey. The face or fingerprint never leaves the device, and VAULT stores no biometric data. This is an auth change, so Luke approves it. For servers, also offer smart cards or hardware keys |
+| A terabyte, millions of files, on a $50,000 server | The architecture allows it; not built for this scale | Postgres, a job queue with workers on several GPUs, incremental indexing, object storage. Estimates already scale with measured throughput |
+| Pen-test it | **Guide written**: `docs/PENTEST_GUIDE.md` | Luke runs the tools; findings go into `docs/SECURITY.md` |
+
 ## 6. Research and experimental
 
 | Idea | Purpose | Open question |

@@ -19,9 +19,16 @@ Last updated: 2026-10-29
   - B7: approve the Llama 3.2 Vision download (about 8 GB), so VAULT can read images and scanned pages offline.
 - **Luke, registration:** check that the Cerebral Valley registration lists you as a solo Indie entrant. Repository files do not change the registration.
 - **Luke, approval:** merge PR #66 (F02.8 Office documents). CI is green, but it is file handling, so it needs your OK.
+- **Luke, approval:** merge PR #70 (the collection brain and its map). CI is green. It adds one table (migration 6, additive only), so it needs your OK.
+- **Luke, decisions:** passkey sign-in with face or fingerprint (an auth change); a 3D brain map (adds three.js); face recognition of employees (biometric data, so a consent and legal question).
 - **Luke, Nov 3:** record the video from `docs/DEMO_SCRIPT.md`.
 
 ## Updates
+
+### 2026-10-29 evening · F03.7 · completed; collection brain (PR #70) · review
+- **Merged:** #68. Overview now lists the Meta models this computer can run and installs them with one click. Admin only, catalog only, audited.
+- **PR #70, green, waiting for Luke:** a separate brain per collection, with meanings, instructions and gap questions, plus an interactive map. It also fixes rules and examples leaking between collections.
+- **On main:** `docs/PENTEST_GUIDE.md`, and the roadmap section 5a covering photos, video, audio, the data room, passkeys and scale.
 
 ### 2026-10-29 · F12.10, F08.5 · completed; F02.8 · review
 - **Merged:** #62 turns off Next.js telemetry in every start path. #64 exports records as CSV or JSON, one row per part with file, page and quote, from a new panel on Investigate.
