@@ -39,7 +39,12 @@ def record_correction(
         with transaction(conn):
             row = conn.execute("SELECT version, rules FROM policies ORDER BY version DESC LIMIT 1").fetchone()
             rules = loads(row["rules"], []) if row else []
-            rules.append({"when_contains": when_contains, "field": field, "value": value})
+            # The rule belongs to the document's collection, so it never changes readings in another one (F07.7).
+            col = conn.execute("SELECT collection_id FROM documents WHERE id = ?", (document_id,)).fetchone()
+            rule = {"when_contains": when_contains, "field": field, "value": value}
+            if col:
+                rule["collection_id"] = col["collection_id"]
+            rules.append(rule)
             version = (row["version"] if row else 1) + 1
             conn.execute(
                 "INSERT INTO policies (version, rules, created_by, created_at) VALUES (?, ?, ?, ?)",

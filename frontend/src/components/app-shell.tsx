@@ -15,6 +15,7 @@ const ICONS: Record<string, ReactNode> = {
   "/run": <path d="M1.5 8h3l2-4.5 3 9 2-4.5h3" />,
   "/investigate": <path d="M7 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10ZM10.6 10.6l3.4 3.4" />,
   "/training": <path d="M2 13.5h12M4 13.5V9M8 13.5V5.5M12 13.5V2.5M3 6.5l4-3 3 2 4-3" />,
+  "/brain": <path d="M4 4.5a1.5 1.5 0 1 0 0-.01M12 3.5a1.5 1.5 0 1 0 0-.01M8 12.5a1.5 1.5 0 1 0 0-.01M5.3 4.7 10.6 3.8M4.7 5.8l2.6 5.4M11.4 5l-2.7 6" />,
   "/approvals": <path d="M3 2.5h10v11H3zM5.5 8l2 2 3.5-4" />,
   "/security": <path d="M8 1.8 13 4v4c0 3-2.2 5.2-5 6.2C5.2 13.2 3 11 3 8V4l5-2.2Z" />,
 };
@@ -25,6 +26,7 @@ const NAV = [
   { href: "/run", label: "Live run board" },
   { href: "/investigate", label: "Investigate" },
   { href: "/training", label: "Training" },
+  { href: "/brain", label: "Brain" },
   { href: "/approvals", label: "Approvals" },
   { href: "/security", label: "Security" },
 ] as const;
