@@ -18,6 +18,7 @@ from backend.api.schemas import (
     InvestigationCreate,
     JobCreate,
     LayoutRequest,
+    ModelName,
     PasswordLogin,
     ProposalCreate,
     RemoteToggle,
@@ -26,7 +27,9 @@ from backend.core.config import Settings
 from backend.core.estimates import compare as compare_estimate
 from backend.core.estimates import record_estimate
 from backend.core.hardware import estimate_runtime, profile_hardware, recommend_workers
+from backend.core.local_models import cache_clear as local_models_cache_clear
 from backend.core.local_models import local_models
+from backend.core.model_install import INSTALLS, catalog_for
 from backend.core.secrets_store import clear_key, key_status, store_key
 from backend.indexing.investigate import investigate
 from backend.indexing.search import search as run_search
@@ -216,6 +219,63 @@ def system_local_models(
 ) -> dict:
     """Installed Ollama models and how many copies of each fit on this machine at once (F03.6)."""
     return local_models(effective_settings(conn, settings), profile_hardware(settings.data_dir))
+
+
+@router.get("/system/model-catalog")
+def model_catalog(
+    conn=Depends(get_conn), settings: Settings = Depends(get_settings), _: Principal = Depends(require("system:read"))
+) -> dict:
+    """F03.7: Meta models VAULT can install, where each would run on this machine, and the recommended set."""
+    eff = effective_settings(conn, settings)
+    hw = profile_hardware(settings.data_dir)
+    installed = {m["name"] for m in local_models(eff, hw).get("models", [])}
+    return {**catalog_for(hw, installed), "installs": INSTALLS.snapshot(), "active_model": eff.ollama_model}
+
+
+@router.post("/system/models/install", status_code=202)
+def install_model(
+    body: ModelName,
+    conn=Depends(get_conn),
+    settings: Settings = Depends(get_settings),
+    p: Principal = Depends(require("settings:write")),
+) -> dict:
+    """Ask the local Ollama to download one catalog model. Only weights come in; no document data goes out."""
+    try:
+        state = INSTALLS.start(effective_settings(conn, settings), body.name)
+    except ValueError as exc:
+        audit.record(conn, p.username, "model.install", "denied", detail={"model": body.name})
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    audit.record(conn, p.username, "model.install", "allowed", detail={"model": body.name})
+    return state
+
+
+@router.post("/system/models/install/cancel")
+def cancel_model_install(body: ModelName, conn=Depends(get_conn), p: Principal = Depends(require("settings:write"))):
+    INSTALLS.cancel(body.name)
+    audit.record(conn, p.username, "model.install_cancel", "allowed", detail={"model": body.name})
+    return INSTALLS.get(body.name)
+
+
+@router.put("/settings/local-model")
+def set_local_model(
+    body: ModelName,
+    conn=Depends(get_conn),
+    settings: Settings = Depends(get_settings),
+    p: Principal = Depends(require("settings:write")),
+) -> dict:
+    """Choose which installed Meta model VAULT reads with. It must be installed and a Meta model."""
+    eff = effective_settings(conn, settings)
+    models = local_models(eff, profile_hardware(settings.data_dir)).get("models", [])
+    if not any(m["name"] == body.name and m["origin"] == "meta" for m in models):
+        raise HTTPException(status_code=400, detail="choose an installed Meta model")
+    conn.execute(
+        "INSERT INTO settings_kv (key, value) VALUES ('ollama_model', ?) "
+        "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+        (body.name,),
+    )
+    local_models_cache_clear()
+    audit.record(conn, p.username, "settings.local_model", "allowed", detail={"model": body.name})
+    return {"active_model": body.name}
 
 
 @router.get("/system/hardware")

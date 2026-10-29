@@ -11,6 +11,10 @@ def effective_settings(conn: sqlite3.Connection, settings: Settings) -> Settings
     row = conn.execute("SELECT value FROM settings_kv WHERE key = 'allow_remote_inference'").fetchone()
     if row is not None:
         update["allow_remote_inference"] = row["value"] == "true"
+    # F03.7: the local Meta model an admin picked on the Overview, if any.
+    row = conn.execute("SELECT value FROM settings_kv WHERE key = 'ollama_model'").fetchone()
+    if row is not None:
+        update["ollama_model"] = row["value"]
     # A key pasted on the Security screen is used when the environment does not set one.
     if not settings.meta_api_key and (key := stored_key(settings)):
         update["meta_api_key"] = key

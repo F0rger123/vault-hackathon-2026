@@ -304,6 +304,34 @@ export interface LocalModels {
   fit_together?: string[];
 }
 
+export interface CatalogModel {
+  name: string;
+  title: string;
+  size_gb: number;
+  memory_gb: number;
+  reads: "text" | "text and images";
+  good_for: string;
+  runs_on: "gpu" | "cpu" | "too_big";
+  installed: boolean;
+}
+
+export interface ModelInstall {
+  name: string;
+  status: "idle" | "starting" | "downloading" | "installed" | "failed" | "cancelled";
+  completed: number;
+  total: number;
+  detail?: string;
+}
+
+export interface ModelCatalog {
+  models: CatalogModel[];
+  recommended: string[];
+  vram_gb: number;
+  ram_gb: number;
+  installs: ModelInstall[];
+  active_model: string;
+}
+
 export const TERMINAL: JobStatus[] = ["completed", "completed_with_errors", "failed", "cancelled"];
 
 export interface AgentEvent {
@@ -527,6 +555,10 @@ export const vault = {
   providers: () => api<ProvidersResponse>("/system/providers"),
   hardware: () => api<Hardware>("/system/hardware"),
   localModels: () => api<LocalModels>("/system/local-models"),
+  modelCatalog: () => api<ModelCatalog>("/system/model-catalog"),
+  installModel: (name: string) => post<ModelInstall>("/system/models/install", { name }),
+  cancelModelInstall: (name: string) => post<ModelInstall>("/system/models/install/cancel", { name }),
+  setLocalModel: (name: string) => put<{ active_model: string }>("/settings/local-model", { name }),
   capacity: (provider: ProviderName) => api<Capacity>(`/system/capacity?provider=${provider}`),
   calibrate: (provider: ProviderName, confirm_remote = false) =>
     post<Calibration>("/system/capacity/calibrate", { provider, confirm_remote }),

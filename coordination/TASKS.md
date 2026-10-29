@@ -16,7 +16,7 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 |---|---|---|---|---|---|---|---|---|
 | F01 Project Foundation | 10 | 9 | 1 | 0 | 0 | 0 | 0 | 0 |
 | F02 File Ingestion | 8 | 6 | 0 | 0 | 1 | 1 | 0 | 0 |
-| F03 Hardware & Collection Analysis | 6 | 6 | 0 | 0 | 0 | 0 | 0 | 0 |
+| F03 Hardware & Collection Analysis | 7 | 7 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F04 AI Model System | 11 | 7 | 0 | 0 | 1 | 2 | 1 | 0 |
 | F05 Parallel Processing | 9 | 8 | 0 | 0 | 0 | 0 | 1 | 0 |
 | F06 Search & Investigation | 6 | 5 | 0 | 0 | 0 | 1 | 0 | 0 |
@@ -26,7 +26,7 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 | F10 User Interface | 12 | 12 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F11 Synthetic Data & Evaluation | 7 | 6 | 0 | 1 | 0 | 0 | 0 | 0 |
 | F12 Deployment & Submission | 10 | 7 | 0 | 0 | 0 | 2 | 1 | 0 |
-| **Total** | **101** | **86** | **1** | **1** | **2** | **8** | **3** | **0** |
+| **Total** | **102** | **87** | **1** | **1** | **2** | **8** | **3** | **0** |
 
 **Recorded evidence used below**
 
@@ -341,6 +341,22 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
     - Llama 3 (Ollama, 2 workers): estimated 92.3–224.0 s, actual 74.9 s; `actual_vs_estimate` 0.47, so the estimate ran high.
   - **Cause of the high Llama estimate:** the 3-document sample includes the model load, which matches the earlier calibration point.
 - **Earlier evidence:** Calibration point: estimate 1,007–4,956 s vs actual 654 s (v1) and 408 s (v3); the 3-doc sample included model load, so estimates ran high.
+
+#### F03.7 — Install Meta models from inside VAULT, sized to the machine
+
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F03.6
+- **Description:** Luke asked for setup to be easy (2026-10-29). VAULT checks the hardware, recommends which Meta models fit, and installs them with one click. It shows download progress and lets an admin choose which installed model VAULT reads with.
+- **Implementation scope:** `backend/core/model_install.py` (the catalog of Meta models, recommendations, background downloads); routes `/system/model-catalog`, `/system/models/install`, `/settings/local-model`; `frontend/src/components/model-installer.tsx` on the Overview.
+- **Acceptance criteria:** admin only; catalog only; local Ollama only; audited; progress shown; switching models changes the model VAULT uses.
+- **Verification evidence (2026-10-29):**
+  - **Tests:** `tests/integration/test_model_install.py`, 3 tests:
+    - recommendations for an 8 GB laptop (Llama 3 8B plus Vision), a machine with no GPU (Llama 3.2 3B only) and an 80 GB server (Llama 3.3 70B plus Vision);
+    - viewer and analyst get 403 and no token gets 401;
+    - non-catalog names and names with shell characters are refused before Ollama is called;
+    - download progress reaches "installed", the active model switches, and every step is audited;
+    - a remote Ollama address is refused.
+  - **This laptop:** the recommendation is Llama 3 8B (installed) plus Llama 3.2 Vision (runs partly on the CPU).
+  - **Not run:** a real download through the button. Pulling a model is Luke's call, and the download path is tested with a fake Ollama.
 
 ---
 
