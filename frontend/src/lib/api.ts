@@ -240,6 +240,43 @@ export interface LayoutSuggestion {
   is_ai_model: boolean;
 }
 
+/** Graded test of how well VAULT reads a collection (F07.6). */
+export interface FieldScore {
+  correct: number;
+  total: number;
+  rate: number | null;
+}
+
+export interface TrainingReport {
+  collection_id: number;
+  source: string;
+  graded_documents: number;
+  read_documents: number;
+  read_by: string[];
+  fields: { train: Record<string, FieldScore>; heldout: Record<string, FieldScore> };
+  conflicts: { planted: number; found: number; false_alarms: number } | null;
+  mistakes: { document_id: number; filename: string; field: string; got: string | null; expected: string }[];
+  readiness: { ready: boolean; reason: string };
+  graded_at: number;
+}
+
+export interface TrainingHistoryEntry {
+  graded_at: number;
+  read_by: string[];
+  heldout: Record<string, number | null>;
+  train: Record<string, number | null>;
+  conflicts: TrainingReport["conflicts"];
+  rules: number;
+}
+
+export interface RuleSuggestion {
+  document_id: number;
+  field: string;
+  value: string;
+  when_contains: string;
+  fixes_train_docs: number;
+}
+
 export const TERMINAL: JobStatus[] = ["completed", "completed_with_errors", "failed", "cancelled"];
 
 export interface AgentEvent {
@@ -485,6 +522,13 @@ export const vault = {
   document: (id: number) => api<DocumentDetail>(`/documents/${id}`),
   screening: (id: number) => api<Screening>(`/documents/${id}/screening`),
   examples: () => api<Example[]>("/examples"),
+  training: (collectionId: number) =>
+    api<{ report: TrainingReport; history: TrainingHistoryEntry[] }>(`/training/${collectionId}`),
+  trainingGrade: (collectionId: number) =>
+    post<{ report: TrainingReport; history: TrainingHistoryEntry[] }>(`/training/${collectionId}/grade`, {}),
+  trainingSuggestions: (collectionId: number) => api<RuleSuggestion[]>(`/training/${collectionId}/suggestions`),
+  trainingApply: (collectionId: number) =>
+    post<{ applied: RuleSuggestion[] }>(`/training/${collectionId}/apply-suggestions`, {}),
   addExample: (document_id: number, labels: Example["labels"]) =>
     post<{ document_id: number; labels: Example["labels"] }>("/examples", { document_id, labels }),
   createJob: (body: {
