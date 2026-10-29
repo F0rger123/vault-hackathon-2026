@@ -7,11 +7,21 @@ content type alone. Every server-side path is resolved and checked against an al
 import re
 from pathlib import Path, PurePosixPath, PureWindowsPath
 
+DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+PPTX = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+# Office files are ZIP archives, so the content only says "zip". The extension picks which Office reader runs, and
+# that reader then requires the matching parts. Macro-enabled variants (.docm, .xlsm, .pptm) are not listed.
+OFFICE_EXTENSIONS = {".docx": DOCX, ".xlsx": XLSX, ".pptx": PPTX}
+
 ALLOWED_TYPES = {
     "application/pdf": {".pdf"},
     "image/png": {".png"},
     "image/jpeg": {".jpg", ".jpeg"},
     "text/plain": {".txt", ".md", ".csv", ".json", ".log"},
+    DOCX: {".docx"},
+    XLSX: {".xlsx"},
+    PPTX: {".pptx"},
 }
 
 _SAFE_NAME = re.compile(r"[^A-Za-z0-9._ -]+")
@@ -28,6 +38,8 @@ def sniff_media_type(head: bytes) -> str | None:
         return "image/png"
     if head.startswith(b"\xff\xd8\xff"):
         return "image/jpeg"
+    if head.startswith(b"PK\x03\x04"):
+        return "application/zip"
     if b"\x00" in head:
         return None
     try:
@@ -59,6 +71,10 @@ def validate_upload(filename: str, head: bytes, size: int, max_bytes: int) -> tu
     if media_type is None:
         raise FileRejected("unsupported or binary file type")
     ext = Path(safe).suffix.lower()
+    if media_type == "application/zip":
+        if ext not in OFFICE_EXTENSIONS:
+            raise FileRejected("archives are not accepted; only Word, Excel and PowerPoint files (.docx, .xlsx, .pptx)")
+        return safe, OFFICE_EXTENSIONS[ext]
     if ext not in ALLOWED_TYPES[media_type]:
         raise FileRejected(f"extension {ext or '(none)'} does not match detected type {media_type}")
     return safe, media_type

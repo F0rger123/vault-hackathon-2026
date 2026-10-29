@@ -100,7 +100,7 @@ See `docs/LONG_TERM_ROADMAP.md`. None of it is in scope before November 4.
 
 | ID | Requirement | Feature | State |
 |---|---|---|---|
-| FR1 | Upload PDF, PNG, JPEG and text files to a collection | F02 | Confirmed |
+| FR1 | Upload PDF, DOCX, XLSX, PPTX, PNG, JPEG and text files to a collection | F02 | Confirmed (Office files since F02.8) |
 | FR2 | Reject files whose content does not match their extension, plus oversized, empty and corrupt files | F02/F09 | Confirmed |
 | FR3 | De-duplicate by SHA-256 within a collection | F02 | Confirmed |
 | FR4 | Report hardware, inventory and a measured runtime estimate | F03 | Confirmed |
