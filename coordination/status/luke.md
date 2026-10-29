@@ -20,6 +20,11 @@ Last updated: 2026-10-29
 
 ## Updates
 
+### 2026-10-29 01:20 UTC · F04.11 · completed
+- **Merged:** #60. After Llama answers, VAULT fills empty quantity and material fields from the part's own line, with an evidence quote for each value.
+- **Llama 3 on v2:** quantity conflicts 0 to 5 of 5, rating conflicts still 10 of 10, held-out rating accuracy unchanged at 0.823.
+- **Next:** no unblocked P0/P1 task is left before the F11.4 final run on Nov 1. F04.6 needs the Muse Glimmer download (B5). F04.3, F05.9 and F12.4 wait on B1 and B2.
+
 ### 2026-10-28 17:10 UTC · F11.6, F06.5 · completed; F11.4 · dry run
 - **Merged:** dataset v2 (#51) and quantity and material conflict checks (#53).
 - **Rules baseline:** 5 of 5 and 5 of 5. Llama 3 finds materials 5 of 5 but quantities 0 of 5; a prompt fix broke ratings, so it was reverted.
