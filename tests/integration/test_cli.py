@@ -84,3 +84,23 @@ def test_token_listing_and_revocation(cli_env):
     assert "revoked" in next(line for line in run("tokens").splitlines() if " temp " in line)
     result = runner.invoke(app, ["revoke", temp_id])
     assert result.exit_code == 1 and "already revoked" in result.output
+
+
+def test_transfer_moves_the_vault_with_one_passphrase(cli_env, tmp_path, monkeypatch):
+    """F12.11: export, verify and import through the CLI, as on an old and a new computer."""
+    from backend.core import transfer
+
+    monkeypatch.setattr(transfer, "SCRYPT", {"n": 2**12, "r": 8, "p": 1})
+    data, files = cli_env
+    assert runner.invoke(app, ["ingest", str(files), "--collection", "demo"]).exit_code == 0
+    pack = tmp_path / "move.vaultpack"
+    secret = "a long test passphrase\n"
+    r = runner.invoke(app, ["transfer", "export", "--out", str(pack)], input=secret * 2)
+    assert r.exit_code == 0, r.output
+    assert runner.invoke(app, ["transfer", "verify", str(pack)], input=secret).exit_code == 0
+    wrong = runner.invoke(app, ["transfer", "verify", str(pack)], input="the wrong passphrase\n")
+    assert wrong.exit_code != 0 and "wrong passphrase" in wrong.output
+    target = tmp_path / "new-computer"
+    r = runner.invoke(app, ["transfer", "import", str(pack), "--data-dir", str(target)], input=secret)
+    assert r.exit_code == 0, r.output
+    assert len([p for p in (target / "originals").rglob("*") if p.is_file()]) == len(list(files.iterdir()))
