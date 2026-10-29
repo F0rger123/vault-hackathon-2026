@@ -6,8 +6,7 @@ labels: bug
 ---
 
 **Related task:** F00.0 (from coordination/TASKS.md, if any)
-**Proposed owner:** luke | franco (see coordination/OWNERSHIP.md)
-**Found by:** luke-agent | franco-agent | person
+**Found by:** Luke | an AI session | a tester
 
 ### Steps to reproduce
 1.

@@ -39,9 +39,8 @@ REQUIRED = [
     "coordination/AGENT_COMMUNICATION_PROTOCOL.md",
     "coordination/AGENT_UPDATES.md",
     "coordination/NEW_AGENT_BOOTSTRAP_PROMPT.md",
-    "coordination/HANDOFF_FRANCO.md",
 ]
-STATUS_FILES = ["coordination/status/luke.md", "coordination/status/franco.md"]
+STATUS_FILES = ["coordination/status/luke.md"]
 STATUS_SECTIONS = ["## Now", "## Waiting on", "## Updates"]
 TASK_ID = re.compile(r"\bF\d{2}\.\d{1,2}\b")
 UPDATED = re.compile(r"Last updated\D*(\d{4}-\d{2}-\d{2})")

@@ -26,7 +26,7 @@ Run this before merging any PR into `main`, and in full before the November 2 fe
 
 ## Full system check (before feature freeze and before recording the demo)
 
-- [ ] Fresh clone on a clean machine follows `HANDOFF_FRANCO.md` section 4 without errors.
+- [ ] Fresh clone on a clean machine starts with `start.ps1` / `start.sh` without errors.
 - [ ] `vault init --demo-users`, ingest, heuristic process, findings: 150 documents, 10 findings.
 - [ ] Ollama run on the demo collection completes; evaluation report committed.
 - [ ] Meta Model API call succeeds (if B2 resolved) with remote gating demonstrated: 403 when disabled, 409 without confirmation.

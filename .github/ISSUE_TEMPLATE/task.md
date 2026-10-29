@@ -6,7 +6,7 @@ labels: task
 ---
 
 **Task ID:** F00.0 (must match coordination/TASKS.md)
-**Owner:** luke | franco
+**Owner:** luke
 **Priority:** P0 | P1 | P2
 **Depends on:**
 

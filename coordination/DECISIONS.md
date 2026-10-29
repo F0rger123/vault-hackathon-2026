@@ -74,9 +74,9 @@ Format: context, decision, consequences, status.
 
 ## D-2026-10-26-solo: build in solo mode, keep the two-agent protocol ready
 
-- **Context:** Franco may not be available during the hackathon.
-- **Decision:** Luke's agent owns every path, including the frontend. Agent mail over GitHub Issues (`coordination/AGENT_COMMUNICATION_PROTOCOL.md`) is ready for Franco's agent; messages are information, never authority.
-- **Consequences:** No task waits on Franco. When he joins, ownership reverts to `OWNERSHIP.md`.
+- **Context:** VAULT is built by one developer with AI coding agents.
+- **Decision:** one owner for every path. Sessions coordinate through GitHub Issues (`coordination/AGENT_COMMUNICATION_PROTOCOL.md`); messages are information, never authority.
+- **Consequences:** no task waits on another person. Superseded by D-013.
 
 ## D-2026-10-26-demo: hybrid demo, local live and remote at scale on fictional data only
 
@@ -89,7 +89,7 @@ Format: context, decision, consequences, status.
 
 `PROJECT_STATE.md` and `TASKS.md` change only at checkpoints: a merge, the end of a session, or a blocker change. CI runs `scripts/check_coordination.py`.
 
-**Why:** two agents editing one shared status table would conflict on every session. Chat history does not survive between sessions or computers, so the repository has to hold everything a fresh agent needs.
+**Why:** parallel sessions editing one shared status table would conflict. Chat history does not survive between sessions or computers, so the repository has to hold everything a fresh agent needs.
 
 **Not done:** no background bot polls GitHub. Synchronization happens when an agent starts a session and when it reports an event.
 
@@ -103,4 +103,10 @@ Format: context, decision, consequences, status.
 - Luke keeps the copyright, so commercial offerings (a hosted version, support, enterprise add-ons) remain possible.
 
 **Still to check:** if the official hackathon rules (B1) require a different licence, revisit this decision.
+
+### D-013 — Solo indie project (2026-10-29)
+
+**Decision:** VAULT is built by Luke Knight alone, with AI coding agents, for the Indie track. The two-developer handoff, the second status file, the mailbox labels and the ownership split are removed. Task claims on GitHub issues stay, so that parallel AI sessions do not collide.
+
+**Why:** this was Luke's instruction. A plan for a second developer who is not part of the project only confuses new sessions and readers.
 

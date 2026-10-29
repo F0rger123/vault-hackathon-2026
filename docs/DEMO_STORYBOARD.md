@@ -18,5 +18,5 @@ Rule: show only features that really work, on fictional data. If something is no
 
 - Record at 1080p with a clean browser profile and no real names, emails or tokens on screen.
 - Pre-process the collection before recording; show a short live job on a small subset for the progress segment.
-- Luke edits on Nov 3; Franco supports presentation and UI capture.
+- Luke records and edits on Nov 3.
 - Verify the final video length and the upload link before Nov 4.

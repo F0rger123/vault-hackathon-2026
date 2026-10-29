@@ -21,7 +21,7 @@ Deadline: **November 4, 2026, 9:00 PM ET** (02:00 UTC Nov 5). Target submitting 
 - [ ] Evaluation results committed with provider/model/date
 
 ## Product
-- [ ] Fresh-clone install tested on a second machine (Franco)
+- [ ] Fresh-clone install tested on a second machine (`start.ps1` / `start.sh`)
 - [ ] Demo flow runs end to end without manual DB edits
 - [ ] Meta model processing run completed and shown in UI
 - [ ] Security cases S1–S10 pass on the submitted commit
@@ -35,5 +35,5 @@ Deadline: **November 4, 2026, 9:00 PM ET** (02:00 UTC Nov 5). Target submitting 
 - [ ] Project name, description, track
 - [ ] Repo URL: https://github.com/F0rger123/vault-hackathon-2026
 - [ ] Video URL
-- [ ] All team members (Luke, Franco) added
+- [ ] Entrant details complete (Luke Knight, solo, Indie track)
 - [ ] Submitted; confirmation email/screenshot saved; receipt confirmed before 9:00 PM ET

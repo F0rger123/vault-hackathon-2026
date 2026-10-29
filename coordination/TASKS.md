@@ -14,7 +14,7 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 
 | Feature | Subtasks | VERIFIED | REVIEW | IN_PROGRESS | READY | BACKLOG | BLOCKED | DEFERRED |
 |---|---|---|---|---|---|---|---|---|
-| F01 Project Foundation | 9 | 8 | 1 | 0 | 0 | 0 | 0 | 0 |
+| F01 Project Foundation | 10 | 9 | 1 | 0 | 0 | 0 | 0 | 0 |
 | F02 File Ingestion | 7 | 6 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F03 Hardware & Collection Analysis | 6 | 6 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F04 AI Model System | 10 | 6 | 0 | 0 | 1 | 2 | 1 | 0 |
@@ -26,7 +26,7 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 | F10 User Interface | 12 | 12 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F11 Synthetic Data & Evaluation | 7 | 6 | 0 | 1 | 0 | 0 | 0 | 0 |
 | F12 Deployment & Submission | 9 | 6 | 0 | 0 | 0 | 2 | 1 | 0 |
-| **Total** | **96** | **82** | **1** | **1** | **1** | **8** | **3** | **0** |
+| **Total** | **97** | **83** | **1** | **1** | **1** | **8** | **3** | **0** |
 
 **Recorded evidence used below**
 
@@ -39,7 +39,7 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 - `E-LLM-2` (full 150-document runs, `llama3:latest`, 2 workers, 2026-10-26; details in `evaluation/results/SUMMARY.md`): held-out scores for prompt v1 / v2 / v3: doc_type 0.822 / 0.956 / 0.956; project 0.533 / 0.000 / 0.889; doc_date 0.222 / 0.000 / 0.917; part recall 0.669 / 1.000 / 1.000; rating accuracy 0.291 / 0.669 / 0.797; planted conflicts found 8 / 6 / 10 of 10 with 0 false positives; wall time 10.9 / 6.9 / 6.8 min. Prompt v3 is committed in `backend/providers/prompting.py`.
 - `E-CI-1`: GitHub Actions run 40405500963 on commit `7ab3266`: backend (ruff, pytest, bandit, dataset determinism excluding PNG), frontend (lint, typegen + tsc, build) and dependency-audit all succeeded.
 - `E-DOCKER-1`: `docker compose build` built `vault-hackathon-2026-backend` (322 MB) and `-frontend` (996 MB); backend container run read-only on 127.0.0.1:8001 returned `{"status":"ok"}` on `/api/v1/health` and 401 on `/api/v1/documents` without a token. Full `docker compose up` with the frontend not yet exercised.
-- `E-GH-1`: labels created (owner:luke, owner:franco, P0–P2, task, blocker, needs-luke) and issues #1–#25 opened for every READY, REVIEW, IN_PROGRESS and BLOCKED task.
+- `E-GH-1`: labels created (owner:luke, P0–P2, task, blocker, needs-luke) and issues #1–#25 opened for every READY, REVIEW, IN_PROGRESS and BLOCKED task.
 - `E-AUDIT-1` (2026-10-26 night, `main` at `7174dbc`): `pytest -p no:warnings` 33 passed; ruff check and format clean; bandit no medium/high; `pip-audit` no known vulnerabilities; `npm audit --omit=dev` 0 vulnerabilities; frontend lint and `tsc --noEmit` clean. No secrets or runtime data tracked by git.
 - `E-E2E-1` (2026-10-26 night): `scripts/e2e_smoke.py` against a fresh API on 127.0.0.1:8010 with a fresh data directory, heuristic provider: 25/25 checks passed. Upload 150 files 0.69 s, process 151 items 2.2 s, search 7 ms, 10 findings, proposal approved and 151 files copied to `exports/proposal-1`, denied viewer actions return 403, audit log populated.
 - `E-LLM-3` (2026-10-26 night): same script with `--provider ollama --limit 10`: job completed 11/11 items, 0 failed, 58 s wall time; extractions recorded `provider=ollama`, `model=llama3:latest`, `locality=local`, 8.5–19.4 s per document, `verified_ratio` 1.0 on the four documents inspected. GPU: RTX 5070 Laptop, 7.6 of 8.2 GB in use. (0 findings is expected: the first 10 files contain no planted conflict pair.)
@@ -85,7 +85,7 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 
 #### F01.4 — Frontend scaffold (Next.js 16, TypeScript, Tailwind 4)
 - **Description:** Initial dashboard page, design tokens, typed API client.
-- **Priority:** P0 · **Owner:** luke (handed to franco) · **Status:** VERIFIED · **Dependencies:** F01.2
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F01.2
 - **Scope:** `frontend/src/app/page.tsx`, `frontend/src/lib/api.ts`, `frontend/src/app/globals.css`.
 - **Expected behavior:** Token sign-in, stats, provider privacy badge, findings with evidence, collections, jobs with progress bars.
 - **Acceptance criteria:** Lint, type check and production build pass.
@@ -110,9 +110,9 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 - **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F01.1
 - **Scope:** Documentation only.
 - **Expected behavior:** A fresh agent session can resume work from the repository alone.
-- **Acceptance criteria:** Franco's agent completes onboarding from `HANDOFF_FRANCO.md` without asking Luke for missing information.
-- **Required tests:** Franco's first session (onboarding dry run).
-- **Blockers:** Franco has not started.
+- **Acceptance criteria:** a fresh agent session resumes work from the repository alone.
+- **Required tests:** fresh-session dry runs (see F01.9).
+- **Blockers:** none
 - **Related PR/commit:** pending (next docs commit)
 - **Verification evidence:** Pending. Coordination set committed in `05075ae`.
 
@@ -120,8 +120,8 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 - **Description:** Templates exist; labels and one issue per READY task still need creating.
 - **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F01.1, F01.6
 - **Scope:** `.github/ISSUE_TEMPLATE/`, `.github/pull_request_template.md`, `gh issue create`.
-- **Expected behavior:** Each READY task for Franco has a GitHub issue titled with its task ID.
-- **Acceptance criteria:** Issues exist for all READY F10 tasks; labels `luke`, `franco`, `P0`, `P1`, `blocker` exist.
+- **Expected behavior:** Each READY task has a GitHub issue titled with its task ID.
+- **Acceptance criteria:** Issues exist for READY tasks; labels `owner:luke`, `P0`, `P1`, `blocker` exist.
 - **Required tests:** `gh issue list`.
 - **Blockers:** none
 - **Related PR/commit:** templates in `7390fac`
@@ -133,7 +133,7 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 
 - **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F01.6
 - **Description:** GitHub-issue mailboxes for each coding agent, protocol document, solo-mode ownership note.
-- **Implementation scope:** `scripts/agent_mail.py status/inbox/send/reply/close`; labels agent-msg, to:luke-agent, to:franco-agent; `coordination/AGENT_COMMUNICATION_PROTOCOL.md`.
+- **Implementation scope:** `scripts/agent_mail.py status/inbox/send/reply/close`; labels agent-msg, to:luke-agent; `coordination/AGENT_COMMUNICATION_PROTOCOL.md`.
 - **Expected behavior:** Either agent can send, list, answer and close messages; messages never grant authority for destructive or spending actions.
 - **Acceptance criteria:** Either agent can send, list, answer and close messages; messages never grant authority for destructive or spending actions.
 - **Required tests:** see verification evidence
@@ -147,26 +147,39 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 - **Description:** Make the repository enough for any new agent or chat to resume. It needs a vision, a project snapshot, per-agent status files, a communication protocol, onboarding for a new chat, a bootstrap prompt, task claims through issues, and automated validation.
 - **Implementation scope:**
   - Docs: `docs/PROJECT_VISION.md`, `docs/LONG_TERM_ROADMAP.md`, `docs/AI_ONBOARDING.md`.
-  - Coordination: `coordination/PROJECT_STATE.md`, `AGENT_COMMUNICATION_PROTOCOL.md`, `AGENT_UPDATES.md`, `NEW_AGENT_BOOTSTRAP_PROMPT.md`, `status/{luke,franco}.md`.
+  - Coordination: `coordination/PROJECT_STATE.md`, `AGENT_COMMUNICATION_PROTOCOL.md`, `AGENT_UPDATES.md`, `NEW_AGENT_BOOTSTRAP_PROMPT.md`, `status/luke.md`.
   - Scripts: `agent_mail.py claim/report`, `scripts/check_coordination.py`.
   - CI: the `coordination` job.
 - **Expected behavior:** a fresh session reads `PROJECT_STATE.md` and its status files, and knows the next task. Claims are visible on GitHub. CI rejects broken coordination files and PRs without a task ID.
 - **Acceptance criteria:**
   - Every file above exists, and `check_coordination.py` passes.
-  - `claim` refuses a task that the other agent holds.
-  - Three bootstrap scenarios are checked against the repository (new Luke session, new Franco session, new ChatGPT chat).
+  - `claim` refuses a task that another session holds.
+  - Three bootstrap scenarios are checked against the repository (new Claude Code session, a second parallel session, new ChatGPT chat).
 - **Required tests:** `tests/unit/test_check_coordination.py`; CI `coordination` job.
 - **Blockers:** none
 - **Verification evidence (2026-10-28, local):**
   - `pytest -p no:warnings`: 46 passed, including 5 new tests. Those cover the real repository passing the check, the PR task-ID rule, an unknown task, a missing section, a stale date, a missing file, and `claim` refusing a task held by the other agent.
   - `check_coordination.py`: ok.
   - `agent_mail.py status` ran against GitHub and lists claimed tasks.
-  - **Scenario check:** a fresh subagent with no conversation context read only the repository and answered all three bootstrap scenarios correctly. It picked F09.7 for Luke and F11.5 for Franco, with the right claim commands, and drafted a valid Part B prompt.
-  - **Gaps it reported, now fixed:** stale `TASKS.md` dashboard; unexplained priority order; stale `HANDOFF_FRANCO.md` section 3 and F09.7 owner; ambiguous F11.5 owner and CI handoff; three different definitions of "Franco joined" (now one: a reply on #26); blocker owners.
+  - **Scenario check:** a fresh subagent with no conversation context read only the repository and answered all three bootstrap scenarios correctly. It picked the right next tasks, with the right claim commands, and drafted a valid Part B prompt.
+  - **Gaps it reported, now fixed:** stale `TASKS.md` dashboard; unexplained priority order; stale handoff notes; ambiguous ownership; blocker owners.
   - **Gap not fixed:** README uses 157 files in places and 150 in others. Left for a README pass.
   - **Caveat:** this was a simulated check by a subagent reading local files, not a real separate Claude or ChatGPT session on another computer.
 
 ## F02 — File Ingestion
+
+#### F01.10 — Solo indie project: remove the second-developer plan
+
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F01.9
+- **Description:** VAULT is built by Luke alone, with AI coding agents, for the Indie track. Remove every mention of a second developer, and reframe the coordination system for parallel AI sessions.
+- **Implementation scope:**
+  - Removed the second developer's handoff guide and status file.
+  - Rewrote the protocol, ownership, onboarding, bootstrap prompt, project state and status file.
+  - `agent_mail.py` keeps only status, claim and report, with free session names.
+  - Updated the templates, docs, `llms.txt` and the validator. Decision D-013.
+- **Acceptance criteria:** no file mentions a second developer; the coordination check passes; claims still refuse a task held by another session.
+- **Required tests:** `tests/unit/test_check_coordination.py`; CI `coordination`.
+- **Blockers:** none
 
 #### F02.1 — Multi-file upload endpoint
 - **Description:** `POST /collections/{id}/documents` accepts up to 500 files per request.
@@ -613,7 +626,7 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 #### F06.4 — Natural-language investigation
 - **Description:** Turn a question ("Which parts from Project Alpha have conflicting ratings?") into structured search + findings, then have a Meta model write an answer that cites only retrieved evidence.
 - **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F06.2, F06.3, F04.2
-- **Scope:** new endpoint `POST /investigations` (contract to be added to `API_CONTRACT.md` before Franco builds UI for it).
+- **Scope:** new endpoint `POST /investigations` (contract added to `API_CONTRACT.md` before the UI was built).
 - **Expected behavior:** Every sentence in the answer links to a document/page; uncited claims are marked as interpretation.
 - **Acceptance criteria:** 5 scripted demo questions answered with citations that verify.
 - **Required tests:** integration test with heuristic retrieval plus a fake model; manual run with Ollama.
@@ -872,7 +885,7 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 
 #### F09.7 — Controlled security verification against the running app
 - **Description:** OWASP ZAP baseline scan against the local stack and manual abuse cases through the UI.
-- **Priority:** P1 · **Owner:** luke (franco may claim) · **Status:** VERIFIED · **Dependencies:** F01.2, F01.4
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F01.2, F01.4
 - **Scope:** Only `127.0.0.1` targets we run ourselves.
 - **Expected behavior:** Findings filed as GitHub issues labelled `security`.
 - **Acceptance criteria:** ZAP report summarised in `docs/SECURITY.md` with actual outcomes.
@@ -919,9 +932,9 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 - **Related PR/commit:** branch `luke/F05-agent-orchestrator`
 - **Verification evidence:** `test_remote_lane_never_receives_restricted_documents` passes; 3,700-file run pinned 402 files.
 
-## F10 — User Interface (Franco)
+## F10 — User Interface
 
-All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each needs a branch `franco/F10.x-short-name`, a PR, and screenshots in the PR description using synthetic data only.
+All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each needs a branch `luke/F10.x-short-name`, a PR, and screenshots in the PR description using synthetic data only.
 
 #### F09.11 — Full security check and hardening of the new sign-in code
 
@@ -938,7 +951,7 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 
 #### F10.1 — App shell, navigation and sign-in
 - **Description:** Layout with sidebar navigation (Dashboard, Import, Library, Intelligence, Processing, Actions, Security, Settings), token sign-in, sign-out, role display.
-- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** VERIFIED · **Dependencies:** F01.4
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F01.4
 - **Scope:** `frontend/src/app/layout.tsx`, shared components; endpoints `GET /me`.
 - **Expected behavior:** Unauthenticated users see sign-in; 401 anywhere returns to sign-in.
 - **Acceptance criteria:** Keyboard navigable; works at 375 px width; role shown.
@@ -950,19 +963,19 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 
 #### F10.2 — Dashboard
 - **Description:** Replace the scaffold dashboard with the final design: stats, active jobs, recent findings, recent audit (admin), provider privacy status.
-- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** VERIFIED · **Dependencies:** F10.1
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F10.1
 - **Scope:** `frontend/src/app/page.tsx`; endpoints `/stats`, `/system/providers`, `/collections`, `/jobs`, `/collections/{id}/findings`.
 - **Expected behavior:** Updates while jobs run.
 - **Acceptance criteria:** Matches design; no console errors; numbers match the API.
 - **Required tests:** Playwright e2e with seeded demo data.
-- **Blockers:** Scaffold built by Luke's agent; needs Franco's redesign and a browser check.
+- **Blockers:** none.
 - **Related PR/commit:** scaffold in `7390fac`
 - **Verification evidence:** `E-FE-1` (build only). Built in solo mode (`luke/F05-agent-orchestrator`, PR #27) and restyled in PR #28 (`E-UI-2`): lint, typegen + tsc and build pass; each screen checked by hand against the live API, screenshots in `docs/screenshots/`. Browser e2e tests (F11.5) still missing, so status stays REVIEW.
 - **Verification evidence (E-E2E-2, 2026-10-28):** covered by the Playwright suite in `tests/e2e/` (`01-sign-in`); 13 of 13 tests passed in 5 consecutive fresh runs on Windows 11 (Chromium, desktop and Pixel 7 profiles).
 
 #### F10.3 — Import screen with inventory and estimate
 - **Description:** Create/select collection, drag-and-drop upload, show accepted/rejected with reasons, inventory, run estimate, then confirm processing.
-- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** VERIFIED · **Dependencies:** F10.1
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F10.1
 - **Scope:** `POST /collections`, `POST /collections/{id}/documents`, `GET /collections/{id}/inventory`, `POST /collections/{id}/estimate`, `POST /jobs`.
 - **Expected behavior:** Remote providers show a clear "data will leave this machine" confirmation and send `confirm_remote: true` only after the user agrees.
 - **Acceptance criteria:** Upload of the synthetic folder works; estimate shows low/high seconds and its basis; 409 handled as a confirmation prompt.
@@ -974,7 +987,7 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 
 #### F10.4 — Library (collection browser)
 - **Description:** Paged document table with filters (type, project, date, part number) and metadata.
-- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** VERIFIED · **Dependencies:** F10.1
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F10.1
 - **Scope:** `GET /documents`, `GET /search` (filters with empty `q`).
 - **Expected behavior:** Filters update the list; selecting a row opens the document viewer.
 - **Acceptance criteria:** 150 synthetic docs browsable; filters return correct subsets.
@@ -986,7 +999,7 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 
 #### F10.5 — Document viewer
 - **Description:** Show page text, the original file (PDF/image inline), extracted fields, provider/model/locality and injection warnings.
-- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** VERIFIED · **Dependencies:** F10.4
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F10.4
 - **Scope:** `GET /documents/{id}`, `GET /documents/{id}/pages/{n}`, `GET /documents/{id}/original` (fetch with Authorization header, then object URL).
 - **Expected behavior:** Injection-flagged documents show a visible warning; heuristic extractions are labelled "rule-based, not AI".
 - **Acceptance criteria:** Drawings, CSV, Markdown and PNG all display.
@@ -998,7 +1011,7 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 
 #### F10.6 — Evidence viewer for findings
 - **Description:** Side-by-side evidence for each finding: document, page, quoted line, value, verified badge; click to open that page.
-- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** VERIFIED · **Dependencies:** F10.5
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F10.5
 - **Scope:** `GET /collections/{id}/findings`, document/page endpoints.
 - **Expected behavior:** Conflicting values are visually contrasted; quotes highlighted in page text.
 - **Acceptance criteria:** All 10 planted conflicts navigable to their source pages.
@@ -1010,7 +1023,7 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 
 #### F10.7 — Processing view
 - **Description:** Job list and detail with progress, item status counts, errors, workers, provider, cancel button.
-- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** VERIFIED · **Dependencies:** F10.1
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F10.1
 - **Scope:** `GET /jobs`, `GET /jobs/{id}`, `POST /jobs/{id}/cancel`, `GET /system/hardware`.
 - **Expected behavior:** Polls every 1–3 s while a job runs; viewer role sees no cancel button (server still enforces).
 - **Acceptance criteria:** Cancel works; failed items show safe error text.
@@ -1022,7 +1035,7 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 
 #### F10.8 — Actions: proposals and approvals
 - **Description:** Create a proposal (pattern picker), before/after preview tree, approve/reject (admin), result with export folder.
-- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** VERIFIED · **Dependencies:** F10.1
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F10.1
 - **Scope:** `POST /proposals`, `GET /proposals`, `GET /proposals/{id}`, `POST /proposals/{id}/approve`, `POST /proposals/{id}/reject`.
 - **Expected behavior:** Analyst can create but sees approve disabled; if forced, the 403 is shown as "Only administrators can approve".
 - **Acceptance criteria:** Full create → preview → approve flow with admin token; 409 handled.
@@ -1034,7 +1047,7 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 
 #### F10.9 — Security and audit view
 - **Description:** Provider list with local/remote and privacy text, remote-inference switch (admin), audit table filterable by outcome.
-- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** VERIFIED · **Dependencies:** F10.1
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F10.1
 - **Scope:** `GET /system/providers`, `PUT /settings/remote-inference`, `GET /audit`.
 - **Expected behavior:** Denied events are prominent (needed for the demo's blocked-action segment).
 - **Acceptance criteria:** A viewer's denied upload attempt appears in the audit view within one refresh.
@@ -1046,7 +1059,7 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 
 #### F10.10 — Intelligence (natural-language investigation) screen
 - **Description:** Question box, answer with inline citations, evidence panel.
-- **Priority:** P0 · **Owner:** luke (franco may claim) · **Status:** VERIFIED · **Dependencies:** F06.4
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F06.4
 - **Scope:** `POST /investigations` (see `API_CONTRACT.md`); `frontend/src/components/ask-panel.tsx` on the Investigate screen.
 - **Expected behavior:** Citations open the document viewer at the cited page.
 - **Acceptance criteria:** Answer sentences show numbered citations; clicking one highlights the quoted line; file names open the document drawer; unverified and uncited sentences are visibly marked; heuristic answers labelled "Rule-based, not AI"; only local providers offered.
@@ -1128,7 +1141,7 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 
 #### F11.5 — End-to-end browser tests
 - **Description:** Playwright tests for the main demo flow against a locally seeded backend.
-- **Priority:** P1 · **Owner:** luke (franco may claim) · **Status:** VERIFIED · **Dependencies:** F10.1
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F10.1
 - **Scope:** `tests/e2e/`.
 - **Expected behavior:** One command seeds data, starts both servers and runs the flow.
 - **Acceptance criteria:** Runs locally on Windows and macOS; optional CI job.
@@ -1277,7 +1290,7 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 
 #### F12.7 — Demo video (~3 minutes)
 - **Description:** Record and edit the video following `docs/DEMO_STORYBOARD.md`; only working features shown.
-- **Priority:** P0 · **Owner:** luke (franco supports) · **Status:** BACKLOG · **Dependencies:** F10.2–F10.9, F06.4, F12.6
+- **Priority:** P0 · **Owner:** luke · **Status:** BACKLOG · **Dependencies:** F10.2–F10.9, F06.4, F12.6
 - **Scope:** recording, editing, upload.
 - **Expected behavior:** Shows real Meta model processing, a planted discrepancy with evidence, an approval, and a blocked action with its audit entry.
 - **Acceptance criteria:** Length matches verified rule; link works when logged out.

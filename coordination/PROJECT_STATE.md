@@ -9,7 +9,7 @@ The two-minute snapshot. Read this first in a new session. Detail lives in the l
 | Last updated | 2026-10-28 (Luke's agent, loop checkpoint) |
 | Latest verified commit on `main` | see `git log` (PR #55 merged; CI green) |
 | Phase | MVP build. Feature freeze **Nov 2**, video **Nov 3**, deadline **Nov 4, 9:00 PM ET** |
-| Team mode | **Solo.** Luke's agent owns every path until Franco's agent replies on [#26](https://github.com/F0rger123/vault-hackathon-2026/issues/26) ([`OWNERSHIP.md`](OWNERSHIP.md)). |
+| Team | **Solo indie project:** Luke Knight with AI coding agents (Indie track). |
 
 ## What works (verified, with evidence in `TASKS.md`)
 
@@ -54,12 +54,10 @@ The two-minute snapshot. Read this first in a new session. Detail lives in the l
 | | Now | Next | Status file |
 |---|---|---|---|
 | Luke's agent | All PRs merged | F11.4 final evaluation (Nov 1) | [`status/luke.md`](status/luke.md) |
-| Franco's agent | Not joined yet | Extend `tests/e2e/`, then fix F10.x screens ([`HANDOFF_FRANCO.md`](HANDOFF_FRANCO.md)) | [`status/franco.md`](status/franco.md) |
 
 ## Open blockers
 
 - **Luke:** B1 rules verification, B2 Meta API key and spend approval, B4 partner credits, B5 Muse Glimmer download. (B3 licence resolved: Apache-2.0.)
-- **Franco:** B6 onboarding. He replies on [#26](https://github.com/F0rger123/vault-hackathon-2026/issues/26), which is the one signal that ends solo mode.
 
 Detail: [`BLOCKERS.md`](BLOCKERS.md).
 
