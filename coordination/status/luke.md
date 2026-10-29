@@ -16,9 +16,18 @@ Last updated: 2026-10-29
   - B2: Meta API key (optional).
   - B4: partner credits.
   - B5: Muse Glimmer download (optional).
+  - B7: approve the Llama 3.2 Vision download (about 8 GB), so VAULT can read images and scanned pages offline.
+- **Luke, registration:** check that the Cerebral Valley registration lists you as a solo Indie entrant. Repository files do not change the registration.
+- **Luke, approval:** F02.8 Office documents is file handling, so it needs your OK to merge once its PR is green.
 - **Luke, Nov 3:** record the video from `docs/DEMO_SCRIPT.md`.
 
 ## Updates
+
+### 2026-10-29 · audit · completed
+- **Audit:** `docs/FINAL_COMPREHENSIVE_AUDIT.md`. Workflows A–E and G pass on a fresh VAULT, and real Llama 3 inference is verified. 115 pytest pass, every scan is clean, and CI is green.
+- **Gaps found:** Office files, reading images and scanned pages, table export, per-collection permissions, Next.js telemetry, and the unverified official rules (B1).
+- **New tasks:** F02.8, F08.5 (raised to P1), F09.12 (FUTURE), F12.10. New blocker: B7 (vision model download).
+- **Next:** F12.10, then F08.5, then F02.8.
 
 ### 2026-10-29 01:20 UTC · F04.11 · completed
 - **Merged:** #60. After Llama answers, VAULT fills empty quantity and material fields from the part's own line, with an evidence quote for each value.

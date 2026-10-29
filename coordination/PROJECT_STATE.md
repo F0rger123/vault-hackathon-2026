@@ -6,7 +6,7 @@ The two-minute snapshot. Read this first in a new session. Detail lives in the l
 
 | | |
 |---|---|
-| Last updated | 2026-10-28 (Luke's agent, loop checkpoint) |
+| Last updated | 2026-10-29 (full audit: `docs/FINAL_COMPREHENSIVE_AUDIT.md`) |
 | Latest verified commit on `main` | see `git log` (PR #55 merged; CI green) |
 | Phase | MVP build. Feature freeze **Nov 2**, video **Nov 3**, deadline **Nov 4, 9:00 PM ET** |
 | Team | **Solo indie project:** Luke Knight with AI coding agents (Indie track). |
@@ -43,6 +43,9 @@ The two-minute snapshot. Read this first in a new session. Detail lives in the l
 
 ## Partly working
 
+- **Images:** stored, but no text is read until a vision model is approved (B7). Office files (DOCX, XLSX, PPTX) are rejected until F02.8.
+- **Access:** roles limit actions, not which collections a user can see (F09.12, after the hackathon).
+
 - **Meta Model API lane (F04.3, F05.9):** the code and tests exist, but it has never run with a real key (blocker B2).
 
 ## Broken
@@ -77,6 +80,8 @@ All decisions: [`DECISIONS.md`](DECISIONS.md).
 **Feature freeze, Nov 2.** Final evaluation figures committed (F11.4). Demo rehearsed from `scripts/demo_reset.py`.
 
 ## Next three recommended tasks
+
+Agent, now: F12.10 (telemetry off), F08.5 (table export), F02.8 (Office files; Luke approves the merge).
 
 1. **B1** (Luke): verify the official hackathon rules, including any licence requirement.
 2. **Record the video** (Luke, Nov 3) from `docs/DEMO_SCRIPT.md`.

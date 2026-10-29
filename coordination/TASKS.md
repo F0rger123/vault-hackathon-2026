@@ -15,18 +15,18 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 | Feature | Subtasks | VERIFIED | REVIEW | IN_PROGRESS | READY | BACKLOG | BLOCKED | DEFERRED |
 |---|---|---|---|---|---|---|---|---|
 | F01 Project Foundation | 10 | 9 | 1 | 0 | 0 | 0 | 0 | 0 |
-| F02 File Ingestion | 7 | 6 | 0 | 0 | 0 | 1 | 0 | 0 |
+| F02 File Ingestion | 8 | 6 | 0 | 0 | 1 | 1 | 0 | 0 |
 | F03 Hardware & Collection Analysis | 6 | 6 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F04 AI Model System | 11 | 7 | 0 | 0 | 1 | 2 | 1 | 0 |
 | F05 Parallel Processing | 9 | 8 | 0 | 0 | 0 | 0 | 1 | 0 |
 | F06 Search & Investigation | 6 | 5 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F07 Teaching & Corrections | 6 | 5 | 0 | 0 | 0 | 1 | 0 | 0 |
-| F08 Actions & Organization | 5 | 4 | 0 | 0 | 0 | 1 | 0 | 0 |
-| F09 Security | 10 | 10 | 0 | 0 | 0 | 0 | 0 | 0 |
+| F08 Actions & Organization | 5 | 4 | 0 | 0 | 1 | 0 | 0 | 0 |
+| F09 Security | 11 | 10 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F10 User Interface | 12 | 12 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F11 Synthetic Data & Evaluation | 7 | 6 | 0 | 1 | 0 | 0 | 0 | 0 |
-| F12 Deployment & Submission | 9 | 6 | 0 | 0 | 0 | 2 | 1 | 0 |
-| **Total** | **98** | **84** | **1** | **1** | **1** | **8** | **3** | **0** |
+| F12 Deployment & Submission | 10 | 6 | 0 | 0 | 1 | 2 | 1 | 0 |
+| **Total** | **101** | **84** | **1** | **1** | **4** | **8** | **3** | **0** |
 
 **Recorded evidence used below**
 
@@ -247,6 +247,15 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 - **Related PR/commit:** —
 - **Verification evidence:** —
 
+#### F02.8 — Office documents (DOCX, XLSX, PPTX)
+
+- **Priority:** P1 · **Owner:** luke · **Status:** READY · **Dependencies:** F02.2, F02.4
+- **Description:** Read text from Word, Excel and PowerPoint files with the standard-library zip and XML readers, adding no dependency. Found missing by the 2026-10-29 audit (test B rejected them).
+- **Implementation scope:** `backend/security/files.py` (types and checks), `backend/ingest/service.py` (page text: one page per sheet or slide; Word in 4,000-character pages).
+- **Acceptance criteria:** All three formats import and are searchable. A zip bomb, an oversized member, and a macro-enabled file (`.docm`, `.xlsm`) are each rejected.
+- **Required tests:** unit tests per format; security tests for decompression limits.
+- **Blockers:** File handling is high risk, so Luke approves the merge.
+
 #### F02.7 — Path import for large server-side collections
 - **Description:** Admin imports a directory inside `VAULT_IMPORT_ROOTS`; progress reporting for long imports.
 - **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F02.1
@@ -417,7 +426,7 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 - **Verification evidence:** —
 
 #### F04.7 — Image and stamp understanding with a vision-capable Meta model
-- **Description:** Send images (and image-only PDF pages) to Muse Spark (API) or Muse Glimmer (local) to read stamps and classify diagrams.
+- **Description:** Send images (and image-only PDF pages) to Muse Spark (API), Muse Glimmer (local), or Llama 3.2 Vision (local; blocker B7) to read stamps and classify diagrams.
 - **Priority:** P1 · **Owner:** luke · **Status:** BACKLOG · **Dependencies:** F04.3 or F04.6
 - **Scope:** image input path in providers; schema field `stamps`.
 - **Expected behavior:** Stamp images get `stamps` populated, labelled with the provider.
@@ -542,7 +551,7 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 - **Required tests:** Automated restart test still to add (F05.6).
 - **Blockers:** none
 - **Related PR/commit:** `7390fac`
-- **Verification evidence:** Code path exercised by `create_app(resume_jobs=True)` default; dedicated test pending.
+- **Verification evidence:** `tests/integration/test_workers.py::test_restart_resumes_unfinished_job` (added in F05.6) restarts the app mid-job and checks that it completes.
 
 #### F05.6 — Worker robustness tests and resource limits
 - **Description:** Tests for retries, resume and failure accounting; per-worker memory guard; progress events.
@@ -815,11 +824,11 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
   - **Live, Llama 3:** 8 of 8 tuning requests and 8 of 8 held-out requests (`evaluation/results/layout-requests-ollama-2026-10-28.json`). The first prompt scored 2 of 5, which is recorded in `SUMMARY.md`.
 
 #### F08.5 — Export to a searchable database file
-- **Description:** Export extractions as CSV/SQLite for downstream tools.
-- **Priority:** P2 · **Owner:** luke · **Status:** BACKLOG · **Dependencies:** F08.3
-- **Scope:** new proposal kind.
-- **Expected behavior:** Same approval flow.
-- **Acceptance criteria:** File opens and matches extraction counts.
+- **Description:** Export extractions as CSV and JSON for downstream tools. Each row names its source document and page. Raised to P1 by the 2026-10-29 audit (vision F07, structured database generation).
+- **Priority:** P1 · **Owner:** luke · **Status:** READY · **Dependencies:** F08.3
+- **Scope:** a read-only download route per collection (`documents:read`), plus a button on the Investigate screen. It writes nothing on the server, so no approval step is needed.
+- **Expected behavior:** One row per component, with document fields and provenance.
+- **Acceptance criteria:** The file opens, and its row count matches the extractions.
 - **Required tests:** integration test.
 - **Blockers:** none
 - **Related PR/commit:** —
@@ -944,6 +953,12 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 - **Blockers:** none
 - **Related PR/commit:** branch `luke/F05-agent-orchestrator`
 - **Verification evidence:** `test_remote_lane_never_receives_restricted_documents` passes; 3,700-file run pinned 402 files.
+
+#### F09.12 — Per-collection permissions
+
+- **Priority:** FUTURE · **Owner:** luke · **Status:** BACKLOG · **Dependencies:** F09.1
+- **Description:** Limit which collections and documents each user can see: in search, previews, original downloads and every API route. Today roles limit actions, not visibility. Found by the 2026-10-29 audit.
+- **Blockers:** This is an auth design change, so it needs Luke's approval. Planned for after the hackathon.
 
 ## F10 — User Interface
 
@@ -1226,6 +1241,13 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 - **Required tests:** e2e suite; screenshots at 1440 px and 390 px reviewed.
 - **Blockers:** none
 - **Verification evidence (2026-10-28):** screenshots of sign-in, Overview, Set up a run and Training reviewed at desktop and phone size; the issues found were fixed (duplicate logo, wrapping demo buttons, the checklist filling a phone screen, a slow local-models call now cached for 30 s). e2e 18 of 18; tsc and eslint clean.
+
+#### F12.10 — Turn off Next.js telemetry
+
+- **Priority:** P1 · **Owner:** luke · **Status:** READY · **Dependencies:** F12.9
+- **Description:** Next.js can send anonymous usage data during build and start. VAULT says nothing leaves the machine, so every start path sets `NEXT_TELEMETRY_DISABLED=1`. Found by the 2026-10-29 audit.
+- **Implementation scope:** `scripts/start.py`, `frontend/Dockerfile`.
+- **Acceptance criteria:** `next telemetry status` reports disabled under the launcher's environment.
 
 #### F12.1 — Command-line interface
 - **Description:** `vault init`, `token`, `ingest`, `hardware`, `providers`, `estimate`, `process`, `search`, `findings`, `serve`.
