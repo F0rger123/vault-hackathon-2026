@@ -10,6 +10,7 @@ Last updated: 2026-10-29
 
 ## Waiting on
 
+- **Luke, approval:** PR #72 (encrypted move to a new computer: cryptography and file handling) and PR #74 (redacted share packs, which write export files). Both have green CI.
 - **Luke, decision: OCR for scanned pages (F02.6).** Suggestion: skip it for the hackathon.
 - **Luke, blockers:**
   - B1: verify the hackathon rules.
@@ -22,6 +23,11 @@ Last updated: 2026-10-29
 - **Luke, Nov 3:** record the video from `docs/DEMO_SCRIPT.md`.
 
 ## Updates
+
+### 2026-10-29 night · F02.8, F07.7, F07.8 · merged; transfer and share packs · review
+- **Merged with Luke's approval:** #66 (Office files) and #70 (the collection brain and its map).
+- **Opened:** #72 (`vault transfer export | verify | import`, AES-256-GCM, 15 tests) and #74 (share packs: redacted PDFs plus a report of what was left out and why, 4 tests). Both wait for Luke.
+- **README:** setup steps, a hardware sizing table built from the measured laptop rate and labelled as estimates, new screenshots, a brain diagram, and how to keep VAULT private for a team.
 
 ### 2026-10-29 evening · F03.7 · completed; collection brain (PR #70) · review
 - **Merged:** #68. Overview now lists the Meta models this computer can run and installs them with one click. Admin only, catalog only, audited.
