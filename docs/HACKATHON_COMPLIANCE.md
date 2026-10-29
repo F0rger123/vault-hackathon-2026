@@ -34,7 +34,7 @@ These claims come from a participant's repository that quotes Discord and "offic
 
 | Claim | Status | Our posture |
 |---|---|---|
-| Demo video of about 3 minutes required | Unverified | Plan for ≤ 3:00 |
+| Demo video of about 3 minutes required | Luke confirmed 3 minutes (2026-10-28) | Script in `docs/DEMO_SCRIPT.md`, about 2:45 |
 | Repo must be public at submission | Unverified | Repo is already public |
 | Must use Meta models (Meta Model API or open weights) | Unverified | We do: Llama 3 via Ollama, plus a Meta Model API provider |
 | **Only work done Oct 26 – Nov 4 counts; demo must show only event work** | Unverified, **high impact** | All VAULT code was written starting 2026-10-26 in a fresh repository; no prior project code reused. Keep commit history intact. |

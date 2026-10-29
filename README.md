@@ -111,7 +111,7 @@ The rules baseline is kept for comparison and offline tests and is labelled "not
 
 | Working and tested | Written, not yet run | Next |
 |---|---|---|
-| Ingestion, sealed originals, page text · Local Meta Llama extraction · Parallel lanes with retries, cancel and resume · Verified cross-document conflicts · Search with filters and page references · Corrections and versioned rules · Approvals with copy-only export · Security cases S1–S10 · Six-screen web interface · Coordinator, security and review agents (3,700-file run) | Meta Model API (Muse Spark) lane, waiting for an API key | Fresh dataset seed for the final figures · First Meta Model API run · Demo video (about 3 minutes) · Licence choice |
+| Ingestion, sealed originals, page text · Local Meta Llama extraction · Parallel lanes with retries, cancel and resume · Verified cross-document conflicts · Search with filters and page references · Corrections and versioned rules · Approvals with copy-only export · Security cases S1–S10 · Six-screen web interface · Coordinator, security and review agents (3,700-file run) | Meta Model API (Muse Spark) lane, waiting for an API key | Final evaluation on frozen code (Nov 1) · First Meta Model API run · Demo video (3 minutes) |
 
 Plans in detail: [docs/MASTER_BLUEPRINT.md](docs/MASTER_BLUEPRINT.md) and [coordination/TASKS.md](coordination/TASKS.md).
 
@@ -163,4 +163,4 @@ VAULT checks permissions on the server, validates files by content, refuses path
 
 ## License
 
-No license has been chosen yet, so the code is public to read but all rights are reserved. Third-party components are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+VAULT is licensed under the [Apache License 2.0](LICENSE). See [NOTICE](NOTICE). Meta Llama 3 is used under the Meta Llama 3 Community License; its weights are not included here. Third-party components are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
