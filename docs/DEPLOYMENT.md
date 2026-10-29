@@ -76,6 +76,37 @@ vault set-password admin        # asks twice; at least 10 characters
 
 The sign-in screen then accepts that username and password. Sessions last 12 hours (`VAULT_SESSION_TTL_HOURS`). No Meta API key or internet account is needed: VAULT uses Meta Llama locally through Ollama.
 
+## Moving VAULT to a new computer
+
+Use this when you move to a bigger machine. The whole VAULT goes into one encrypted file: every collection, every reading, the brains, rules, users, the audit log and every original document. Nothing goes over a network.
+
+**On the old computer**, with VAULT's data folder in `VAULT_DATA_DIR`:
+
+```bash
+vault transfer export --out E:/vault-move.vaultpack
+```
+
+You are asked for a passphrase twice. Use at least 12 characters; a few random words is best. The Meta API key stays behind unless you add `--include-api-key`.
+
+**Carry the file** on an encrypted USB drive or any other route you trust. **Never send the passphrase with the file.**
+
+**On the new computer**, after installing VAULT:
+
+```bash
+vault transfer verify E:/vault-move.vaultpack            # optional: checks it opens and nothing changed
+vault transfer import E:/vault-move.vaultpack --data-dir D:/vault-data
+```
+
+Then start VAULT with `VAULT_DATA_DIR=D:/vault-data`.
+
+**What protects the move:**
+- **Encryption:** the pack is encrypted with AES-256-GCM, using a key derived from the passphrase with scrypt.
+- **Tampering:** changing, dropping, reordering or cutting off any part makes the import refuse.
+- **Fingerprints:** every file's SHA-256 is checked.
+- **No overwriting:** the import writes only into an empty folder, and only moves files into place after every check passes.
+
+**Keep the old copy until** the new computer is confirmed working. Then delete the old data folder and the pack.
+
 ## Docker Compose
 
 ```bash

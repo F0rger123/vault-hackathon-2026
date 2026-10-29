@@ -35,6 +35,9 @@ Engineering firms, manufacturers and public agencies sit on thousands of documen
 | **Knows its own speed** | Shows how many local models fit on your GPU, benchmarks real files before it promises a finish time, then compares each run with its estimate. | 157 documents in 12 min 55 s on a laptop GPU |
 | **Answers questions** | Ask in plain English. Llama answers with numbered citations, and VAULT checks every number against the cited line. Ask for a folder layout the same way. | 8 of 8 layout requests right on held-out phrasing |
 | **Learns from you** | The Training screen grades the reading against known answers, suggests rules from its mistakes, and re-tests on documents nobody corrected. Model weights never change. | Held-out document type 0.889 to 0.978 after one round (rules baseline) |
+| **Keeps a brain per project** | Teach it in plain words: "QA-7 means approved by quality". It looks for its own gaps and asks you, such as an abbreviation used in 58 documents that nobody explained. Each collection's brain is kept apart, so two divisions never mix. A map shows how documents, projects, parts and markings connect. | Isolation tested: teaching one collection never changes another |
+| **Sets itself up** | Checks the computer, says which Meta models fit on the graphics card, recommends a set, and installs it with one click. | Llama 3.2 1B up to Llama 4 Scout, sized to the machine |
+| **Exports a table** | Every part, rating, quantity and material as CSV or JSON, each row with its file, page and quote. | Formula-safe for spreadsheets |
 | **Never acts alone** | Reorganizing the archive is only ever a proposal. An administrator previews it as a folder tree, and approving it exports copies; originals never move. | Every action, allowed or refused, is in the audit log |
 
 ## See it
@@ -90,6 +93,16 @@ All data below is fictional, made by the project's own synthetic dataset generat
       <br><sub><b>On a phone.</b> The same run board, stacked for a small screen.</sub>
     </td>
   </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/brain-dark.jpg"><img src="docs/screenshots/brain-light.jpg" alt="Brain: what VAULT knows about the collection, and a map of documents linked to projects, parts and markings, with conflicting parts in red"></picture>
+      <br><sub><b>Brain.</b> What VAULT knows, what people taught it, and the questions it still has. The map links documents to their projects, parts and markings; red parts disagree across documents.</sub>
+    </td>
+    <td width="50%" valign="top">
+      <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/models-dark.jpg"><img src="docs/screenshots/models-light.jpg" alt="Meta models for this computer: which models fit on the graphics card, which run partly on the processor, and one-click installs"></picture>
+      <br><sub><b>Setup.</b> VAULT measures the machine and lists which Meta models fit, with one-click installs.</sub>
+    </td>
+  </tr>
 </table>
 
 ## How it works
@@ -108,6 +121,21 @@ Four agents share the work, and each one can be checked on the run board:
 - **Model lanes** run Meta Llama 3 on this machine (or, only if an administrator allows it and the user confirms the job, the Meta Model API).
 - **Reviewer** accepts each reading, escalates it, or sends it to a person, and records the findings.
 
+How the brain learns, in plain terms. Nothing here retrains the model: what people teach is saved for that one collection and handed to the model each time it reads, and Training measures whether it helped.
+
+```mermaid
+%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#0c0c0c", "primaryTextColor": "#f5f5f5", "primaryBorderColor": "#2e2e2e", "lineColor": "#8c8c8c", "fontFamily": "Geist, Inter, system-ui, sans-serif"}}}%%
+flowchart LR
+    A[You add documents] --> B[VAULT reads them on this computer]
+    B --> C[It looks for gaps in what it knows]
+    C --> D[It asks you: what does PV mean?]
+    D --> E[Your answer goes into this project's brain]
+    E --> B
+    B --> F[Training checks it got better]
+    classDef warn fill:#0c0c0c,stroke:#f0525f,color:#f5f5f5;
+    class C warn;
+```
+
 ## Results
 
 Measured on 150 fictional files with 12 planted problems, scored against ground truth by `python -m evaluation.run_eval`. Held-out split of 45 files that were never used to write prompts:
@@ -123,13 +151,20 @@ The rules baseline is kept for comparison and offline tests and is labelled "not
 
 | Working and tested | Written, not yet run | Next |
 |---|---|---|
-| One-command start · Demo and Real modes · Password and one-click demo sign-in · Local Meta Llama extraction · Parallel lanes with retries, cancel and resume · Rating, quantity and material conflicts with verified quotes · Plain-English questions with checked citations · Training: graded test, suggested rules, re-test · Approvals with copy-only export · Security tests, Semgrep, Trivy and ZAP in CI · 113 automated tests and 18 browser tests | Meta Model API (Muse Spark) lane, waiting for an API key · OCR for scanned pages | Final evaluation on frozen code (Nov 1) · Demo video (3 minutes) |
+| One-command start · One-click Meta model installs sized to the machine · Demo and Real modes · Password and one-click demo sign-in · Local Meta Llama extraction · PDF, Word, Excel, PowerPoint, text and CSV · Parallel lanes with retries, cancel and resume · Rating, quantity and material conflicts with verified quotes · Plain-English questions with checked citations · A brain per collection that asks about its gaps, with a map · Training: graded test, suggested rules, re-test · Approvals with copy-only export · Table export (CSV, JSON) · Security tests, Semgrep, Trivy and ZAP in CI · 150+ automated tests and 21 browser tests | In review: encrypted move to a new computer, and redacted share packs for outside parties · Meta Model API (Muse Spark) lane, waiting for an API key · Reading photos and scans, waiting for the Llama 3.2 Vision download | Final evaluation on frozen code (Nov 1) · Demo video (3 minutes) |
 
 Plans in detail: [docs/MASTER_BLUEPRINT.md](docs/MASTER_BLUEPRINT.md) and [coordination/TASKS.md](coordination/TASKS.md).
 
-## Run it
+## Set it up
 
-You need Python 3.11+ and Node 20+. For the real AI, also install [Ollama](https://ollama.com/download) and run `ollama pull llama3` once (about 4.7 GB). Without it, VAULT still runs, using the rules baseline, which is labelled "not AI".
+You need Python 3.11+ and Node 20+. For the real AI you also need [Ollama](https://ollama.com/download), the open-source program that runs Meta's models on your own computer. Without it, VAULT still runs, using the rules baseline, which is labelled "not AI".
+
+1. **Start VAULT** with the one command below. It installs what is missing and opens http://localhost:3000.
+2. **Choose Demo or Real.** Demo opens a fictional engineering archive at once; Real starts empty, with password sign-in.
+3. **Let it check your computer.** The Overview shows your graphics card and memory, which Meta models fit, and an **Install the recommended set** button. Models download once; after that VAULT works with the network unplugged.
+4. **Add documents** on Set up a run: drop files, or point it at a folder. PDF, Word, Excel, PowerPoint, text, CSV and images are accepted.
+5. **Read them** with one button, and watch the live run board.
+6. **Check the quality** on Training before trusting it, then **teach it** on Brain.
 
 **One command:**
 
@@ -163,6 +198,36 @@ To rehearse the demo from a clean state, run `./scripts/demo_reset.sh` (or `.\sc
 
 Docker: `docker compose up --build` (binds to 127.0.0.1 only). See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
+## What hardware do you need?
+
+VAULT's speed depends on **how many pages of text** it reads, not on how many gigabytes the files take up. A 5 GB scanned drawing set and a 5 KB memo can hold the same text. Videos are not read yet.
+
+**Measured on a laptop:** Meta Llama 3 8B on an RTX 5070 Laptop GPU (8 GB) with 32 GB of RAM read 165 single-page documents in 528 seconds. That is about **19 pages a minute** (`evaluation/results/v2/ollama-20261029-004818.json`). The rules baseline (not AI) reads 150 documents in about 2 seconds.
+
+**Planning guide.** These estimates are not measured. They take the laptop figure above and multiply it by how many copies of the model fit in each machine's graphics memory, using VAULT's own sizing rule (about 6.1 GB per Llama 3 8B copy). Faster cards will do better than this. Before a real run, VAULT measures your machine on a sample and gives its own estimate, then compares the finished run with it.
+
+| Machine | Example | Graphics memory | RAM | Model | Copies at once | Pages a minute (estimate) | 10,000 pages | 1 million pages |
+|---|---|---|---|---|---|---|---|---|
+| Laptop | RTX 4060 to 5070 | 8 GB | 16–32 GB | Llama 3 8B | 1 | ~19 (measured) | ~9 hours | ~37 days |
+| Workstation | RTX 4090 | 24 GB | 64 GB | Llama 3 8B | 3 | ~55 | ~3 hours | ~13 days |
+| Small server | 1× A100 or H100 | 80 GB | 256 GB | Llama 3 8B | 12 | ~230 | ~45 minutes | ~3 days |
+| Large server | 4× H100 | 4 × 80 GB | 512 GB+ | Llama 3 8B | 48 | ~900 | ~11 minutes | ~19 hours |
+
+How to read it:
+- **A terabyte:** work out the pages first. Typical office PDFs hold very roughly 10 to 50 pages per megabyte of file. A terabyte of mixed office documents might be 10 to 50 million pages, which is weeks on a large server today. Run VAULT's estimate on a sample before committing.
+- **Disk:** VAULT keeps a sealed copy of every original, plus its database and index. Plan on at least **twice the size of the archive** in free space.
+- **RAM:** 16 GB is enough for a laptop trial. Use 64 GB or more when many copies run at once, or with big archives.
+- **No graphics card:** it works, but expect a page every few seconds at best. Use Llama 3.2 3B and leave it overnight.
+- **Moving to a bigger machine later:** `vault transfer export` packs everything into one encrypted file, and `vault transfer import` restores it on the new machine. This feature is in review ([PR #72](https://github.com/F0rger123/vault-hackathon-2026/pull/72)).
+
+## Keep it private
+
+VAULT binds to `127.0.0.1` by default, so only the computer it runs on can reach it. That is the right choice for one person.
+
+For a team, run it on a company server on the internal network, behind a reverse proxy with HTTPS (for example Caddy or nginx), and list the server's name in `VAULT_ALLOWED_HOSTS`. Never expose it to the internet. Remote Meta models stay off unless an administrator turns them on, and even then each job must be confirmed and restricted files stay local.
+
+Pen-testing it yourself with open-source tools: [docs/PENTEST_GUIDE.md](docs/PENTEST_GUIDE.md).
+
 <details>
 <summary><b>Repository map</b></summary>
 
@@ -170,7 +235,7 @@ Docker: `docker compose up --build` (binds to 127.0.0.1 only). See [docs/DEPLOYM
 |---|---|
 | `backend/` | FastAPI service: ingestion, model providers, agents, workers, search, security, storage |
 | `cli/` | The `vault` command-line tool |
-| `frontend/` | Next.js interface (six sheets) |
+| `frontend/` | Next.js interface (eight screens) |
 | `generator/` | Deterministic fictional dataset generator |
 | `data/synthetic/v1/` | 150 generated files and the ground-truth manifest |
 | `evaluation/` | Scoring against ground truth, plus every result |

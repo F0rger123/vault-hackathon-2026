@@ -21,12 +21,12 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 | F05 Parallel Processing | 9 | 8 | 0 | 0 | 0 | 0 | 1 | 0 |
 | F06 Search & Investigation | 6 | 5 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F07 Teaching & Corrections | 8 | 7 | 0 | 0 | 0 | 1 | 0 | 0 |
-| F08 Actions & Organization | 6 | 5 | 1 | 0 | 0 | 0 | 0 | 0 |
+| F08 Actions & Organization | 6 | 6 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F09 Security | 11 | 10 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F10 User Interface | 12 | 12 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F11 Synthetic Data & Evaluation | 7 | 6 | 0 | 1 | 0 | 0 | 0 | 0 |
-| F12 Deployment & Submission | 10 | 7 | 0 | 0 | 0 | 2 | 1 | 0 |
-| **Total** | **105** | **90** | **2** | **1** | **1** | **8** | **3** | **0** |
+| F12 Deployment & Submission | 11 | 7 | 1 | 0 | 0 | 2 | 1 | 0 |
+| **Total** | **106** | **91** | **2** | **1** | **1** | **8** | **3** | **0** |
 
 **Recorded evidence used below**
 
@@ -898,7 +898,7 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 
 #### F08.6 — Share packs: redacted copies for an outside party, with a report
 
-- **Priority:** P1 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F08.2, F08.3
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F08.2, F08.3
 - **Description:** Luke asked (2026-10-29) for the assistant to make a copy for someone outside, black things out, and say what was left out and why. It is described in plain words or filters, planned as a proposal, approved by an admin, and written as clean redacted PDFs plus a report.
 - **Implementation scope:** `backend/workers/share_pack.py`, `backend/api/routes_share.py`, `frontend/src/components/share-pack.tsx` on Approvals. `reportlab` moved to runtime dependencies.
 - **Verification evidence (2026-10-29):** `tests/integration/test_share_pack.py`, 4 tests:
@@ -910,7 +910,7 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
   - permissions: viewer 403, no token 401, unknown collection 404;
   - plain words ("project Alpha, hide names, prices and \"PV-1001\"") become the right settings;
   - dates and part numbers are not taken for phone numbers.
-- **Blockers:** this writes files, so Luke approves the merge.
+- **Merge:** Luke approved on 2026-10-30 ("merge PR #72 and PR #74 now").
 
 ## F09 — Security
 
@@ -1328,6 +1328,24 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
   - On this laptop, `npx next telemetry status` reported telemetry **on** before the change, and "No data will be collected from your machine" with `NEXT_TELEMETRY_DISABLED=1`.
   - `tests/unit/test_no_telemetry.py`: the launcher sets the variable for every child process, and both Dockerfile stages set it.
   - `docs/DEPLOYMENT.md` tells people running `npm` themselves how to turn it off.
+
+#### F12.11 — Move VAULT to a new computer in one encrypted file
+
+- **Priority:** P1 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F12.1
+- **Description:** Luke asked (2026-10-29) for a safe way to move everything to a bigger computer. `vault transfer export | verify | import` writes and restores one encrypted pack: the database, with the brains, users and audit log, and every original.
+- **Implementation scope:** `backend/core/transfer.py`, `cli/main.py`, `docs/DEPLOYMENT.md`. New dependency: `cryptography`.
+- **Verification evidence (2026-10-29):**
+  - **`tests/security/test_transfer.py`, 14 tests:**
+    - a round trip restores documents, readings and brain entries, and the contents are not readable inside the pack;
+    - the API key travels only when asked;
+    - a wrong passphrase, a flipped bit, a truncated pack and a non-pack file are each refused, and leave nothing behind;
+    - a folder that is not empty is never overwritten;
+    - a short passphrase is refused;
+    - entries such as `../`, absolute paths, Windows paths and unexpected names are refused;
+    - a manifest mismatch or a missing file is refused;
+    - weak or huge key settings in the header are refused.
+  - **`tests/integration/test_cli.py::test_transfer_moves_the_vault_with_one_passphrase`:** export, verify, a wrong passphrase, and import through the real CLI.
+- **Blockers:** this is file handling and cryptography, so Luke approves the merge.
 
 #### F12.1 — Command-line interface
 - **Description:** `vault init`, `token`, `ingest`, `hardware`, `providers`, `estimate`, `process`, `search`, `findings`, `serve`.
