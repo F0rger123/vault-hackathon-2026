@@ -17,7 +17,7 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 | F01 Project Foundation | 10 | 9 | 1 | 0 | 0 | 0 | 0 | 0 |
 | F02 File Ingestion | 7 | 6 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F03 Hardware & Collection Analysis | 6 | 6 | 0 | 0 | 0 | 0 | 0 | 0 |
-| F04 AI Model System | 10 | 6 | 0 | 0 | 1 | 2 | 1 | 0 |
+| F04 AI Model System | 11 | 7 | 0 | 0 | 1 | 2 | 1 | 0 |
 | F05 Parallel Processing | 9 | 8 | 0 | 0 | 0 | 0 | 1 | 0 |
 | F06 Search & Investigation | 6 | 5 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F07 Teaching & Corrections | 6 | 5 | 0 | 0 | 0 | 1 | 0 | 0 |
@@ -26,7 +26,7 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 | F10 User Interface | 12 | 12 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F11 Synthetic Data & Evaluation | 7 | 6 | 0 | 1 | 0 | 0 | 0 | 0 |
 | F12 Deployment & Submission | 9 | 6 | 0 | 0 | 0 | 2 | 1 | 0 |
-| **Total** | **97** | **83** | **1** | **1** | **1** | **8** | **3** | **0** |
+| **Total** | **98** | **84** | **1** | **1** | **1** | **8** | **3** | **0** |
 
 **Recorded evidence used below**
 
@@ -475,6 +475,19 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 - **Verification evidence:** Not started; needs API key or local model download approval.
 
 ## F05 — Parallel Processing
+
+#### F04.11 — Fill quantities and materials the model left empty
+
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F04.5, F06.5
+- **Description:** After an AI model answers, fill only empty quantity and material fields, from a labelled value on the part's own line or table row. Each filled value gets an evidence quote. The model's values are never overridden, and the prompt is unchanged.
+- **Implementation scope:** `backend/providers/fill_fields.py`; `process_document` applies it for AI providers and reports `fields_filled_from_text`.
+- **Acceptance criteria:** Llama 3 finds the planted quantity conflicts on v2, with no loss in rating accuracy.
+- **Required tests:** `tests/unit/test_fill_fields.py`; a Llama 3 run on v2.
+- **Blockers:** none
+- **Verification evidence (2026-10-29):**
+  - **Unit tests:** 2 tests: only empty fields are filled, with quotes; the model's material is kept; a part with no labelled quantity stays empty.
+  - **Llama 3 on v2:** quantity conflicts 0 to 5 of 5 (precision 1.0); rating conflicts 10 of 10; held-out rating accuracy 0.823 both before and after. File `evaluation/results/v2/ollama-20261029-004818.json`.
+  - **Overall:** pytest 115 passed.
 
 #### F05.1 — Durable job and job-item records
 - **Description:** Jobs and items persisted in SQLite with status, attempts, errors and durations.

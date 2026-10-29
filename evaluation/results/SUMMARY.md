@@ -95,3 +95,14 @@ Files are in `evaluation/results/fresh-seed-2027/`. The dataset was generated wi
 - **Safety held throughout:** the model only ever picked patterns from the allowed list. A request containing `../../Windows/System32` produced `unsupported`. Any answer outside the list is rejected in code anyway.
 - **Scope of these numbers:** they come from 16 hand-written requests, not a benchmark.
 
+## Filling empty quantities from the part's own line (F04.11, 2026-10-29)
+
+`v2/ollama-20261029-004818.json`: Llama 3 8B on dataset v2, with the committed prompt unchanged. After the model answers, VAULT fills any quantity or material the model left empty, using a labelled value ("quantity 4", or a qty or material column) on the same line as that part number. Every filled value carries a quote that is checked against the page.
+
+| Llama 3 on v2 | Rating conflicts | Material | Quantity | Held-out rating accuracy |
+|---|---|---|---|---|
+| Before (prompt v3 alone) | 10 / 10 | 5 / 5 | 0 / 5 | 0.823 |
+| With the fill step | **10 / 10**, precision 1.0 | 5 / 5 | **5 / 5**, precision 1.0 | 0.823 (unchanged) |
+
+This fixes the gap found in F06.5 without the prompt change that broke ratings. The model's own values are never overridden.
+
