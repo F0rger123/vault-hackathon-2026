@@ -314,6 +314,33 @@ Really processes a random sample with the chosen provider (results are saved as 
 - **Suggestions:** rules from practice-set mistakes, each 100% precise on the practice set: `[{document_id, field, value, when_contains, fixes_train_docs}]`.
 - **Apply:** publishes each rule as a correction with a new policy version, and returns `{applied: [...]}`. Re-read the collection to see the effect.
 
+### `GET /collections/{collection_id}/brain` (F07.7)
+- **Permission:** `documents:read`
+- **Response 200:**
+  - **Profile:** `documents`, `read`, `read_by`, `doc_types` (counts), `projects`, `parts`, `parties`, `markings` (each `[{"name", "documents"}]`), `date_range`, `quotes_verified`.
+  - **`taught`:** counts of `meanings`, `instructions`, `rules` and `examples`.
+  - **`knowledge`:** `[{"id", "kind": "meaning"|"instruction", "term", "text", "source", "created_by", "created_at"}]`.
+  - **`questions`:** `[{"id": "<16 hex>", "kind": "marking"|"term"|"doc_type"|"project"|"check", "subject", "question", "document_id", "choices"}]`.
+- Everything is scoped to this one collection. Rules and examples taught in another collection are not counted or used.
+- **Errors:** 401, 403, 404
+
+### `GET /collections/{collection_id}/brain/graph` (F07.8)
+- **Permission:** `documents:read`
+- **Response 200:** `{"nodes": [{"id": "doc:12", "kind": "document"|"project"|"doc_type"|"part"|"marking", "label", "weight", "document_id"?, "conflict"?}], "edges": [{"source", "target"}], "documents_total", "documents_shown"}`. At most 400 documents and 60 parts are included.
+
+### `POST /collections/{collection_id}/brain/knowledge` → 201 · `DELETE /collections/{collection_id}/brain/knowledge/{knowledge_id}` (F07.7)
+- **Permission:** `corrections:create`
+- **Body:** `{"kind": "meaning", "term": "QA-7 stamp", "text": "Approved by the quality team"}` or `{"kind": "instruction", "text": "..."}`. Up to 500 characters. Teaching a term again replaces its meaning. Delete retires the entry; it is kept for the record but no longer used. Audited as `brain.teach` and `brain.forget`.
+
+### `POST /collections/{collection_id}/brain/answer` · `POST /collections/{collection_id}/brain/skip` (F07.7)
+- **Permission:** `corrections:create`
+- **Body:** `{"gap_id": "<id from questions>", "answer": "..."}`. Only open questions are accepted (404 otherwise).
+- **Effect by question kind:**
+  - Markings and terms become meanings.
+  - Document type and project answers become a correction plus a labelled example; a document type must be a valid type (422 otherwise).
+  - Check questions are confirmed, or kept as an instruction.
+- **Response 200:** `{"question", "saved_as": "meaning"|"example"|"instruction"|"confirmed", ...}`. Audited as `brain.answer`.
+
 ### `GET /policies`
 - **Permission:** `documents:read`
 - **Response 200:** `[{"version": 2, "rules": [{"when_contains", "field", "value"}], "created_at": …}]`

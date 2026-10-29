@@ -173,7 +173,7 @@ def save_grade(conn: sqlite3.Connection, report: dict) -> list[dict]:
             "heldout": {f: v["rate"] for f, v in report["fields"]["heldout"].items()},
             "train": {f: v["rate"] for f, v in report["fields"]["train"].items()},
             "conflicts": report["conflicts"],
-            "rules": _rule_count(conn),
+            "rules": _rule_count(conn, report["collection_id"]),
         }
     )
     history = history[-HISTORY_KEEP:]
@@ -189,9 +189,10 @@ def history(conn: sqlite3.Connection, collection_id: int) -> list[dict]:
     return loads(row["value"], []) if row else []
 
 
-def _rule_count(conn: sqlite3.Connection) -> int:
+def _rule_count(conn: sqlite3.Connection, collection_id: int) -> int:
     row = conn.execute("SELECT rules FROM policies ORDER BY version DESC LIMIT 1").fetchone()
-    return len(loads(row["rules"], [])) if row else 0
+    rules = loads(row["rules"], []) if row else []
+    return sum(r.get("collection_id") in (None, collection_id) for r in rules)
 
 
 def suggest_rules(conn: sqlite3.Connection, collection_id: int) -> list[dict]:
@@ -215,6 +216,8 @@ def suggest_rules(conn: sqlite3.Connection, collection_id: int) -> list[dict]:
             )
     existing = {
         (r.get("field"), str(r.get("when_contains", "")).casefold())
+        if r.get("collection_id") in (None, collection_id)
+        else None
         for r in loads(
             (conn.execute("SELECT rules FROM policies ORDER BY version DESC LIMIT 1").fetchone() or {"rules": "[]"})[
                 "rules"

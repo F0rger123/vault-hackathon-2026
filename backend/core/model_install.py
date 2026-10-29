@@ -41,8 +41,8 @@ CATALOG: tuple[CatalogModel, ...] = (
     CatalogModel(
         "llama3.2-vision:11b", "Llama 3.2 Vision 11B", 7.8, "text and images", "Reads photos, stamps and scanned pages"
     ),
-    CatalogModel("llama3.3:70b", "Llama 3.3 70B", 43.0, "text", "Server-class accuracy; needs about 48 GB of memory"),
-    CatalogModel("llama4:scout", "Llama 4 Scout", 67.0, "text and images", "Server-class, reads images; 80 GB or more"),
+    CatalogModel("llama3.3:70b", "Llama 3.3 70B", 43.0, "text", "Server-class accuracy for large archives"),
+    CatalogModel("llama4:scout", "Llama 4 Scout", 67.0, "text and images", "Server-class, reads text and images"),
 )
 BY_NAME = {m.name: m for m in CATALOG}
 VISION = "llama3.2-vision:11b"

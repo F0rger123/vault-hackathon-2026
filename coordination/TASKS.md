@@ -20,13 +20,13 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 | F04 AI Model System | 11 | 7 | 0 | 0 | 1 | 2 | 1 | 0 |
 | F05 Parallel Processing | 9 | 8 | 0 | 0 | 0 | 0 | 1 | 0 |
 | F06 Search & Investigation | 6 | 5 | 0 | 0 | 0 | 1 | 0 | 0 |
-| F07 Teaching & Corrections | 6 | 5 | 0 | 0 | 0 | 1 | 0 | 0 |
+| F07 Teaching & Corrections | 8 | 5 | 2 | 0 | 0 | 1 | 0 | 0 |
 | F08 Actions & Organization | 5 | 5 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F09 Security | 11 | 10 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F10 User Interface | 12 | 12 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F11 Synthetic Data & Evaluation | 7 | 6 | 0 | 1 | 0 | 0 | 0 | 0 |
 | F12 Deployment & Submission | 10 | 7 | 0 | 0 | 0 | 2 | 1 | 0 |
-| **Total** | **102** | **87** | **1** | **1** | **2** | **8** | **3** | **0** |
+| **Total** | **104** | **87** | **3** | **1** | **2** | **8** | **3** | **0** |
 
 **Recorded evidence used below**
 
@@ -762,6 +762,38 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 - **Blockers:** none
 - **Related PR/commit:** branch `luke/F05-agent-orchestrator`
 - **Verification evidence:** `test_examples_are_stored_and_selected_by_similarity` passes. Held-out improvement not yet measured (F07.3).
+
+#### F07.7 — The collection brain: separate per collection, taught in plain words, asks about its gaps
+
+- **Priority:** P1 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F07.2, F07.5
+- **Description:** Luke asked (2026-10-29) for VAULT to build a profile of what it knows, learn "this means that" and plain-language instructions, look for its own gaps and ask about them, and keep separate brains for separate divisions.
+- **Implementation scope:**
+  - `backend/workers/brain.py`: profile, meanings, instructions, gap finder, answers.
+  - Migration 6: the `knowledge` table, additive only.
+  - Rules now carry their collection, and examples are matched only within their collection.
+  - Meanings and instructions go into the reading prompt, and into the Ask prompt for local models only.
+  - `backend/api/routes_brain.py`; the Brain screen at `/brain`.
+- **Acceptance criteria:**
+  - Teaching in one collection never changes readings in another.
+  - Questions come from the real collection.
+  - Answers are kept and used, and answered questions do not come back.
+  - Every route checks its permission and is audited.
+- **Isolation fix found on the way:** before this task, rules and labelled examples applied to **every** collection. One division's teaching would have leaked into another's readings. Older rules without a collection still apply everywhere, so existing results do not change.
+- **Verification evidence (2026-10-29):** `tests/integration/test_brain.py`, 5 tests:
+  - two collections ("nuclear" and "retail"): a rule and meanings taught in one do not reach the other's prompt or readings;
+  - questions from dataset v1: terms such as FL, HX and PV, and documents read as "other";
+  - answering stores a meaning and removes the question, and answering again gives 404;
+  - viewer 403, no token 401, unknown collection 404; skip and forget work;
+  - a document type answer becomes a labelled example, and a bad type gives 422;
+  - taught knowledge is kept apart from rules in the prompt.
+- **Blockers:** the merge needs Luke, because it includes a database migration (additive).
+
+#### F07.8 — Brain map: an interactive graph of documents and what they mention
+
+- **Priority:** P2 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F07.7
+- **Description:** A map of the collection on the Brain screen. Documents cluster around their projects, document types, parts and markings. A person can drag and zoom, filter by kind, and search. Clicking a hub lists its documents, and clicking a document opens it. Parts with conflicting values are red. It is drawn on a canvas with no new dependency. A 3D version would need a 3D library, so it is left for Luke to decide.
+- **Verification evidence (2026-10-29):** `test_brain_graph_links_documents_to_what_they_mention`. Every edge joins existing nodes, and every planted rating conflict is flagged red. On v1 there are 222 items and 737 links.
+
 
 ## F08 — Actions & Organization
 

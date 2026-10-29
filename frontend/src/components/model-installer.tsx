@@ -63,7 +63,7 @@ export function ModelInstaller() {
       </div>
       <p className="text-muted">
         VAULT checked this computer: {data.vram_gb ? `${data.vram_gb} GB of graphics memory` : "no graphics card"} and{" "}
-        {data.ram_gb} GB of memory. Recommended: {data.recommended.join(" and ") || "none fits"}. Downloads come from
+        {data.ram_gb} GB of memory. Recommended: {data.recommended.map((n) => data.models.find((m) => m.name === n)?.title ?? n).join(" and ") || "none fits"}. Downloads come from
         Ollama&apos;s library; your documents never leave this machine.
       </p>
       <ul className="flex flex-col divide-y divide-line rounded-control border border-line" aria-label="Meta models">

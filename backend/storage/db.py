@@ -214,6 +214,22 @@ MIGRATIONS: list[str] = [
     ALTER TABLE users ADD COLUMN password_hash TEXT;
     ALTER TABLE collections ADD COLUMN is_demo INTEGER NOT NULL DEFAULT 0;
     """,
+    # 6: the collection brain (F07.7): meanings and instructions people teach, one set per collection.
+    # Additive only: no existing table or row changes.
+    """
+    CREATE TABLE knowledge (
+        id INTEGER PRIMARY KEY,
+        collection_id INTEGER NOT NULL REFERENCES collections(id),
+        kind TEXT NOT NULL CHECK (kind IN ('meaning', 'instruction')),
+        term TEXT,
+        text TEXT NOT NULL,
+        source TEXT NOT NULL DEFAULT 'person',
+        created_by INTEGER REFERENCES users(id),
+        created_at REAL NOT NULL,
+        retired_at REAL
+    );
+    CREATE INDEX knowledge_collection ON knowledge(collection_id, kind, retired_at);
+    """,
 ]
 
 
