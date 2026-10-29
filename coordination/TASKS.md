@@ -20,13 +20,13 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 | F04 AI Model System | 11 | 7 | 0 | 0 | 1 | 2 | 1 | 0 |
 | F05 Parallel Processing | 9 | 8 | 0 | 0 | 0 | 0 | 1 | 0 |
 | F06 Search & Investigation | 6 | 5 | 0 | 0 | 0 | 1 | 0 | 0 |
-| F07 Teaching & Corrections | 8 | 5 | 2 | 0 | 0 | 1 | 0 | 0 |
+| F07 Teaching & Corrections | 8 | 7 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F08 Actions & Organization | 5 | 5 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F09 Security | 11 | 10 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F10 User Interface | 12 | 12 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F11 Synthetic Data & Evaluation | 7 | 6 | 0 | 1 | 0 | 0 | 0 | 0 |
 | F12 Deployment & Submission | 10 | 7 | 0 | 0 | 0 | 2 | 1 | 0 |
-| **Total** | **104** | **88** | **3** | **1** | **1** | **8** | **3** | **0** |
+| **Total** | **104** | **90** | **1** | **1** | **1** | **8** | **3** | **0** |
 
 **Recorded evidence used below**
 
@@ -774,7 +774,7 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 
 #### F07.7 — The collection brain: separate per collection, taught in plain words, asks about its gaps
 
-- **Priority:** P1 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F07.2, F07.5
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F07.2, F07.5
 - **Description:** Luke asked (2026-10-29) for VAULT to build a profile of what it knows, learn "this means that" and plain-language instructions, look for its own gaps and ask about them, and keep separate brains for separate divisions.
 - **Implementation scope:**
   - `backend/workers/brain.py`: profile, meanings, instructions, gap finder, answers.
@@ -795,11 +795,11 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
   - viewer 403, no token 401, unknown collection 404; skip and forget work;
   - a document type answer becomes a labelled example, and a bad type gives 422;
   - taught knowledge is kept apart from rules in the prompt.
-- **Blockers:** the merge needs Luke, because it includes a database migration (additive).
+- **Merge:** Luke approved on 2026-10-29 ("merge everything"); merged as PR #70.
 
 #### F07.8 — Brain map: an interactive graph of documents and what they mention
 
-- **Priority:** P2 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F07.7
+- **Priority:** P2 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F07.7
 - **Description:** A map of the collection on the Brain screen. Documents cluster around their projects, document types, parts and markings. A person can drag and zoom, filter by kind, and search. Clicking a hub lists its documents, and clicking a document opens it. Parts with conflicting values are red. It is drawn on a canvas with no new dependency. A 3D version would need a 3D library, so it is left for Luke to decide.
 - **Verification evidence (2026-10-29):** `test_brain_graph_links_documents_to_what_they_mention`. Every edge joins existing nodes, and every planted rating conflict is flagged red. On v1 there are 222 items and 737 links.
 
