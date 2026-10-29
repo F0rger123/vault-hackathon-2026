@@ -1,5 +1,7 @@
 FROM node:24-trixie-slim AS build
 WORKDIR /app
+# VAULT sends nothing off the machine, including Next.js usage data.
+ENV NEXT_TELEMETRY_DISABLED=1
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
@@ -9,7 +11,7 @@ RUN npm run build
 
 FROM node:24-trixie-slim
 WORKDIR /app
-ENV NODE_ENV=production
+ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1
 COPY --from=build /app ./
 # The app does not need npm at run time. Removing it drops npm's bundled packages, which image scans flag
 # (docs/SECURITY.md).

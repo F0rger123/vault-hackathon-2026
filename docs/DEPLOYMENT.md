@@ -51,6 +51,8 @@ npm run dev
 
 The UI is at http://localhost:3000. Sign in by pasting a token from `data/runtime/dev_tokens.json`.
 
+**Next.js usage data:** Next.js sends anonymous usage data unless it is turned off. The one-command start (`start.ps1`, `start.sh`) and the Docker image turn it off for you. When you run `npm` yourself, turn it off once per machine with `npx next telemetry disable`, or set `NEXT_TELEMETRY_DISABLED=1`.
+
 ## Demo environment (reset and rehearse)
 
 One command rebuilds the demo from nothing: a fresh database in `data/demo/` (git-ignored), the admin, analyst and viewer users, all 150 synthetic files in the "Halvern Engineering Archive" collection, a finished processing run, and one organization proposal waiting for an administrator.
