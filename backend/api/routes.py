@@ -26,6 +26,7 @@ from backend.core.config import Settings
 from backend.core.estimates import compare as compare_estimate
 from backend.core.estimates import record_estimate
 from backend.core.hardware import estimate_runtime, profile_hardware, recommend_workers
+from backend.core.local_models import local_models
 from backend.core.secrets_store import clear_key, key_status, store_key
 from backend.indexing.investigate import investigate
 from backend.indexing.search import search as run_search
@@ -187,6 +188,14 @@ def revoke(token_id: int, conn=Depends(get_conn), p: Principal = Depends(require
     changed = revoke_token(conn, token_id)
     audit.record(conn, p.username, "token.revoke", "allowed", target=f"token:{token_id}", detail={"changed": changed})
     return next(t for t in list_tokens(conn) if t["id"] == token_id)
+
+
+@router.get("/system/local-models")
+def system_local_models(
+    conn=Depends(get_conn), settings: Settings = Depends(get_settings), _: Principal = Depends(require("system:read"))
+) -> dict:
+    """Installed Ollama models and how many copies of each fit on this machine at once (F03.6)."""
+    return local_models(effective_settings(conn, settings), profile_hardware(settings.data_dir))
 
 
 @router.get("/system/hardware")
