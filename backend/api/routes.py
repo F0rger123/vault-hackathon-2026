@@ -4,7 +4,7 @@ import sqlite3
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 
 from backend.api.deps import effective_settings, get_conn, get_settings, require
 from backend.api.schemas import (
@@ -45,6 +45,7 @@ from backend.workers.jobs import create_process_job
 from backend.workers.layout_request import interpret as interpret_layout
 from backend.workers.processing import process_document
 from backend.workers.proposals import create_proposal, execute_proposal
+from backend.workers.records import COLUMNS, collection_records, to_csv
 
 VERSION = "0.1.0"
 router = APIRouter(prefix="/api/v1")
@@ -720,6 +721,29 @@ def search(
 def findings(collection_id: int, conn=Depends(get_conn), _: Principal = Depends(require("findings:read"))):
     rows = conn.execute("SELECT * FROM findings WHERE collection_id = ? ORDER BY id", (collection_id,)).fetchall()
     return [{**dict(r), "evidence": loads(r["evidence"], [])} for r in rows]
+
+
+@router.get("/collections/{collection_id}/records")
+def export_records(
+    collection_id: int,
+    format: str = Query("json", pattern="^(json|csv)$"),
+    conn=Depends(get_conn),
+    p: Principal = Depends(require("documents:read")),
+):
+    """F08.5: the collection's extractions as a table, one row per part, with source document and page."""
+    name = _row(conn.execute("SELECT name FROM collections WHERE id = ?", (collection_id,)).fetchone())["name"]
+    rows = collection_records(conn, collection_id)
+    audit.record(
+        conn, p.username, "records.export", "allowed", target=f"collection:{collection_id}", detail={"rows": len(rows)}
+    )
+    if format == "json":
+        return {"collection_id": collection_id, "columns": COLUMNS, "count": len(rows), "rows": rows}
+    safe = "".join(ch if ch.isalnum() or ch in "-_" else "-" for ch in name)[:60] or "collection"
+    return Response(
+        to_csv(rows),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="vault-{safe}-records.csv"'},
+    )
 
 
 @router.post("/investigations")

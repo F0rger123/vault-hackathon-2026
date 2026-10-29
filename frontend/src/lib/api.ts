@@ -608,6 +608,22 @@ export async function openOriginal(documentId: number): Promise<void> {
   }
 }
 
+/** Download a collection's extracted records (one row per part, with source document and page) as a file. */
+export async function downloadRecords(collectionId: number, format: "csv" | "json"): Promise<number> {
+  const res = await request(`/collections/${collectionId}/records?format=${format}`);
+  const blob = await res.blob();
+  const name =
+    /filename="([^"]+)"/.exec(res.headers.get("Content-Disposition") ?? "")?.[1] ??
+    `vault-collection-${collectionId}-records.${format}`;
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = name;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  return blob.size;
+}
+
 /** Load every document row of a collection (pages of 500). */
 export async function allDocuments(collectionId: number): Promise<DocumentRow[]> {
   const out: DocumentRow[] = [];

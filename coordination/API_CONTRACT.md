@@ -349,6 +349,21 @@ Matches in `snippet` are wrapped in `[[` and `]]`; render them as highlights and
 `status`: `verified` (every quote found verbatim) or `needs_review`. Findings are recomputed after each processing job. An unknown collection returns `[]`.
 - **Errors:** 401, 403
 
+### `GET /collections/{collection_id}/records` (F08.5)
+- **Permission:** `documents:read`. Each export is written to the audit log as `records.export`.
+- **Query:** `format=json` (default) or `format=csv`.
+- **Response 200 (json):**
+```json
+{"collection_id": 1, "count": 412, "columns": ["document_id", "filename", "sha256", "doc_type", "project", "doc_date",
+  "title", "part_number", "description", "material", "pressure_rating_psi", "quantity", "evidence_page",
+  "evidence_quote", "evidence_verified", "provider", "model", "locality"],
+ "rows": [{"document_id": 12, "filename": "BOR-INS-0001.pdf", "part_number": "PV-5595", "pressure_rating_psi": 300.0,
+           "evidence_page": 1, "evidence_quote": "PV-5595  Gate valve  hydrostatic test at 300 psi  - PASS",
+           "evidence_verified": true, "provider": "ollama", "model": "llama3:latest", "locality": "local"}]}
+```
+One row per part from each document's latest extraction. A processed document with no parts still gets one row. `csv` returns the same columns as `text/csv` with `Content-Disposition: attachment`. Cells that start with `=`, `+`, `-` or `@` are prefixed with `'`, so a spreadsheet does not run them as formulas.
+- **Errors:** 401, 403, 404 (unknown collection), 422 (unknown format)
+
 ### `POST /investigations`
 Answers a natural-language question using only evidence from one collection (F06.4). Retrieval is deterministic: the question is turned into a plan (known project names, part numbers, document-type words, a year, conflict words, remaining search terms), then finding evidence and search hits become numbered sources. A Meta model writes the answer as sentences that cite source numbers; the `heuristic` provider writes a fixed template instead and is labelled `is_ai_model: false`. Every sentence is checked after generation.
 - **Permission:** `search`

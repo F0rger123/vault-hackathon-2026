@@ -66,3 +66,15 @@ test("the Ask panel answers with numbered citations and labels the rule-based pr
   await page.getByRole("button", { name: /^Show source \d+$/ }).first().click();
   await expect(page.locator("[id^=ask-src-]").first()).toBeVisible();
 });
+
+test("exports the extracted records as a CSV table", async ({ page }) => {
+  // F08.5: one row per part, each with the file and page it came from.
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download CSV" }).click();
+  const file = await download;
+  expect(file.suggestedFilename()).toMatch(/^vault-.+-records\.csv$/);
+  const text = await (await file.createReadStream()).toArray().then((c) => Buffer.concat(c).toString("utf8"));
+  expect(text.split("\n")[0]).toContain("part_number");
+  expect(text.split("\n")[0]).toContain("evidence_quote");
+  await expect(page.getByRole("status").filter({ hasText: "Downloaded the CSV file." })).toBeVisible();
+});

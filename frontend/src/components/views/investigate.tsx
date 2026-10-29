@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { vault, type Finding } from "@/lib/api";
+import { downloadRecords, errorText, vault, type Finding } from "@/lib/api";
 import { humanize } from "@/lib/format";
 import { useLoad } from "@/lib/use-load";
 import { AskPanel } from "../ask-panel";
@@ -235,9 +235,49 @@ export function InvestigateView() {
               )}
             </div>
           </Panel>
+          {collection && <ExportPanel collectionId={collection.id} />}
         </div>
       </div>
       <DocumentDrawer documentId={openDoc} onClose={close} />
     </>
+  );
+}
+
+/** F08.5: take the extracted facts out as a table, one row per part, each with its source file and page. */
+function ExportPanel({ collectionId }: { collectionId: number }) {
+  const [busy, setBusy] = useState<"csv" | "json" | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const run = async (format: "csv" | "json") => {
+    setBusy(format);
+    setMessage(null);
+    try {
+      await downloadRecords(collectionId, format);
+      setMessage(`Downloaded the ${format.toUpperCase()} file.`);
+    } catch (e) {
+      setMessage(errorText(e));
+    } finally {
+      setBusy(null);
+    }
+  };
+  return (
+    <Panel title="Export as a table" className="mt-6">
+      <p className="mb-3 text-sm text-muted">
+        One row per part: document type, project, date, rating, material and quantity, with the file, page and quote each
+        value came from. Opens in Excel or any database tool.
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <Button onClick={() => run("csv")} busy={busy === "csv"} disabled={busy !== null}>
+          Download CSV
+        </Button>
+        <Button onClick={() => run("json")} busy={busy === "json"} disabled={busy !== null}>
+          Download JSON
+        </Button>
+      </div>
+      {message && (
+        <p role="status" className="mt-3 text-sm text-muted">
+          {message}
+        </p>
+      )}
+    </Panel>
   );
 }

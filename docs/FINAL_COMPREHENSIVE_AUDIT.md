@@ -137,7 +137,7 @@ All runs used a temporary data folder and the real FastAPI app, through `TestCli
 | Capability | Status | Evidence |
 |---|---|---|
 | Fixed extraction schema with validation | VERIFIED WORKING | F04.4 |
-| Export of the records as CSV or JSON, with provenance | NOT IMPLEMENTED | F08.5 (raised to P1 by this audit) |
+| Export of the records as CSV or JSON, with provenance | VERIFIED WORKING (added after this audit) | F08.5: `GET /collections/{id}/records`, Export panel on Investigate |
 | Schema proposals and record de-duplication | INTENTIONALLY DEFERRED | Roadmap |
 
 ### F08 Hardware profiling
