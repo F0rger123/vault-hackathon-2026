@@ -5,6 +5,10 @@ import { signedIn } from "./helpers";
 test("upload five files, start a rule-based run and watch it complete", async ({ page }) => {
   await signedIn(page, "analyst", "/setup");
   await expect(page.getByRole("heading", { name: "Set up a run" })).toBeVisible();
+  // F12.9 and F03.6: the one-button start and the local-models card are the first things on the page.
+  await expect(page.getByRole("heading", { name: "Quick start" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "This computer" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Read everything/ })).toBeEnabled();
 
   const files = Array.from({ length: 5 }, (_, i) => ({
     name: `e2e-note-${i + 1}.txt`,
@@ -18,6 +22,7 @@ test("upload five files, start a rule-based run and watch it complete", async ({
   // Measuring the machine is an administrator's job; analysts are told so instead of seeing the button.
   await expect(page.getByRole("main")).toContainText("Only administrators can run a measurement.");
 
+  await page.getByText("More options: teach by example").click();
   await page.getByRole("combobox", { name: "Model" }).first().selectOption({ label: "Rules baseline" });
   await page.getByRole("button", { name: "Start run" }).click();
 
@@ -30,6 +35,7 @@ test("upload five files, start a rule-based run and watch it complete", async ({
 
 test("an administrator measures this machine with real stored documents", async ({ page }) => {
   await signedIn(page, "admin", "/setup");
+  await page.getByText("More options: teach by example").click();
   const rules = page.getByRole("row", { name: /Rules baseline/ });
   await expect(rules).toContainText("Not measured yet");
   await rules.getByRole("button", { name: "Measure" }).click();

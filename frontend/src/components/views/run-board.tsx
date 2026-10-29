@@ -270,7 +270,7 @@ function StatusStrip({
             {job.cancel_requested > 0 && running && <Tag tone="amber">Stopping after current documents</Tag>}
           </div>
           <div className="mt-3">
-            <Meter value={finished} max={job.total} label="Run progress" tone={running ? "blue" : "green"} />
+            <Meter value={finished} max={job.total} label="Run progress" tone={running ? "blue" : "green"} running={running} />
           </div>
           <p className="mt-2 text-sm text-muted">
             <span className="font-medium text-ink tabular-nums">{formatNumber(job.done)}</span> of{" "}

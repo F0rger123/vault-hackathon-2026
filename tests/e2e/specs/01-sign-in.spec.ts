@@ -8,6 +8,7 @@ test("one-click demo sign-in opens the overview in Demo mode", async ({ page }) 
   await expect(page.getByText("No API key or internet account needed")).toBeVisible();
   await page.getByRole("button", { name: "Demo: analyst" }).click();
   await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Getting started" })).toBeVisible();
   await expect(page.getByRole("main")).toContainText(COLLECTION);
   await expect(page.getByRole("note")).toContainText("Demo mode");
 

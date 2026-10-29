@@ -25,6 +25,8 @@ def main() -> int:
         "VAULT_DATA_DIR": str(DATA),
         "VAULT_ALLOW_REMOTE_INFERENCE": "false",
         "VAULT_DEMO_LOGIN": "true",
+        # The browser tests never depend on a local Ollama: reading uses the rules baseline everywhere.
+        "VAULT_OLLAMA_URL": "http://127.0.0.1:9",
         "VAULT_CORS_ORIGINS": f"http://localhost:{WEB_PORT},http://127.0.0.1:{WEB_PORT}",
     }
     serve = [sys.executable, "-m", "uvicorn", "backend.main:create_app", "--factory", "--host", "127.0.0.1"]
