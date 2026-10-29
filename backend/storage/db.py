@@ -209,6 +209,11 @@ MIGRATIONS: list[str] = [
     ALTER TABLE api_tokens ADD COLUMN revoked_at REAL;
     ALTER TABLE api_tokens ADD COLUMN last_used_at REAL;
     """,
+    # 5: easy start (F10.11): optional password sign-in, and demo collections kept apart from real ones.
+    """
+    ALTER TABLE users ADD COLUMN password_hash TEXT;
+    ALTER TABLE collections ADD COLUMN is_demo INTEGER NOT NULL DEFAULT 0;
+    """,
 ]
 
 

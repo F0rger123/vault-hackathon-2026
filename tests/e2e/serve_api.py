@@ -24,6 +24,7 @@ def main() -> int:
         **os.environ,
         "VAULT_DATA_DIR": str(DATA),
         "VAULT_ALLOW_REMOTE_INFERENCE": "false",
+        "VAULT_DEMO_LOGIN": "true",
         "VAULT_CORS_ORIGINS": f"http://localhost:{WEB_PORT},http://127.0.0.1:{WEB_PORT}",
     }
     serve = [sys.executable, "-m", "uvicorn", "backend.main:create_app", "--factory", "--host", "127.0.0.1"]

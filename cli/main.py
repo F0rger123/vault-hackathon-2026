@@ -79,6 +79,26 @@ def token(
         audit.record(conn, ACTOR, "token.issue", "allowed", target=f"user:{username}", detail={"ttl_days": ttl_days})
 
 
+@app.command("set-password")
+def set_password_cmd(username: str):
+    """Set a password so the user can sign in with username and password instead of a token."""
+    from backend.security.login import set_password
+
+    password = getpass.getpass(f"New password for {username}: ")
+    if password != getpass.getpass("Repeat it: "):
+        typer.echo("passwords do not match", err=True)
+        raise typer.Exit(1)
+    _, cm = _db()
+    with cm as conn:
+        try:
+            set_password(conn, username, password)
+        except (ValueError, LookupError) as exc:
+            typer.echo(str(exc), err=True)
+            raise typer.Exit(1) from exc
+        audit.record(conn, ACTOR, "user.set_password", "allowed", target=f"user:{username}")
+    typer.echo(f"password set for {username}")
+
+
 @app.command()
 def tokens():
     """List API tokens (metadata only; token values are never stored or shown)."""

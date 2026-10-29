@@ -8,6 +8,21 @@ from pydantic import BaseModel, Field
 class CollectionCreate(BaseModel):
     name: str = Field(min_length=1, max_length=80, pattern=r"^[\w .-]+$")
     description: str = Field(default="", max_length=500)
+    # Demo collections hold fictional data and are shown only in Demo mode (F10.11).
+    is_demo: bool = False
+
+
+class PasswordLogin(BaseModel):
+    username: str = Field(min_length=1, max_length=64)
+    password: str = Field(min_length=1, max_length=200)
+
+
+class DemoLogin(BaseModel):
+    role: Literal["admin", "analyst", "viewer"]
+
+
+class ApiKeyUpdate(BaseModel):
+    key: str = Field(min_length=1, max_length=220)
 
 
 class ImportPath(BaseModel):

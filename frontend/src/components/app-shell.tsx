@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useState, useSyncExternalStore, type ReactNode } from "react";
-import { setToken } from "@/lib/api";
+import { errorText, setToken, vault, type AuthOptions, type SignedIn } from "@/lib/api";
 import { SessionGate, SessionProvider, useMaybeSession, useSession } from "./session";
 import { Button, cx, inputClass } from "./ui";
 
@@ -111,9 +111,59 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
+/** Demo mode shows only fictional collections; Real mode shows only the organization's own (F10.11). */
+function ModeSwitch() {
+  const { mode, setMode } = useSession();
+  return (
+    <div role="group" aria-label="Data mode" className="grid grid-cols-2 gap-1 rounded-control border border-line p-0.5">
+      {(
+        [
+          ["demo", "Demo"],
+          ["real", "Real"],
+        ] as const
+      ).map(([m, label]) => (
+        <button
+          key={m}
+          type="button"
+          aria-pressed={mode === m}
+          onClick={() => setMode(m)}
+          className={cx(
+            "rounded-[3px] px-2 py-1 text-xs font-medium",
+            mode === m ? (m === "demo" ? "bg-amber text-paper" : "bg-ink text-panel") : "text-muted hover:text-ink",
+          )}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function DemoBanner() {
+  const session = useMaybeSession();
+  if (!session || session.mode !== "demo") return null;
+  return (
+    <p className="mb-5 rounded-control border border-amber/40 bg-amber/10 px-3 py-2 text-sm" role="note">
+      <span className="font-medium">Demo mode:</span> every document here is fictional. Switch to{" "}
+      <button type="button" className="font-medium underline underline-offset-4" onClick={() => session.setMode("real")}>
+        Real
+      </button>{" "}
+      to work with your own documents.
+    </p>
+  );
+}
+
 function CollectionPicker({ id }: { id: string }) {
-  const { collections, collection, setCollectionId } = useSession();
-  if (!collections.length) return <p className="text-xs text-muted">No collections yet.</p>;
+  const { collections, collection, setCollectionId, mode } = useSession();
+  if (!collections.length)
+    return (
+      <p className="text-xs text-muted">
+        No {mode} collections yet.{" "}
+        <Link href="/setup" className="underline underline-offset-4">
+          Create one
+        </Link>
+      </p>
+    );
   return (
     <div className="flex flex-col gap-1">
       <label htmlFor={id} className="text-xs text-muted">
@@ -228,6 +278,7 @@ function Chrome({ children }: { children: ReactNode }) {
           </div>
           <NavLinks />
           <div className="mt-auto flex flex-col gap-4 border-t border-line px-2 pt-4">
+            <ModeSwitch />
             <CollectionPicker id="collection-rail" />
             <UserBox />
             <ThemeToggle />
@@ -253,6 +304,7 @@ function Chrome({ children }: { children: ReactNode }) {
             <nav id="mobile-nav" aria-label="Main" className="border-t border-line bg-paper px-2 pb-4 pt-2">
               <NavLinks onNavigate={() => setOpen(false)} />
               <div className="mt-3 flex flex-col gap-3 border-t border-line px-2 pt-3">
+                <ModeSwitch />
                 <CollectionPicker id="collection-menu" />
                 <UserBox />
                 <ThemeToggle />
@@ -263,6 +315,7 @@ function Chrome({ children }: { children: ReactNode }) {
       )}
 
       <main id="main" className={cx("min-w-0", ready && "vault-glow mx-auto w-full max-w-[1480px] px-4 pb-16 pt-6 sm:px-6 lg:px-10 lg:pt-9")}>
+        {ready && <DemoBanner />}
         {children}
       </main>
     </div>
@@ -270,44 +323,142 @@ function Chrome({ children }: { children: ReactNode }) {
 }
 
 function SignIn({ onSignedIn, message }: { onSignedIn: () => void; message?: string }) {
-  const [value, setValue] = useState("");
+  const [options, setOptions] = useState<AuthOptions | null>(null);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [token, setTokenValue] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+
+  useEffect(() => {
+    vault.authOptions().then(setOptions, () => setOptions({ demo_login: false, password_login: false }));
+  }, []);
+
+  const finish = async (label: string, attempt: () => Promise<SignedIn>) => {
+    setBusy(label);
+    setError(null);
+    try {
+      const session = await attempt();
+      setToken(session.token);
+      onSignedIn();
+    } catch (e) {
+      setError(errorText(e));
+    } finally {
+      setBusy(null);
+    }
+  };
+
   return (
-    <div className="grid min-h-dvh place-items-center px-4">
-      <form
-        className="w-full max-w-sm rounded-card border border-line bg-panel shadow-lift"
-        onSubmit={(e) => {
-          e.preventDefault();
-          setToken(value.trim());
-          onSignedIn();
-        }}
-      >
+    <div className="grid min-h-dvh place-items-center px-4 py-10">
+      <div className="w-full max-w-sm rounded-card border border-line bg-panel shadow-lift">
         <div className="border-b border-line px-5 py-4">
           <Wordmark />
         </div>
-        <div className="flex flex-col gap-3 px-5 py-5">
-          <h1 className="display text-xl">Sign in</h1>
-          <p className="text-sm text-muted">
-            Paste the API token your administrator gave you. It stays in this browser tab and is cleared when you
-            close it.
-          </p>
+        <div className="flex flex-col gap-4 px-5 py-5">
+          <div>
+            <h1 className="display text-xl">Sign in</h1>
+            <p className="mt-1 text-sm text-muted">
+              No API key or internet account needed. VAULT runs on this computer, with Meta Llama through Ollama.
+            </p>
+          </div>
           {message && <p className="text-sm text-amber">{message}</p>}
-          <label htmlFor="token" className="text-sm font-medium">
-            API token
-          </label>
-          <input
-            id="token"
-            type="password"
-            autoComplete="off"
-            className={cx(inputClass, "font-mono")}
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            required
-          />
-          <Button variant="primary" type="submit" className="mt-1">
-            Sign in
-          </Button>
+          {error && (
+            <p className="text-sm text-redline" role="alert">
+              {error}
+            </p>
+          )}
+
+          {options?.demo_login && (
+            <section aria-labelledby="demo-h" className="flex flex-col gap-2">
+              <h2 id="demo-h" className="text-sm font-medium">
+                Try the demo
+              </h2>
+              <p className="text-xs text-muted">Fictional documents only. Pick a role to see what it can do.</p>
+              <div className="grid grid-cols-3 gap-2">
+                {(["admin", "analyst", "viewer"] as const).map((role) => (
+                  <Button
+                    key={role}
+                    variant={role === "analyst" ? "primary" : "secondary"}
+                    busy={busy === role}
+                    disabled={!!busy}
+                    onClick={() => finish(role, () => vault.demoLogin(role))}
+                  >
+                    Demo: {role}
+                  </Button>
+                ))}
+              </div>
+            </section>
+          )}
+
+          <form
+            className="flex flex-col gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              finish("password", () => vault.login(username.trim(), password));
+            }}
+          >
+            <h2 className="text-sm font-medium">{options?.demo_login ? "Or sign in with your account" : "Your account"}</h2>
+            <label htmlFor="username" className="text-xs text-muted">
+              Username
+            </label>
+            <input
+              id="username"
+              autoComplete="username"
+              className={inputClass}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+            />
+            <label htmlFor="password" className="text-xs text-muted">
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              autoComplete="current-password"
+              className={inputClass}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+            <Button variant={options?.demo_login ? "secondary" : "primary"} type="submit" busy={busy === "password"}>
+              Sign in
+            </Button>
+            {options && !options.password_login && (
+              <p className="text-xs text-muted">
+                No passwords are set yet. An administrator sets one with <code className="font-mono">vault set-password NAME</code>.
+              </p>
+            )}
+          </form>
+
+          <details className="text-sm">
+            <summary className="cursor-pointer text-muted hover:text-ink">Use an API token instead</summary>
+            <form
+              className="mt-2 flex flex-col gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                setToken(token.trim());
+                onSignedIn();
+              }}
+            >
+              <label htmlFor="token" className="text-xs text-muted">
+                API token
+              </label>
+              <input
+                id="token"
+                type="password"
+                autoComplete="off"
+                className={cx(inputClass, "font-mono")}
+                value={token}
+                onChange={(e) => setTokenValue(e.target.value)}
+                required
+              />
+              <Button type="submit">Sign in with token</Button>
+              <p className="text-xs text-muted">It stays in this browser tab and is cleared when you close it.</p>
+            </form>
+          </details>
         </div>
-      </form>
+      </div>
     </div>
   );
 }

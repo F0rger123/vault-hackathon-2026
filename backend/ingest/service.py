@@ -113,12 +113,14 @@ def ingest_bytes(
     return IngestResult(doc_id, safe_name, sha, False, len(pages), media_type)
 
 
-def ensure_collection(conn: sqlite3.Connection, name: str, user_id: int | None, description: str = "") -> int:
+def ensure_collection(
+    conn: sqlite3.Connection, name: str, user_id: int | None, description: str = "", is_demo: bool = False
+) -> int:
     row = conn.execute("SELECT id FROM collections WHERE name = ?", (name,)).fetchone()
     if row:
         return row["id"]
     cur = conn.execute(
-        "INSERT INTO collections (name, description, created_by, created_at) VALUES (?, ?, ?, ?)",
-        (name, description, user_id, now()),
+        "INSERT INTO collections (name, description, created_by, created_at, is_demo) VALUES (?, ?, ?, ?, ?)",
+        (name, description, user_id, now(), int(is_demo)),
     )
     return cur.lastrowid

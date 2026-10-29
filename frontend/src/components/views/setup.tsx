@@ -56,7 +56,7 @@ export function SetupView() {
         description="Four steps: show the model a few correct examples, check what this machine can handle, choose model lanes, then start."
       />
       {!collection ? (
-        <Empty>There is no collection yet. Ask an administrator to create one, then come back to add files.</Empty>
+        <NewCollection />
       ) : (
         <div className="flex flex-col">
           <Library collectionId={collection.id} canUpload={atLeast(me, "analyst")} onUploaded={docs.reload} />
@@ -78,6 +78,58 @@ export function SetupView() {
         </div>
       )}
     </>
+  );
+}
+
+/** First step in Real mode, or whenever the current mode has no collection yet (F10.11). */
+function NewCollection() {
+  const { me, mode, setCollectionId, refresh } = useSession();
+  const [name, setName] = useState(mode === "demo" ? "Demo collection" : "");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  if (!atLeast(me, "analyst"))
+    return <Empty>There is no {mode} collection yet. Ask an analyst or administrator to create one.</Empty>;
+  return (
+    <Panel title={mode === "demo" ? "Create a demo collection" : "Create your first collection"} className="max-w-xl">
+      <p className="mb-3 text-sm text-muted">
+        {mode === "demo"
+          ? "Demo collections hold fictional files, such as data/synthetic/v2/files from this repository."
+          : "A collection is one archive, for example one client or one site. Its files stay on this computer."}
+      </p>
+      <form
+        className="flex flex-col gap-2 sm:flex-row sm:items-end"
+        onSubmit={async (e) => {
+          e.preventDefault();
+          setBusy(true);
+          setError(null);
+          try {
+            const c = await vault.createCollection(name.trim(), mode === "demo");
+            setCollectionId(c.id);
+            refresh();
+          } catch (err) {
+            setError(errorText(err));
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        <Field label="Collection name" htmlFor="new-collection">
+          <input
+            id="new-collection"
+            className={inputClass}
+            value={name}
+            maxLength={80}
+            pattern="[A-Za-z0-9 ._\-]+"
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
+        </Field>
+        <Button type="submit" variant="primary" busy={busy}>
+          Create collection
+        </Button>
+      </form>
+      {error && <Notice className="mt-3">{error}</Notice>}
+    </Panel>
   );
 }
 

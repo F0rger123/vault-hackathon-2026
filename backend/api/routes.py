@@ -8,14 +8,17 @@ from fastapi.responses import FileResponse
 
 from backend.api.deps import effective_settings, get_conn, get_settings, require
 from backend.api.schemas import (
+    ApiKeyUpdate,
     CollectionCreate,
     CorrectionCreate,
     Decision,
+    DemoLogin,
     EstimateRequest,
     ImportPath,
     InvestigationCreate,
     JobCreate,
     LayoutRequest,
+    PasswordLogin,
     ProposalCreate,
     RemoteToggle,
 )
@@ -23,12 +26,14 @@ from backend.core.config import Settings
 from backend.core.estimates import compare as compare_estimate
 from backend.core.estimates import record_estimate
 from backend.core.hardware import estimate_runtime, profile_hardware, recommend_workers
+from backend.core.secrets_store import clear_key, key_status, store_key
 from backend.indexing.investigate import investigate
 from backend.indexing.search import search as run_search
 from backend.ingest.service import ensure_collection, ingest_bytes
 from backend.providers import PROVIDER_NAMES, get_provider
 from backend.providers.base import ProviderError
 from backend.security import audit
+from backend.security import login as signin
 from backend.security.auth import Principal, list_tokens, revoke_token
 from backend.security.files import FileRejected, contained, safe_join
 from backend.storage.db import dumps, loads, now
@@ -81,6 +86,84 @@ def _provider(conn, settings: Settings, name: str | None, confirm_remote: bool, 
 @router.get("/health")
 def health() -> dict:
     return {"status": "ok", "version": VERSION}
+
+
+# ---------- signing in (F10.11) ----------
+
+
+@router.get("/auth/options")
+def auth_options(conn=Depends(get_conn), settings: Settings = Depends(get_settings)) -> dict:
+    """Public: which sign-in methods this server offers, so the sign-in screen can show them."""
+    return {"demo_login": settings.demo_login, "password_login": signin.has_password_users(conn)}
+
+
+@router.post("/auth/login")
+def login(body: PasswordLogin, conn=Depends(get_conn), settings: Settings = Depends(get_settings)) -> dict:
+    if (wait := signin.locked_for(body.username)) > 0:
+        audit.record(conn, body.username[:64], "auth.login", "denied", detail={"reason": "locked"})
+        raise HTTPException(status_code=429, detail=f"too many failed attempts; try again in {int(wait) + 1} s")
+    session = signin.password_login(conn, body.username, body.password, settings.session_ttl_hours)
+    if session is None:
+        audit.record(conn, body.username[:64], "auth.login", "denied", detail={"reason": "wrong credentials"})
+        raise HTTPException(status_code=401, detail="wrong username or password")
+    audit.record(conn, session["username"], "auth.login", "allowed")
+    return session
+
+
+@router.post("/auth/demo-login")
+def demo_login(body: DemoLogin, conn=Depends(get_conn), settings: Settings = Depends(get_settings)) -> dict:
+    if not settings.demo_login:
+        raise HTTPException(status_code=403, detail="demo sign-in is turned off on this server")
+    session = signin.demo_login(conn, body.role, settings.session_ttl_hours)
+    if session is None:
+        raise HTTPException(status_code=404, detail="demo users are not set up; run vault init --demo-users")
+    audit.record(conn, session["username"], "auth.demo_login", "allowed")
+    return session
+
+
+@router.post("/auth/logout")
+def logout(request: Request, conn=Depends(get_conn), p: Principal = Depends(require("system:read"))) -> dict:
+    token = request.headers.get("authorization", "").partition(" ")[2].strip()
+    revoked = signin.revoke_by_token(conn, token)
+    audit.record(conn, p.username, "auth.logout", "allowed")
+    return {"signed_out": revoked}
+
+
+# ---------- Meta Model API key (F10.11) ----------
+
+
+@router.get("/settings/meta-api-key")
+def api_key_status(settings: Settings = Depends(get_settings), _: Principal = Depends(require("system:read"))) -> dict:
+    """Whether a key is configured and where it came from. The key itself is never returned."""
+    return key_status(settings)
+
+
+@router.put("/settings/meta-api-key")
+def set_api_key(
+    body: ApiKeyUpdate,
+    conn=Depends(get_conn),
+    settings: Settings = Depends(get_settings),
+    p: Principal = Depends(require("settings:write")),
+) -> dict:
+    try:
+        store_key(settings, body.key.strip())
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    audit.record(conn, p.username, "settings.meta_api_key", "allowed", detail={"change": "set"})
+    return key_status(settings)
+
+
+@router.delete("/settings/meta-api-key")
+def delete_api_key(
+    conn=Depends(get_conn),
+    settings: Settings = Depends(get_settings),
+    p: Principal = Depends(require("settings:write")),
+) -> dict:
+    removed = clear_key(settings)
+    audit.record(
+        conn, p.username, "settings.meta_api_key", "allowed", detail={"change": "removed" if removed else "none"}
+    )
+    return key_status(settings)
 
 
 @router.get("/me")
@@ -156,7 +239,7 @@ def stats(conn=Depends(get_conn), _: Principal = Depends(require("system:read"))
 def create_collection(
     body: CollectionCreate, conn=Depends(get_conn), p: Principal = Depends(require("collections:create"))
 ) -> dict:
-    cid = ensure_collection(conn, body.name, p.user_id, body.description)
+    cid = ensure_collection(conn, body.name, p.user_id, body.description, body.is_demo)
     audit.record(conn, p.username, "collection.create", "allowed", target=f"collection:{cid}")
     return _row(conn.execute("SELECT * FROM collections WHERE id = ?", (cid,)).fetchone())
 

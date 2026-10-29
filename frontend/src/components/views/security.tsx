@@ -6,7 +6,7 @@ import { dateTime, formatNumber, humanize, providerLabel } from "@/lib/format";
 import { useLoad } from "@/lib/use-load";
 import { useSession } from "../session";
 import { TitleBlock } from "../title-block";
-import { Button, cx, Empty, Figure, LoadError, Notice, Panel, Tag } from "../ui";
+import { Button, cx, Empty, Figure, inputClass, LoadError, Notice, Panel, Tag } from "../ui";
 
 export function SecurityView() {
   const { me } = useSession();
@@ -23,9 +23,114 @@ export function SecurityView() {
         <Summary />
       </div>
       <div className="mt-6">
+        <MetaApiKey isAdmin={isAdmin} />
+      </div>
+      <div className="mt-6">
         <AuditLog />
       </div>
     </>
+  );
+}
+
+const META_LINKS = [
+  ["Meta developer portal: create an API key", "https://dev.meta.ai"],
+  ["Prices and rate limits", "https://dev.meta.ai/docs/pricing-rate-limits"],
+  ["Structured output (how VAULT uses the API)", "https://dev.meta.ai/docs/structured-output"],
+] as const;
+
+/** Paste a Meta Model API key here instead of editing .env (F10.11). The key is never shown again. */
+function MetaApiKey({ isAdmin }: { isAdmin: boolean }) {
+  const status = useLoad("meta-api-key", vault.apiKeyStatus);
+  const [key, setKey] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const save = async (fn: () => Promise<unknown>) => {
+    setBusy(true);
+    setError(null);
+    try {
+      await fn();
+      setKey("");
+      status.reload();
+    } catch (e) {
+      setError(errorText(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Panel title="Meta Model API (optional)">
+      <div className="grid gap-5 lg:grid-cols-2">
+        <div className="flex flex-col gap-2 text-sm">
+          <p>
+            VAULT works without it: Meta Llama runs on this computer through Ollama. Add a key only if you want the
+            hosted Muse Spark model for large runs. It costs money per document and sends document text to
+            api.meta.ai.
+          </p>
+          <ul className="flex flex-col gap-1">
+            {META_LINKS.map(([label, href]) => (
+              <li key={href}>
+                <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue underline underline-offset-4">
+                  {label}
+                </a>
+              </li>
+            ))}
+          </ul>
+          <p className="text-xs text-muted">
+            Even with a key, nothing is sent until an administrator turns on remote inference above, and every run
+            asks for confirmation. Restricted documents are never sent.
+          </p>
+        </div>
+        <div className="flex flex-col gap-2">
+          <p className="text-sm">
+            Status:{" "}
+            {status.data ? (
+              status.data.configured ? (
+                <Tag tone="green">Key saved{status.data.source === "environment" ? " (from .env)" : ""}</Tag>
+              ) : (
+                <Tag>No key</Tag>
+              )
+            ) : (
+              <span className="text-muted">checking</span>
+            )}
+          </p>
+          {isAdmin ? (
+            <form
+              className="flex flex-col gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                save(() => vault.setApiKey(key.trim()));
+              }}
+            >
+              <label htmlFor="meta-key" className="text-xs text-muted">
+                Paste the key (starts with LLM_). It is stored on this computer and never shown again.
+              </label>
+              <input
+                id="meta-key"
+                type="password"
+                autoComplete="off"
+                className={cx(inputClass, "font-mono")}
+                value={key}
+                onChange={(e) => setKey(e.target.value)}
+                required
+              />
+              <div className="flex gap-2">
+                <Button type="submit" variant="primary" busy={busy}>
+                  Save key
+                </Button>
+                {status.data?.source === "vault" && (
+                  <Button type="button" variant="quiet" disabled={busy} onClick={() => save(vault.clearApiKey)}>
+                    Remove key
+                  </Button>
+                )}
+              </div>
+              {error && <Notice>{error}</Notice>}
+            </form>
+          ) : (
+            <p className="text-sm text-muted">Only administrators can add or remove the key.</p>
+          )}
+        </div>
+      </div>
+    </Panel>
   );
 }
 

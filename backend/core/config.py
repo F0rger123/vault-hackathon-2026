@@ -40,6 +40,11 @@ class Settings(BaseSettings):
     # Reuse earlier model answers for unchanged documents in processing jobs (development runs; F04.9).
     response_cache: bool = False
 
+    # One-click sign-in as the demo admin/analyst/viewer. For a laptop showing fictional data only.
+    demo_login: bool = False
+    # Sessions from password or demo sign-in expire after this many hours.
+    session_ttl_hours: float = 12.0
+
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
 
     @property
