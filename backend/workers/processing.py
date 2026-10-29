@@ -7,6 +7,7 @@ import time
 from backend.core.config import Settings
 from backend.providers import apply_policy, get_provider
 from backend.providers.base import Provider, ProviderInfo
+from backend.providers.fill_fields import fill_from_text
 from backend.providers.prompting import detect_injection
 from backend.providers.schema import verify_evidence
 from backend.storage.db import dumps, loads, now
@@ -76,6 +77,10 @@ def process_document(
 
     started = time.perf_counter()
     extraction = provider.extract(pages, doc["filename"], rules, shots)
+    filled = 0
+    if info.is_ai_model:
+        # Labelled quantities and materials the model left empty, taken from the part's own line (F04.11).
+        extraction, filled = fill_from_text(extraction, pages)
     extraction = apply_policy(extraction, pages, rules)
     duration_ms = int((time.perf_counter() - started) * 1000)
 
@@ -117,6 +122,7 @@ def process_document(
         "evidence_count": len(evidence),
         "injection_flags": len(flags),
         "examples_used": len(shots),
+        "fields_filled_from_text": filled,
         "media_type": doc["media_type"],
     }
 
