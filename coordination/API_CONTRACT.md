@@ -456,6 +456,24 @@ Answers a natural-language question using only evidence from one collection (F06
 - **Errors:** 401, 403 (permission, or remote inference disabled), 409 (remote without `confirm_remote`), 422, 502, 503.
 - **Audit:** `proposal.interpret` records the provider and the chosen pattern, never the instruction.
 
+### `POST /share-packs/interpret` (F08.6)
+- **Permission:** `proposals:create`
+- **Body:** `{"collection_id": 1, "instruction": "Everything on Alpha, hide names and prices", "provider": "ollama"}`. Only a local model is used; otherwise rules.
+- **Response 200:** `{"criteria": {"projects", "doc_types", "include_confidential", "redact", "terms"}, "explanation", "by"}`. Creates nothing.
+
+### `POST /share-packs` → 201 (F08.6)
+- **Permission:** `proposals:create`
+- **Body:** `{"collection_id": 1, "recipient": "Buyer Co", "instruction": "...", "criteria": {"projects": ["Alpha"], "doc_types": [], "include_confidential": false, "redact": ["emails", "phone_numbers", "id_numbers", "people_and_companies", "money", "terms"], "terms": ["unit cost"]}}`
+- **Response 201:** a proposal with `kind: "share_pack"`. The plan lists every document as `shared`, with redaction counts, or `left_out`, with a reason.
+  - Pictures and unread documents are always left out.
+  - RESTRICTED, EXPORT-CONTROLLED, CUI and NUCLEAR documents are always left out.
+  - CONFIDENTIAL documents are left out unless `include_confidential` is set.
+- **Approving** it (`POST /proposals/{id}/approve`, admin) writes `exports/share-{id}/`:
+  - redacted PDFs built from the checked text, never the original files;
+  - `share-report.json` and `SHARE-REPORT.md`.
+  - The result adds `left_out` and `redactions`.
+- **Errors:** 401, 403, 404, 422
+
 ### `GET /proposals`
 - **Permission:** `proposals:read` — 50 most recent, newest first.
 

@@ -5,6 +5,7 @@ import { atLeast, errorText, vault, type LayoutSuggestion, type Proposal, type P
 import { dateTime, formatNumber } from "@/lib/format";
 import { useLoad } from "@/lib/use-load";
 import { FolderTree } from "../folder-tree";
+import { SharePanel, SharePlanView } from "../share-pack";
 import { useSession } from "../session";
 import { TitleBlock } from "../title-block";
 import { Button, cx, Empty, Field, inputClass, LoadError, Notice, Panel, Tag } from "../ui";
@@ -37,7 +38,7 @@ export function ApprovalsView() {
       <TitleBlock
         href="/approvals"
         title="Approvals"
-        description="Reorganizing files needs an administrator's approval. Approving exports copies into a new folder; originals are never moved, renamed or changed."
+        description="Reorganizing or sharing files needs an administrator's approval. Approving writes copies into a new folder; originals are never moved, renamed or changed."
       />
       <div className="grid gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
         <Panel title="Propose a new folder layout" className="self-start">
@@ -142,6 +143,16 @@ export function ApprovalsView() {
         </Panel>
 
         <div className="flex min-w-0 flex-col gap-6">
+          {canCreate && collection && (
+            <SharePanel
+              collectionId={collection.id}
+              suggester={suggester}
+              onPlanned={() => {
+                proposals.reload();
+                refresh();
+              }}
+            />
+          )}
           <LoadError error={proposals.error} status={proposals.status} what="proposals" />
           {proposals.data && (
             <section aria-labelledby="pending-h">
@@ -181,7 +192,8 @@ function ProposalCard({ p, canDecide, onDecided }: { p: Proposal; canDecide: boo
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState<"approve" | "reject" | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const items = p.plan.items ?? [];
+  const share = p.kind === "share_pack";
+  const items = share ? [] : ((p.plan.items ?? []) as { document_id: number; filename: string; target: string }[]);
   const folders = new Set(items.map((i) => i.target.split("/").slice(0, -1).join("/"))).size;
 
   const decide = async (d: "approve" | "reject") => {
@@ -211,19 +223,30 @@ function ProposalCard({ p, canDecide, onDecided }: { p: Proposal; canDecide: boo
       }
     >
       <p className="text-sm">{p.instruction}</p>
-      <p className="mt-1 text-sm text-muted">
-        Pattern <span className="font-mono text-[13px] text-ink">{p.plan.pattern}</span>, {formatNumber(items.length)} files into{" "}
-        {formatNumber(folders)} folders. Proposed {dateTime(p.created_at)}.
-      </p>
+      {share ? (
+        <p className="mt-1 text-sm text-muted">
+          Share pack for <span className="text-ink">{p.plan.recipient}</span>. Proposed {dateTime(p.created_at)}.
+        </p>
+      ) : (
+        <p className="mt-1 text-sm text-muted">
+          Pattern <span className="font-mono text-[13px] text-ink">{p.plan.pattern}</span>, {formatNumber(items.length)} files into{" "}
+          {formatNumber(folders)} folders. Proposed {dateTime(p.created_at)}.
+        </p>
+      )}
       {p.status === "executed" && p.result && (
         <p className="mt-2 text-sm">
           Copied <span className="font-semibold tabular-nums">{formatNumber(p.result.copied)}</span> files to{" "}
           <span className="font-mono text-[13px]">{p.result.export_dir}</span>
-          {p.decided_at ? ` on ${dateTime(p.decided_at)}` : ""}. The originals were not touched.
+          {p.decided_at ? ` on ${dateTime(p.decided_at)}` : ""}.{" "}
+          {share
+            ? `Redacted copies only; ${p.result.left_out ?? 0} left out, ${p.result.redactions ?? 0} items blacked out. SHARE-REPORT.md lists every reason.`
+            : "The originals were not touched."}
         </p>
       )}
       {p.status === "rejected" && p.decided_at && <p className="mt-2 text-sm text-muted">Rejected {dateTime(p.decided_at)}. Nothing was copied.</p>}
 
+      {share && p.plan.items && p.plan.summary && <SharePlanView plan={p.plan as Parameters<typeof SharePlanView>[0]["plan"]} />}
+      {!share && (
       <details className="mt-3 overflow-hidden rounded-control border border-line" open={p.status === "pending"}>
         <summary className="cursor-pointer px-3 py-2 text-sm font-medium">
           {p.status === "pending" ? "Preview the new layout" : "Layout"}
@@ -232,6 +255,7 @@ function ProposalCard({ p, canDecide, onDecided }: { p: Proposal; canDecide: boo
           {items.length ? <FolderTree paths={items.map((i) => i.target)} /> : <p className="text-sm text-muted">This plan has no files.</p>}
         </div>
       </details>
+      )}
 
       {p.status === "pending" &&
         (canDecide ? (
@@ -243,7 +267,7 @@ function ProposalCard({ p, canDecide, onDecided }: { p: Proposal; canDecide: boo
             </div>
             <div className="flex gap-2">
               <Button variant="primary" busy={busy === "approve"} disabled={busy !== null} onClick={() => decide("approve")}>
-                Approve and export copies
+                {share ? "Approve and write the share pack" : "Approve and export copies"}
               </Button>
               <Button variant="danger" busy={busy === "reject"} disabled={busy !== null} onClick={() => decide("reject")}>
                 Reject

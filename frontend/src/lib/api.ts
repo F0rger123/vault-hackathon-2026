@@ -498,14 +498,29 @@ export interface Investigation {
   duration_ms: number;
 }
 
+export interface ShareCriteria {
+  projects: string[];
+  doc_types: string[];
+  include_confidential: boolean;
+  redact: ("emails" | "phone_numbers" | "id_numbers" | "people_and_companies" | "money" | "terms")[];
+  terms: string[];
+}
+
+export interface SharePlan {
+  recipient: string;
+  criteria: ShareCriteria;
+  items: { document_id: number; filename: string; action: "shared" | "left_out"; reason?: string; redactions?: Record<string, number> }[];
+  summary: { shared: number; left_out: number; redactions: number };
+}
+
 export interface Proposal {
   id: number;
   collection_id: number;
   kind: string;
   instruction: string;
-  plan: { pattern?: string; items?: { document_id: number; filename: string; target: string }[] };
+  plan: { pattern?: string; items?: { document_id: number; filename: string; target: string }[] } & Partial<SharePlan>;
   status: "pending" | "executed" | "rejected";
-  result: { export_dir: string; copied: number } | null;
+  result: { export_dir: string; copied: number; left_out?: number; redactions?: number } | null;
   created_by: number | null;
   created_at: number;
   decided_by: number | null;
@@ -615,6 +630,14 @@ export const vault = {
   hardware: () => api<Hardware>("/system/hardware"),
   localModels: () => api<LocalModels>("/system/local-models"),
   modelCatalog: () => api<ModelCatalog>("/system/model-catalog"),
+  planShare: (body: { collection_id: number; recipient: string; instruction: string; criteria: ShareCriteria }) =>
+    post<Proposal>("/share-packs", body),
+  interpretShare: (collectionId: number, instruction: string, provider: ProviderName) =>
+    post<{ criteria: ShareCriteria; explanation: string; by: string }>("/share-packs/interpret", {
+      collection_id: collectionId,
+      instruction,
+      provider,
+    }),
   brain: (collectionId: number) => api<Brain>(`/collections/${collectionId}/brain`),
   brainGraph: (collectionId: number) => api<BrainGraph>(`/collections/${collectionId}/brain/graph`),
   teach: (collectionId: number, body: { kind: Knowledge["kind"]; term?: string; text: string }) =>

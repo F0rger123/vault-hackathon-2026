@@ -21,12 +21,12 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 | F05 Parallel Processing | 9 | 8 | 0 | 0 | 0 | 0 | 1 | 0 |
 | F06 Search & Investigation | 6 | 5 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F07 Teaching & Corrections | 8 | 7 | 0 | 0 | 0 | 1 | 0 | 0 |
-| F08 Actions & Organization | 5 | 5 | 0 | 0 | 0 | 0 | 0 | 0 |
+| F08 Actions & Organization | 6 | 5 | 1 | 0 | 0 | 0 | 0 | 0 |
 | F09 Security | 11 | 10 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F10 User Interface | 12 | 12 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F11 Synthetic Data & Evaluation | 7 | 6 | 0 | 1 | 0 | 0 | 0 | 0 |
 | F12 Deployment & Submission | 10 | 7 | 0 | 0 | 0 | 2 | 1 | 0 |
-| **Total** | **104** | **90** | **1** | **1** | **1** | **8** | **3** | **0** |
+| **Total** | **105** | **90** | **2** | **1** | **1** | **8** | **3** | **0** |
 
 **Recorded evidence used below**
 
@@ -895,6 +895,22 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
   - **Interface:** an "Export as a table" panel on Investigate, covered by a Playwright download test.
 
 ---
+
+#### F08.6 — Share packs: redacted copies for an outside party, with a report
+
+- **Priority:** P1 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F08.2, F08.3
+- **Description:** Luke asked (2026-10-29) for the assistant to make a copy for someone outside, black things out, and say what was left out and why. It is described in plain words or filters, planned as a proposal, approved by an admin, and written as clean redacted PDFs plus a report.
+- **Implementation scope:** `backend/workers/share_pack.py`, `backend/api/routes_share.py`, `frontend/src/components/share-pack.tsx` on Approvals. `reportlab` moved to runtime dependencies.
+- **Verification evidence (2026-10-29):** `tests/integration/test_share_pack.py`, 4 tests:
+  - the plan lists shared and left-out documents with reasons (other project, CONFIDENTIAL, EXPORT-CONTROLLED);
+  - an analyst cannot approve;
+  - after admin approval, the PDF contains none of the email, phone, price or custom term, but keeps part numbers;
+  - the PDF metadata is VAULT's own, the reports list every reason without repeating a redacted value, and no original file is in the pack;
+  - CONFIDENTIAL is shared only when asked, and EXPORT-CONTROLLED never;
+  - permissions: viewer 403, no token 401, unknown collection 404;
+  - plain words ("project Alpha, hide names, prices and \"PV-1001\"") become the right settings;
+  - dates and part numbers are not taken for phone numbers.
+- **Blockers:** this writes files, so Luke approves the merge.
 
 ## F09 — Security
 
