@@ -44,6 +44,45 @@ During the hackathon, open a GitHub issue labelled `security`. Do not include se
 - The frontend keeps the token in `sessionStorage`. This is acceptable for a localhost MVP, but an httpOnly cookie session is planned.
 - Injection detection is pattern-based and incomplete. The real defence is structural: VAULT has no action surface for model output.
 
+## Full security check (F09.11, 2026-10-28, evening)
+
+**Scope.** All code merged that day: sign-in, token lifecycle, the API key store, background imports, Training, plain-language layouts and the response cache.
+
+**Automated checks, all clean:**
+
+| Check | Result |
+|---|---|
+| ruff (with the bandit ruleset) | 0 |
+| bandit | 0 |
+| pip-audit | 0 |
+| npm audit (frontend and e2e) | 0 |
+| Semgrep, 6 rulesets | 0 |
+| Trivy, both images, fixable high or critical | 0 |
+| ZAP frontend baseline | 0 FAIL |
+| ZAP API scan (active, authenticated) | 0 FAIL |
+
+The API scan raised one warning, "SQL injection" on `/auth/login password`. It is a **false positive**. The password never reaches SQL; it is only hashed with scrypt. ZAP's two probes got different answers because the sign-in lockout started part-way through its attempts, giving 401 and then 429. `test_sql_in_the_password_is_just_a_wrong_password` pins this down.
+
+**Independent code review.** A separate reviewer agent read the new code without seeing these notes. Everything it found is fixed:
+
+| Severity | Finding | Fix |
+|---|---|---|
+| Medium (when demo sign-in is on) | **DNS rebinding:** a web page could rebind its own domain to 127.0.0.1 and call `/auth/demo-login` from the same origin, getting an admin token. | The API answers only to allowed `Host` headers (`VAULT_ALLOWED_HOSTS`, default `127.0.0.1,localhost,[::1]`). Public sign-in routes also refuse a browser `Origin` that is not VAULT's own interface. |
+| Low-medium | **Lockout race:** parallel guesses could all pass the check before any failure was counted, giving about 40 guesses a minute. | An attempt is counted the moment it starts, under a lock. At most 4 sign-ins verify at once; more get a 503. |
+| Low | **Timing:** unknown users and users without a password skipped scrypt, so response time revealed which accounts have a password. | Every attempt verifies against a real hash, or a dummy hash. A timing test covers all three cases. |
+| Low | **Unbounded memory, and username lockout:** random usernames filled the failure list forever. | Unknown usernames share one bucket, and the list is pruned. Locking out a real user still needs 5 attempts a minute from this machine, which is acceptable on a single-user laptop. |
+| Low | **Passwords in the audit log:** a password typed into the username box was stored. | The audit log records `unknown-user` unless the username is a real account. |
+| Low | **Import swap:** a file could be swapped for a link between the check and the read. | The file is opened once with `O_NOFOLLOW` where available. The open handle is compared with the re-checked real path, and the size is checked on the handle. A link pointing outside the root is refused (tested where the OS allows symlinks). |
+| Low | **Key file permissions:** the API key file was briefly world-readable on POSIX. | It is created owner-only from the first byte (`0o600`), in a `0o700` folder. |
+| Info | Old sessions survived a password change. | `set_password` ends that user's sign-in sessions. |
+| Info | `VAULT_SESSION_TTL_HOURS=0` meant sessions never expired. | It must be between 0 and 720 hours. |
+| Info | A rejected API key was echoed back in the validation error. | The length is checked by our handler, and the value is never echoed. |
+| Info | Two cache writes could share a temporary file name. | Each write uses a unique temporary file. |
+| Info | Concurrent corrections could claim the same policy version. | The read and the insert run in one write transaction. |
+| Info (accepted) | The CSP allows `'unsafe-inline'` scripts. | Unchanged; see the ZAP section below. |
+
+Tests: pytest 110 passed (13 new security tests); e2e 18 of 18.
+
 ## OWASP ZAP scans (F09.7, 2026-10-28)
 
 **Target.** Our own stack only. The backend and frontend Docker images ran in an isolated Docker network on the development laptop, with nothing published to the internet. ZAP `ghcr.io/zaproxy/zaproxy:stable` ran two scans:

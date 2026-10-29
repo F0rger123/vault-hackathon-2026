@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import sqlite3
 
-from backend.storage.db import dumps, loads, now
+from backend.storage.db import dumps, loads, now, transaction
 
 CORRECTABLE = ("doc_type", "project")
 _LATEST = {
@@ -34,12 +34,15 @@ def record_correction(
     )
     version = None
     if when_contains:
-        row = conn.execute("SELECT version, rules FROM policies ORDER BY version DESC LIMIT 1").fetchone()
-        rules = loads(row["rules"], []) if row else []
-        rules.append({"when_contains": when_contains, "field": field, "value": value})
-        version = (row["version"] if row else 1) + 1
-        conn.execute(
-            "INSERT INTO policies (version, rules, created_by, created_at) VALUES (?, ?, ?, ?)",
-            (version, dumps(rules), user_id, now()),
-        )
+        # Read the latest version and write the next one in a single write transaction, so two
+        # corrections at the same moment cannot both claim the same version number.
+        with transaction(conn):
+            row = conn.execute("SELECT version, rules FROM policies ORDER BY version DESC LIMIT 1").fetchone()
+            rules = loads(row["rules"], []) if row else []
+            rules.append({"when_contains": when_contains, "field": field, "value": value})
+            version = (row["version"] if row else 1) + 1
+            conn.execute(
+                "INSERT INTO policies (version, rules, created_by, created_at) VALUES (?, ?, ?, ?)",
+                (version, dumps(rules), user_id, now()),
+            )
     return {"document_id": document_id, "field": field, "old_value": old, "new_value": value, "policy_version": version}

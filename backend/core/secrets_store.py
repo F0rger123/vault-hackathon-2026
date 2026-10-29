@@ -31,11 +31,13 @@ def store_key(settings: Settings, key: str) -> None:
     if not KEY_RE.match(key):
         raise ValueError("that does not look like a Meta Model API key (they start with LLM_)")
     path = _path(settings)
-    path.parent.mkdir(parents=True, exist_ok=True)
+    path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
     tmp = path.with_suffix(".tmp")
-    tmp.write_text(key, encoding="utf-8")
-    # Owner read/write only where the OS supports it (no effect on Windows ACLs, which inherit the folder's).
-    os.chmod(tmp, stat.S_IRUSR | stat.S_IWUSR)
+    tmp.unlink(missing_ok=True)
+    # Created owner-only from the first byte (POSIX); on Windows the file inherits the data folder's ACL.
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_BINARY", 0), stat.S_IRUSR | stat.S_IWUSR)
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        f.write(key)
     tmp.replace(path)
 
 

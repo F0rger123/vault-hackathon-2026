@@ -22,7 +22,8 @@ class DemoLogin(BaseModel):
 
 
 class ApiKeyUpdate(BaseModel):
-    key: str = Field(min_length=1, max_length=220)
+    # Length is checked by the handler, so a rejected value is never echoed back in a validation error.
+    key: str = Field(min_length=1, max_length=4096)
 
 
 class ImportPath(BaseModel):

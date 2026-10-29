@@ -17,6 +17,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+import tempfile
 from pathlib import Path
 
 from backend.providers import prompting
@@ -59,9 +61,11 @@ class CachingProvider(Provider):
                 path.unlink(missing_ok=True)  # corrupt or outdated entry: call the model again
         result = self.inner.extract(pages, filename, policy_rules, examples)
         path.parent.mkdir(parents=True, exist_ok=True)
-        tmp = path.with_suffix(".tmp")
-        tmp.write_text(result.model_dump_json(), encoding="utf-8")
-        tmp.replace(path)  # atomic, so parallel lanes never read half a file
+        # A unique temporary name per write, so two lanes writing the same entry never share one file.
+        fd, tmp = tempfile.mkstemp(dir=path.parent, suffix=".tmp")
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(result.model_dump_json())
+        os.replace(tmp, path)  # atomic, so parallel lanes never read half a file
         self.misses += 1
         return result
 

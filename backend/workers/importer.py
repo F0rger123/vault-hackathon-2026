@@ -8,6 +8,7 @@ directory is read: each path is re-checked with `contained`, and symlinks are sk
 
 from __future__ import annotations
 
+import os
 import sqlite3
 from collections.abc import Iterator
 from pathlib import Path
@@ -29,11 +30,30 @@ def candidate_files(base: Path) -> Iterator[Path]:
 
 
 def import_one(conn: sqlite3.Connection, settings: Settings, collection_id: int, base: Path, path: Path) -> None:
-    """Raise FileRejected with a readable reason, or ingest the file."""
-    contained(path, [base])
-    if path.stat().st_size > settings.max_upload_mb * 1024 * 1024:
+    """Raise FileRejected with a readable reason, or ingest the file.
+
+    The file is opened once (without following a link where the OS allows it) and every check runs on
+    that open handle, so swapping the file for a link between the check and the read gains nothing.
+    """
+    real = contained(path, [base])
+    limit = settings.max_upload_mb * 1024 * 1024
+    flags = os.O_RDONLY | getattr(os, "O_BINARY", 0) | getattr(os, "O_NOFOLLOW", 0)
+    fd = os.open(real, flags)
+    try:
+        st = os.fstat(fd)
+        if not os.path.samestat(st, os.stat(contained(Path(real), [base]))):
+            raise FileRejected("file changed while it was being imported")
+        if st.st_size > limit:
+            raise FileRejected("file exceeds upload limit")
+        with os.fdopen(fd, "rb") as f:
+            fd = -1
+            data = f.read(limit + 1)
+    finally:
+        if fd != -1:
+            os.close(fd)
+    if len(data) > limit:
         raise FileRejected("file exceeds upload limit")
-    ingest_bytes(conn, settings, collection_id, path.name, path.read_bytes())
+    ingest_bytes(conn, settings, collection_id, path.name, data)
 
 
 def create_import_job(conn: sqlite3.Connection, collection_id: int, base: Path, user_id: int | None) -> int:
