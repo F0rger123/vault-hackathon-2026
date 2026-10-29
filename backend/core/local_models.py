@@ -12,6 +12,7 @@ Set up a run.
 
 from __future__ import annotations
 
+import time
 from urllib.parse import urlparse
 
 import httpx
@@ -33,7 +34,22 @@ def _origin(name: str, family: str | None) -> str:
     return "llama-based" if (family or "").casefold() in META_FAMILIES else "other"
 
 
+_cache: dict[tuple[str, str], tuple[float, dict]] = {}
+CACHE_SECONDS = 30
+
+
 def local_models(settings: Settings, hw: HardwareProfile) -> dict:
+    """Cached for half a minute: Ollama takes about a second to answer, and several screens ask."""
+    key = (settings.ollama_url, settings.ollama_model)
+    hit = _cache.get(key)
+    if hit and time.monotonic() - hit[0] < CACHE_SECONDS:
+        return hit[1]
+    result = _local_models(settings, hw)
+    _cache[key] = (time.monotonic(), result)
+    return result
+
+
+def _local_models(settings: Settings, hw: HardwareProfile) -> dict:
     url = settings.ollama_url.rstrip("/")
     if (urlparse(url).hostname or "") not in LOCAL_HOSTS:
         return {"reachable": False, "detail": "VAULT_OLLAMA_URL is not a local address", "models": []}

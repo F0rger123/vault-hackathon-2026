@@ -117,7 +117,19 @@ Plans in detail: [docs/MASTER_BLUEPRINT.md](docs/MASTER_BLUEPRINT.md) and [coord
 
 ## Run it
 
-You need Python 3.11+ and Node 20+. For the real model, install [Ollama](https://ollama.com) and run `ollama pull llama3`.
+You need Python 3.11+ and Node 20+. For the real AI, also install [Ollama](https://ollama.com/download) and run `ollama pull llama3` once (about 4.7 GB). Without it, VAULT still runs, using the rules baseline, which is labelled "not AI".
+
+**One command:**
+
+```bash
+.\start.ps1          # Windows
+./start.sh           # macOS / Linux
+```
+
+It installs what is missing, checks for Ollama and Llama 3, builds the fictional demo archive, starts everything and opens http://localhost:3000. Click **Analyst** under "Try the demo". Use `--real` for your own documents, with password sign-in.
+
+<details>
+<summary><b>Step by step instead</b></summary>
 
 ```bash
 python -m venv .venv && .venv/Scripts/pip install -e ".[dev]"   # macOS/Linux: .venv/bin/pip
@@ -134,6 +146,8 @@ cd frontend && npm install && npm run dev                       # interface on h
 ```
 
 To rehearse the demo from a clean state, run `./scripts/demo_reset.sh` (or `.\scripts\demo_reset.ps1`). It rebuilds `data/demo/` in about 12 seconds; see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#demo-environment-reset-and-rehearse).
+
+</details>
 
 Docker: `docker compose up --build` (binds to 127.0.0.1 only). See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
