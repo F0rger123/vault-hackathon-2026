@@ -19,13 +19,14 @@ dependencies = [
     "typer>=0.12",
     # F12.11: AES-256-GCM for encrypted transfer packs. pyca/cryptography, the standard audited library.
     "cryptography>=44",
+    # F08.6: share packs are written as clean, newly drawn PDFs.
+    "reportlab>=4.2",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.2",
     "ruff>=0.5",
-    "reportlab>=4.2",
     "bandit>=1.7",
     "pip-audit>=2.7",
 ]

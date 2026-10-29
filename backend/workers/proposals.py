@@ -66,6 +66,10 @@ def create_proposal(
 def execute_proposal(conn: sqlite3.Connection, settings: Settings, proposal_id: int) -> dict:
     p = conn.execute("SELECT * FROM proposals WHERE id = ?", (proposal_id,)).fetchone()
     plan = loads(p["plan"], {})
+    if p["kind"] == "share_pack":
+        from backend.workers.share_pack import execute_share
+
+        return execute_share(conn, settings, proposal_id, plan)
     export_root = settings.exports_dir / f"proposal-{proposal_id}"
     export_root.mkdir(parents=True, exist_ok=True)
     copied, used = 0, set()
