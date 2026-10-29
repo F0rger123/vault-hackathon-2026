@@ -99,21 +99,40 @@ def auth_options(conn=Depends(get_conn), settings: Settings = Depends(get_settin
     return {"demo_login": settings.demo_login, "password_login": signin.has_password_users(conn)}
 
 
+def _browser_origin_ok(request: Request, settings: Settings) -> bool:
+    """Public sign-in routes refuse browser requests from pages that are not VAULT's own interface."""
+    origin = request.headers.get("origin")
+    return origin is None or origin in {o.strip() for o in settings.cors_origins.split(",") if o.strip()}
+
+
 @router.post("/auth/login")
-def login(body: PasswordLogin, conn=Depends(get_conn), settings: Settings = Depends(get_settings)) -> dict:
-    if (wait := signin.locked_for(body.username)) > 0:
-        audit.record(conn, body.username[:64], "auth.login", "denied", detail={"reason": "locked"})
-        raise HTTPException(status_code=429, detail=f"too many failed attempts; try again in {int(wait) + 1} s")
-    session = signin.password_login(conn, body.username, body.password, settings.session_ttl_hours)
+def login(
+    body: PasswordLogin, request: Request, conn=Depends(get_conn), settings: Settings = Depends(get_settings)
+) -> dict:
+    if not _browser_origin_ok(request, settings):
+        raise HTTPException(status_code=403, detail="sign-in is only accepted from VAULT's own interface")
+    # Never store what was typed as a username unless it is a real account: people paste passwords there.
+    who = body.username[:64] if signin.known_user(conn, body.username) else "unknown-user"
+    try:
+        session = signin.password_login(conn, body.username, body.password, settings.session_ttl_hours)
+    except signin.LoginLocked as exc:
+        audit.record(conn, who, "auth.login", "denied", detail={"reason": "locked"})
+        raise HTTPException(status_code=429, detail=f"too many attempts; try again in {int(exc.wait) + 1} s") from exc
+    except signin.LoginBusy as exc:
+        raise HTTPException(status_code=503, detail="too many sign-ins at once; try again") from exc
     if session is None:
-        audit.record(conn, body.username[:64], "auth.login", "denied", detail={"reason": "wrong credentials"})
+        audit.record(conn, who, "auth.login", "denied", detail={"reason": "wrong credentials"})
         raise HTTPException(status_code=401, detail="wrong username or password")
     audit.record(conn, session["username"], "auth.login", "allowed")
     return session
 
 
 @router.post("/auth/demo-login")
-def demo_login(body: DemoLogin, conn=Depends(get_conn), settings: Settings = Depends(get_settings)) -> dict:
+def demo_login(
+    body: DemoLogin, request: Request, conn=Depends(get_conn), settings: Settings = Depends(get_settings)
+) -> dict:
+    if not _browser_origin_ok(request, settings):
+        raise HTTPException(status_code=403, detail="sign-in is only accepted from VAULT's own interface")
     if not settings.demo_login:
         raise HTTPException(status_code=403, detail="demo sign-in is turned off on this server")
     session = signin.demo_login(conn, body.role, settings.session_ttl_hours)

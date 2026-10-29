@@ -1,10 +1,13 @@
-"""Signing in without handling raw API tokens (F10.11).
+"""Signing in without handling raw API tokens (F10.11, hardened in F09.11).
 
 - Username and password: passwords are stored only as scrypt hashes. A successful sign-in issues an
-  ordinary bearer token that expires after `session_ttl_hours`. Repeated failures lock that username
-  for a minute.
-- Demo sign-in: one click as the demo admin, analyst or viewer. Only when the server runs with
-  `VAULT_DEMO_LOGIN=true`, which is meant for a laptop showing fictional data, never a shared server.
+  ordinary bearer token that expires after `session_ttl_hours`. Each username gets at most
+  `MAX_ATTEMPTS` tries a minute. A try counts the moment it starts, so parallel requests cannot squeeze
+  past the limit. Unknown usernames share one bucket, so random names cannot fill memory.
+- Every attempt costs one scrypt run, including unknown users and users without a password, so response
+  time does not reveal which accounts exist. At most `MAX_CONCURRENT` attempts run at once.
+- Demo sign-in: one click as the demo admin, analyst or viewer, only when the server runs with
+  `VAULT_DEMO_LOGIN=true`. That is meant for a laptop showing fictional data, never a shared server.
 """
 
 from __future__ import annotations
@@ -22,12 +25,24 @@ from backend.storage.db import now
 
 MIN_PASSWORD = 10
 _N, _R, _P = 2**14, 8, 1
-MAX_FAILURES = 5
-LOCK_SECONDS = 60
+MAX_ATTEMPTS = 5
+WINDOW_SECONDS = 60
+MAX_CONCURRENT = 4
 DEMO_USERS = ("admin", "analyst", "viewer")
+UNKNOWN = "\x00unknown"  # one shared bucket for usernames that do not exist
 
-_failures: dict[str, list[float]] = {}
+_attempts: dict[str, list[float]] = {}
 _lock = threading.Lock()
+_slots = threading.BoundedSemaphore(MAX_CONCURRENT)
+
+
+class LoginLocked(Exception):
+    def __init__(self, wait: float):
+        self.wait = wait
+
+
+class LoginBusy(Exception):
+    pass
 
 
 def hash_password(password: str) -> str:
@@ -36,6 +51,10 @@ def hash_password(password: str) -> str:
     return "scrypt${}${}${}${}${}".format(
         _N, _R, _P, base64.b64encode(salt).decode(), base64.b64encode(digest).decode()
     )
+
+
+# Verified against when there is no real hash, so every attempt costs the same.
+_DUMMY_HASH = hash_password(secrets.token_hex(16))
 
 
 def verify_password(password: str, stored: str | None) -> bool:
@@ -49,40 +68,68 @@ def verify_password(password: str, stored: str | None) -> bool:
         return False
 
 
-def set_password(conn: sqlite3.Connection, username: str, password: str) -> None:
+def set_password(conn: sqlite3.Connection, username: str, password: str) -> int:
+    """Set a password and end that user's existing sign-in sessions. Returns how many sessions were ended."""
     if len(password) < MIN_PASSWORD:
         raise ValueError(f"password must be at least {MIN_PASSWORD} characters")
-    cur = conn.execute("UPDATE users SET password_hash = ? WHERE username = ?", (hash_password(password), username))
-    if cur.rowcount != 1:
+    row = conn.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
+    if not row:
         raise LookupError(f"no user named {username!r}")
+    conn.execute("UPDATE users SET password_hash = ? WHERE id = ?", (hash_password(password), row["id"]))
+    cur = conn.execute(
+        "UPDATE api_tokens SET revoked = 1, revoked_at = ? "
+        "WHERE user_id = ? AND revoked = 0 AND label IN ('password-login', 'demo-login')",
+        (now(), row["id"]),
+    )
+    return cur.rowcount
 
 
-def locked_for(username: str) -> float:
-    """Seconds left on a lockout for this username, or 0."""
+def _start_attempt(key: str) -> None:
+    """Count an attempt before checking it, atomically, or raise LoginLocked."""
     with _lock:
-        recent = [t for t in _failures.get(username, []) if time.monotonic() - t < LOCK_SECONDS]
-        _failures[username] = recent
-        if len(recent) >= MAX_FAILURES:
-            return LOCK_SECONDS - (time.monotonic() - recent[0])
-    return 0.0
+        t = time.monotonic()
+        recent = [x for x in _attempts.get(key, []) if t - x < WINDOW_SECONDS]
+        if len(recent) >= MAX_ATTEMPTS:
+            _attempts[key] = recent
+            raise LoginLocked(WINDOW_SECONDS - (t - recent[0]))
+        recent.append(t)
+        _attempts[key] = recent
+        # Keys are only existing usernames plus one shared bucket, so this stays small; prune anyway.
+        if len(_attempts) > 1000:
+            for k in [k for k, v in _attempts.items() if not v or t - v[-1] >= WINDOW_SECONDS]:
+                _attempts.pop(k, None)
 
 
-def _record_failure(username: str) -> None:
+def clear_attempts(username: str | None = None) -> None:
     with _lock:
-        _failures.setdefault(username, []).append(time.monotonic())
+        if username is None:
+            _attempts.clear()
+        else:
+            _attempts.pop(username, None)
 
 
 def password_login(conn: sqlite3.Connection, username: str, password: str, ttl_hours: float) -> dict | None:
-    """A new session token, or None for a wrong username or password (deliberately the same answer)."""
+    """A new session token, or None for a wrong username or password (deliberately the same answer).
+
+    Raises LoginLocked when the username used up its attempts, LoginBusy when too many run at once.
+    """
     row = conn.execute("SELECT id, username, role, password_hash FROM users WHERE username = ?", (username,)).fetchone()
-    # Hash even for unknown users, so response time does not reveal which usernames exist.
-    ok = verify_password(password, row["password_hash"] if row else None) if row else verify_password(password, None)
-    if not row or not ok:
-        _record_failure(username)
+    _start_attempt(row["username"] if row else UNKNOWN)
+    if not _slots.acquire(timeout=5):
+        raise LoginBusy()
+    try:
+        stored = row["password_hash"] if row and row["password_hash"] else _DUMMY_HASH
+        ok = verify_password(password, stored) and bool(row and row["password_hash"])
+    finally:
+        _slots.release()
+    if not ok:
         return None
-    with _lock:
-        _failures.pop(username, None)
+    clear_attempts(row["username"])
     return _session(conn, row, "password-login", ttl_hours)
+
+
+def known_user(conn: sqlite3.Connection, username: str) -> bool:
+    return conn.execute("SELECT 1 FROM users WHERE username = ?", (username,)).fetchone() is not None
 
 
 def demo_login(conn: sqlite3.Connection, role: str, ttl_hours: float) -> dict | None:

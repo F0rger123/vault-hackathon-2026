@@ -3,6 +3,7 @@
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -43,7 +44,10 @@ class Settings(BaseSettings):
     # One-click sign-in as the demo admin/analyst/viewer. For a laptop showing fictional data only.
     demo_login: bool = False
     # Sessions from password or demo sign-in expire after this many hours.
-    session_ttl_hours: float = 12.0
+    session_ttl_hours: float = Field(default=12.0, gt=0, le=24 * 30)
+    # Host headers the API answers to. Anything else is refused, which blocks DNS-rebinding pages from
+    # reaching a server on 127.0.0.1 (F09.11). Add your hostname here if you serve VAULT under another name.
+    allowed_hosts: str = "127.0.0.1,localhost,[::1],::1"
 
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
 

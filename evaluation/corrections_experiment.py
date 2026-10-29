@@ -66,7 +66,13 @@ def run(provider: str, workers: int | None, timeout: float, manifest_path: Path)
     truth = {d["filename"]: d for d in manifest["documents"]}
     files = sorted((manifest_path.parent / "files").iterdir())
     with tempfile.TemporaryDirectory(prefix="vault-f073-") as tmp:
-        settings = Settings(data_dir=Path(tmp), provider=provider, allow_remote_inference=False, _env_file=None)
+        settings = Settings(
+            data_dir=Path(tmp),
+            provider=provider,
+            allow_remote_inference=False,
+            allowed_hosts="testserver",
+            _env_file=None,
+        )
         app = create_app(settings, resume_jobs=False)
         with connect(settings.db_path) as conn:
             token = issue_token(conn, create_user(conn, "reviewer", "admin"))

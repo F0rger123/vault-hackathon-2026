@@ -34,6 +34,7 @@ def settings(tmp_path) -> Settings:
         import_roots=str(tmp_path / "imports"),
         allow_remote_inference=False,
         job_max_attempts=2,
+        allowed_hosts="testserver,127.0.0.1,localhost",
         _env_file=None,
     )
 

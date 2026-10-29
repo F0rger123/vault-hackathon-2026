@@ -82,3 +82,22 @@ def test_background_import_still_enforces_roots_and_admin(client, tokens, settin
     inside = {"path": str(_folder(settings, "x", 1)), "background": True}
     r = client.post(f"{API}/collections/{cid}/import-path", json=inside, headers=auth(tokens["analyst"]))
     assert r.status_code == 403
+
+
+def test_a_link_pointing_outside_the_root_is_never_read(settings, app, tmp_path):
+    import pytest
+
+    from backend.security.files import FileRejected
+    from backend.workers.importer import import_one
+
+    base = settings.import_root_paths[0] / "linky"
+    base.mkdir(parents=True)
+    secret = tmp_path / "outside-secret.txt"
+    secret.write_text("not for VAULT", encoding="utf-8")
+    link = base / "innocent.txt"
+    try:
+        link.symlink_to(secret)
+    except OSError:
+        pytest.skip("creating symlinks needs extra rights on this machine")
+    with connect(settings.db_path) as conn, pytest.raises(FileRejected):
+        import_one(conn, settings, 1, base.resolve(), link)

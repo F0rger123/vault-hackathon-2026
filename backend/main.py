@@ -5,6 +5,7 @@ import logging
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from backend.api.routes import VERSION, router
 from backend.api.routes_agents import router as agents_router
@@ -21,10 +22,16 @@ def create_app(settings: Settings | None = None, resume_jobs: bool = True) -> Fa
     app = FastAPI(title="VAULT API", version=VERSION)
     app.state.settings = settings
     app.state.runner = JobRunner(settings)
+    # Refuse requests whose Host is not this machine: a hostile page that rebinds its own domain to
+    # 127.0.0.1 still sends its own hostname, so it never reaches the API (F09.11).
+    app.add_middleware(
+        TrustedHostMiddleware,
+        allowed_hosts=[h.strip() for h in settings.allowed_hosts.split(",") if h.strip()],
+    )
     app.add_middleware(
         CORSMiddleware,
         allow_origins=[o.strip() for o in settings.cors_origins.split(",") if o.strip()],
-        allow_methods=["GET", "POST", "PUT"],
+        allow_methods=["GET", "POST", "PUT", "DELETE"],
         allow_headers=["Authorization", "Content-Type"],
     )
 

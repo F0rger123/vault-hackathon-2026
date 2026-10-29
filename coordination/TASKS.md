@@ -22,11 +22,11 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 | F06 Search & Investigation | 6 | 5 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F07 Teaching & Corrections | 6 | 5 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F08 Actions & Organization | 5 | 4 | 0 | 0 | 0 | 1 | 0 | 0 |
-| F09 Security | 9 | 9 | 0 | 0 | 0 | 0 | 0 | 0 |
+| F09 Security | 10 | 10 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F10 User Interface | 11 | 11 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F11 Synthetic Data & Evaluation | 7 | 6 | 0 | 1 | 0 | 0 | 0 | 0 |
 | F12 Deployment & Submission | 8 | 5 | 0 | 0 | 0 | 2 | 1 | 0 |
-| **Total** | **92** | **78** | **1** | **1** | **1** | **8** | **3** | **0** |
+| **Total** | **93** | **79** | **1** | **1** | **1** | **8** | **3** | **0** |
 
 **Recorded evidence used below**
 
@@ -910,6 +910,19 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 ## F10 — User Interface (Franco)
 
 All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each needs a branch `franco/F10.x-short-name`, a PR, and screenshots in the PR description using synthetic data only.
+
+#### F09.11 — Full security check and hardening of the new sign-in code
+
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F10.11, F09.8, F02.7
+- **Description:** Re-run every scanner on the new code, have an independent reviewer read it, and fix everything found.
+- **Acceptance criteria:** scanners at 0; every review finding fixed or accepted with a reason in `docs/SECURITY.md`.
+- **Required tests:** new tests in `tests/security/test_sign_in.py` and `tests/integration/test_import_job.py`.
+- **Blockers:** none
+- **Related PR/commit:** branch `luke/F09.11-security-hardening`
+- **Verification evidence (2026-10-28):**
+  - **Scanners:** Semgrep 0, Trivy 0 fixable, pip-audit and npm audit 0, bandit 0, ZAP 0 FAIL. The ZAP "SQL injection" warning on the login password is a false positive caused by the lockout, and a test pins it.
+  - **Review:** 1 medium finding (DNS rebinding with demo sign-in on) and 7 low or info findings, all fixed; the table is in `docs/SECURITY.md`.
+  - **Tests:** pytest 110 passed; e2e 18 of 18.
 
 #### F10.1 — App shell, navigation and sign-in
 - **Description:** Layout with sidebar navigation (Dashboard, Import, Library, Intelligence, Processing, Actions, Security, Settings), token sign-in, sign-out, role display.
