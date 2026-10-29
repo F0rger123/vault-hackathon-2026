@@ -102,3 +102,8 @@ class CorrectionCreate(BaseModel):
 
 class RemoteToggle(BaseModel):
     enabled: bool
+
+
+class ModelName(BaseModel):
+    # Checked against the catalog in the route; the pattern only keeps junk out of logs.
+    name: str = Field(min_length=1, max_length=64, pattern=r"^[a-z0-9.:_-]+$")
