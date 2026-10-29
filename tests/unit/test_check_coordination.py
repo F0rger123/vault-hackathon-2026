@@ -54,7 +54,7 @@ def test_missing_file_fails(tmp_path):
     assert check(root, None, None, TODAY)[0] == ["missing required file: docs/PROJECT_VISION.md"]
 
 
-def test_claim_refuses_task_held_by_other_agent(monkeypatch):
+def test_claim_refuses_task_held_by_another_session(monkeypatch):
     calls = []
 
     def fake_gh(*args):
@@ -62,13 +62,13 @@ def test_claim_refuses_task_held_by_other_agent(monkeypatch):
         if args[:2] == ("issue", "list"):
             return json.dumps([{"number": 9, "title": "[F09.7] Controlled security verification"}])
         if args[:2] == ("issue", "view"):
-            mark = agent_mail.CLAIM_MARK.format("franco-agent")
+            mark = agent_mail.CLAIM_MARK.format("luke-session-2")
             return json.dumps({"labels": [{"name": "in-progress"}], "comments": [{"body": mark + " claimed"}]})
         return ""
 
     monkeypatch.setattr(agent_mail, "gh", fake_gh)
     a = Namespace(task="F09.7", me="luke-agent", branch="", force=False)
-    with pytest.raises(SystemExit, match="already claimed by franco-agent"):
+    with pytest.raises(SystemExit, match="already claimed by luke-session-2"):
         agent_mail.cmd_claim(a)
     assert not any(c[:2] == ("issue", "comment") for c in calls)
 

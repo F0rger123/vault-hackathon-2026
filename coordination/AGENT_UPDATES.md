@@ -1,9 +1,6 @@
 # Agent Updates: format
 
-Agents publish progress as short entries in their **own** status file. Neither agent edits the other's file, so there are no merge conflicts:
-
-- Luke's agent: [`status/luke.md`](status/luke.md)
-- Franco's agent: [`status/franco.md`](status/franco.md)
+AI coding sessions publish progress as short entries in [`status/luke.md`](status/luke.md).
 
 Detailed discussion belongs in GitHub issues and PR comments, not here. Keep each entry under about 12 lines. Never paste long logs, secrets or tokens.
 
@@ -11,7 +8,7 @@ Detailed discussion belongs in GitHub issues and PR comments, not here. Keep eac
 
 - **Started:** you claimed a task.
 - **Blocked:** you cannot continue.
-- **Milestone:** something the other agent can now use.
+- **Milestone:** something another session can now build on.
 - **Review:** a PR is open.
 - **Completed:** merged and verified.
 - **Handoff:** at the end of every session.
@@ -25,7 +22,7 @@ Newest entry goes first, under `## Updates`.
 - **Changes:** Semgrep and Trivy CI jobs; Dockerfile fixes for 8 fixable image CVEs.
 - **Files:** .github/workflows/ci.yml, Dockerfile.backend, frontend/Dockerfile, docs/SECURITY.md
 - **Tests:** Semgrep 0, pip-audit 0, npm audit 0, Trivy 0 fixable; GitHub CI 6/6 green.
-- **Dependencies:** none for Franco.
+- **Dependencies:** none.
 - **Decisions:** dependency audit is now blocking (docs/SECURITY.md).
 - **Next:** F09.7 ZAP baseline.
 - **GitHub:** luke/F09.6-security-scanning, PR #32, issue #8

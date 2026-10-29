@@ -2,14 +2,14 @@
 
 > Private, local-first multimodal document intelligence and workflow platform built for the Meta Global AI Developer Hackathon 2026. VAULT ingests engineering drawings, inspection reports, contracts and images, uses Meta models (local Llama via Ollama, or the Meta Model API when an administrator allows it) to classify and extract facts, finds conflicts between documents with verified source evidence, and requires human approval before any file organisation. Python/FastAPI/SQLite backend, Next.js frontend, CLI. All sample data is fictional.
 
-If a person gave you this link and wants to understand, install or try VAULT, start with the AI guide. If you are helping Luke or Franco develop VAULT, start with the project state and AI onboarding, then AGENTS.md.
+If a person gave you this link and wants to understand, install or try VAULT, start with the AI guide. If you are helping Luke (the developer) build VAULT, start with the project state and AI onboarding, then AGENTS.md.
 
 ## Start here
 
 - [AI guide (plain-English walkthrough for assistants)](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/docs/AI_GUIDE.md): what VAULT is, questions to ask, setup with checks, usage, what never to do
 - [AGENTS.md (rules for coding agents)](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/AGENTS.md): session startup, ownership, definition of done, security rules
 - [Project state](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/coordination/PROJECT_STATE.md): two-minute snapshot of what works, priorities, blockers and next tasks
-- [AI onboarding (for a new chat helping a team member)](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/docs/AI_ONBOARDING.md): what to read, who owns what, how to pick the next task and write a coding-agent prompt
+- [AI onboarding (for a new chat helping the developer)](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/docs/AI_ONBOARDING.md): what to read, who owns what, how to pick the next task and write a coding-agent prompt
 - [Bootstrap prompt](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/coordination/NEW_AGENT_BOOTSTRAP_PROMPT.md): paste-ready prompt for a new assistant, plus the coding-agent task template
 - [Project vision](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/docs/PROJECT_VISION.md): the full product, hackathon MVP and long-term enterprise platform
 - [README](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/README.md): project overview
@@ -27,8 +27,7 @@ If a person gave you this link and wants to understand, install or try VAULT, st
 - [Task roadmap](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/coordination/TASKS.md): F01–F12 features with status and evidence
 - [Long-term roadmap](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/docs/LONG_TERM_ROADMAP.md): implemented, MVP, near-term, post-hackathon, enterprise, research
 - [Agent communication protocol](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/coordination/AGENT_COMMUNICATION_PROTOCOL.md): claims, agent mail, reporting, handoffs
-- [Luke's agent status](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/coordination/status/luke.md) and [Franco's agent status](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/coordination/status/franco.md)
-- [Frontend handoff](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/coordination/HANDOFF_FRANCO.md): setup and first tasks for the UI developer
+- [Status and handoffs](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/coordination/status/luke.md)
 - [Decisions](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/coordination/DECISIONS.md)
 - [Blockers](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/coordination/BLOCKERS.md)
 

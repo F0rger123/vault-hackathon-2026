@@ -1,6 +1,6 @@
 # VAULT frontend
 
-Next.js + TypeScript + Tailwind dashboard for VAULT. Owner: Franco. See ../coordination/HANDOFF_FRANCO.md.
+Next.js + TypeScript + Tailwind interface for VAULT. Design rules: `DESIGN.md`. Start everything with `../start.ps1` or `../start.sh`.
 
 ```bash
 npm install

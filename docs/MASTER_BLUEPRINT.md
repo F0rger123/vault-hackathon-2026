@@ -4,7 +4,7 @@ This is the engineering design reference for VAULT. **For current status, read [
 
 - Repository: https://github.com/F0rger123/vault-hackathon-2026
 - Event: Meta Global AI Developer Hackathon 2026 (Cerebral Valley), Indie track
-- Team: Luke (backend, architecture, integration) and Franco (frontend, UX, verification)
+- Team: Luke Knight, solo (Indie track), building with AI coding agents
 - Status date: 2026-10-26 (day 1 of the build window)
 
 **Labels used below**
@@ -80,7 +80,7 @@ Everything below is **Confirmed** at the API/CLI level on 2026-10-26 unless mark
 - F07 Corrections: correction becomes a versioned policy rule, then reprocess.
 - F08 Proposals: plan, approve or reject, copy-only export, audit.
 - F09 Security: auth, RBAC, file validation, path containment, injection flagging, audit. Ten security tests pass.
-- F10 UI: dashboard scaffold only. **Franco builds the remaining screens.**
+- F10 UI: built and covered by browser tests (status in `coordination/PROJECT_STATE.md`).
 - F11 Dataset and evaluation: deterministic generator plus scoring harness.
 - F12 Submission: README, video, compliance review. **Planned.**
 
@@ -132,7 +132,7 @@ See `docs/LONG_TERM_ROADMAP.md`. None of it is in scope before November 4.
 
 ## 13. UI screens
 
-The plan is to consolidate into six screens, owned by Franco:
+The plan is to consolidate into six screens:
 
 | Screen | What it shows |
 |---|---|
@@ -396,16 +396,16 @@ See `docs/DEPLOYMENT.md`. Three ways to run it:
 
 See `AGENTS.md` and `coordination/`.
 
-- GitHub Issues, branches named `luke/F..` and `franco/F..`, and PRs with CI.
+- GitHub Issues, branches named `luke/F..`, and PRs with CI.
 - Markdown status files.
-- No shared live memory between the two agents.
+- No shared live memory between AI coding sessions.
 
 ## 40. Milestones
 
 | Date | Milestone |
 |---|---|
 | Oct 26 | Foundation, docs, first vertical slice (backend). **Done** |
-| Oct 27 | Luke is mostly unavailable. Franco onboards and starts on F10 screens against the existing API. |
+| Oct 27 | Frontend screens built against the existing API. |
 | Oct 28 | First full Meta-model processing run is visible in the UI. |
 | Oct 29 | Luke is working. Background progress on jobs and profiling UI. |
 | Oct 30 | Search workbench and evidence viewer. |
@@ -423,7 +423,7 @@ See `AGENTS.md` and `coordination/`.
 | Local Llama 3 8B extraction quality is weak (seen in the first sample) | Prompt tuning, few-shot rules, Meta Model API for the demo run, test Muse Glimmer |
 | No Meta API key or credits | Local provider works now; heuristic baseline keeps the pipeline testable |
 | The "work done during event only" rule (unverified) | All code was written from Oct 26; keep commit history honest |
-| Luke's limited availability | Franco is unblocked by a stable API contract |
+| Luke's limited availability | Work is split into small, independently verifiable tasks with a stable API contract |
 | Scope creep | Cut P2 features first, never the working demo |
 
 ## 42. Submission preparation

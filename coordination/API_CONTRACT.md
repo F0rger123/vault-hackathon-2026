@@ -424,6 +424,6 @@ Known `action` values: `collection.create`, `document.upload`, `document.import_
 ## Changing this contract
 
 1. Any change to a route, request body or response shape needs a PR that updates this file **and** `frontend/src/lib/api.ts` in the same PR.
-2. Both Luke and Franco (or their agents, with their human's OK) must review it. Breaking changes need an entry in `coordination/DECISIONS.md`.
+2. Update `frontend/src/lib/api.ts` in the same PR. Breaking changes need an entry in `coordination/DECISIONS.md`.
 3. Additive changes (new optional field, new endpoint) are preferred over breaking ones. Never remove a field the frontend uses without a migration plan.
 4. Planned additions not yet available: `POST /investigations` (F06.4), token revocation (F09.8). Do not build UI against them until they appear here.
