@@ -35,6 +35,9 @@ VAULT = ROOT / ".venv" / ("Scripts/vault.exe" if WIN else "bin/vault")
 NPM = "npm.cmd" if WIN else "npm"
 OLLAMA = "http://127.0.0.1:11434"
 MODEL = os.environ.get("VAULT_OLLAMA_MODEL", "llama3:latest")
+# Next.js can send anonymous usage data during install, build and start. VAULT keeps everything on the machine, so
+# every child process (npm ci, next build, next start) inherits this.
+os.environ["NEXT_TELEMETRY_DISABLED"] = "1"
 
 
 def say(msg: str) -> None:

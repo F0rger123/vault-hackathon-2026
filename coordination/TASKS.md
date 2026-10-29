@@ -25,8 +25,8 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 | F09 Security | 11 | 10 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F10 User Interface | 12 | 12 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F11 Synthetic Data & Evaluation | 7 | 6 | 0 | 1 | 0 | 0 | 0 | 0 |
-| F12 Deployment & Submission | 10 | 6 | 0 | 0 | 1 | 2 | 1 | 0 |
-| **Total** | **101** | **84** | **1** | **1** | **4** | **8** | **3** | **0** |
+| F12 Deployment & Submission | 10 | 7 | 0 | 0 | 0 | 2 | 1 | 0 |
+| **Total** | **101** | **85** | **1** | **1** | **3** | **8** | **3** | **0** |
 
 **Recorded evidence used below**
 
@@ -1244,10 +1244,14 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 
 #### F12.10 — Turn off Next.js telemetry
 
-- **Priority:** P1 · **Owner:** luke · **Status:** READY · **Dependencies:** F12.9
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F12.9
 - **Description:** Next.js can send anonymous usage data during build and start. VAULT says nothing leaves the machine, so every start path sets `NEXT_TELEMETRY_DISABLED=1`. Found by the 2026-10-29 audit.
 - **Implementation scope:** `scripts/start.py`, `frontend/Dockerfile`.
 - **Acceptance criteria:** `next telemetry status` reports disabled under the launcher's environment.
+- **Verification evidence (2026-10-29):**
+  - On this laptop, `npx next telemetry status` reported telemetry **on** before the change, and "No data will be collected from your machine" with `NEXT_TELEMETRY_DISABLED=1`.
+  - `tests/unit/test_no_telemetry.py`: the launcher sets the variable for every child process, and both Dockerfile stages set it.
+  - `docs/DEPLOYMENT.md` tells people running `npm` themselves how to turn it off.
 
 #### F12.1 — Command-line interface
 - **Description:** `vault init`, `token`, `ingest`, `hardware`, `providers`, `estimate`, `process`, `search`, `findings`, `serve`.
