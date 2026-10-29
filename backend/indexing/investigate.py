@@ -18,6 +18,7 @@ from backend.indexing.findings import LATEST_EXTRACTION
 from backend.indexing.search import search
 from backend.providers.base import Provider, ProviderError
 from backend.storage.db import loads
+from backend.workers.brain import prompt_guidance
 
 MAX_SOURCES = 16
 MAX_FINDINGS = 4
@@ -302,13 +303,22 @@ def template_answer(plan: dict, sources: list[dict], findings: list[dict]) -> li
     return out
 
 
-def model_answer(provider: Provider, question: str, sources: list[dict], findings: list[dict]) -> list[AnswerSentence]:
+def model_answer(
+    provider: Provider, question: str, sources: list[dict], findings: list[dict], meanings: list[dict] | None = None
+) -> list[AnswerSentence]:
     lines = "\n".join(f"[{s['id']}] {s['filename']} p.{s['page']}: {s['quote']}" for s in sources)
     # Findings are computed by VAULT from verified quotes, so the model can lean on them instead of re-deriving.
     facts = "\n".join(f"- {f['summary']} (sources {', '.join(map(str, f['sources']))})" for f in findings)
     user = (
         f"Question (data): {json.dumps(question)}\n"
         + (f"Conflicts VAULT has already computed from these sources:\n{facts}\n" if facts else "")
+        + (
+            "What this organization's terms mean (taught by its people; use them to read the sources):\n"
+            + "\n".join(f"- {json.dumps(m)}" for m in meanings)
+            + "\n"
+            if meanings
+            else ""
+        )
         + f"<sources>\n{lines}\n</sources>\nReturn only the JSON object."
     )
     raw = provider.chat_json(SYSTEM_PROMPT, user, ANSWER_SCHEMA)
@@ -326,7 +336,10 @@ def investigate(conn: sqlite3.Connection, collection_id: int, question: str, pro
     if not info.is_ai_model or not sources:
         raw = template_answer(plan, sources, findings)
     else:
-        raw = model_answer(provider, question, sources, findings)
+        # The brain's meanings help the model read local jargon. They stay on this machine: a remote model
+        # never receives them (F07.7).
+        meanings = prompt_guidance(conn, collection_id) if info.locality == "local" else None
+        raw = model_answer(provider, question, sources, findings, meanings)
     sentences = check_sentences(raw, sources)
     return {
         "question": question,

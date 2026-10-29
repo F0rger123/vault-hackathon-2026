@@ -15,18 +15,18 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 | Feature | Subtasks | VERIFIED | REVIEW | IN_PROGRESS | READY | BACKLOG | BLOCKED | DEFERRED |
 |---|---|---|---|---|---|---|---|---|
 | F01 Project Foundation | 10 | 9 | 1 | 0 | 0 | 0 | 0 | 0 |
-| F02 File Ingestion | 8 | 6 | 1 | 0 | 0 | 1 | 0 | 0 |
-| F03 Hardware & Collection Analysis | 6 | 6 | 0 | 0 | 0 | 0 | 0 | 0 |
+| F02 File Ingestion | 8 | 7 | 0 | 0 | 0 | 1 | 0 | 0 |
+| F03 Hardware & Collection Analysis | 7 | 7 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F04 AI Model System | 11 | 7 | 0 | 0 | 1 | 2 | 1 | 0 |
 | F05 Parallel Processing | 9 | 8 | 0 | 0 | 0 | 0 | 1 | 0 |
 | F06 Search & Investigation | 6 | 5 | 0 | 0 | 0 | 1 | 0 | 0 |
-| F07 Teaching & Corrections | 6 | 5 | 0 | 0 | 0 | 1 | 0 | 0 |
+| F07 Teaching & Corrections | 8 | 5 | 2 | 0 | 0 | 1 | 0 | 0 |
 | F08 Actions & Organization | 5 | 5 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F09 Security | 11 | 10 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F10 User Interface | 12 | 12 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F11 Synthetic Data & Evaluation | 7 | 6 | 0 | 1 | 0 | 0 | 0 | 0 |
 | F12 Deployment & Submission | 10 | 7 | 0 | 0 | 0 | 2 | 1 | 0 |
-| **Total** | **101** | **86** | **2** | **1** | **1** | **8** | **3** | **0** |
+| **Total** | **104** | **88** | **3** | **1** | **1** | **8** | **3** | **0** |
 
 **Recorded evidence used below**
 
@@ -249,7 +249,7 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 
 #### F02.8 — Office documents (DOCX, XLSX, PPTX)
 
-- **Priority:** P1 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F02.2, F02.4
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F02.2, F02.4
 - **Description:** Read text from Word, Excel and PowerPoint files with the standard-library zip and XML readers, adding no dependency. Found missing by the 2026-10-29 audit (test B rejected them).
 - **Implementation scope:** `backend/security/files.py` (types and checks), `backend/ingest/service.py` (page text: one page per sheet or slide; Word in 4,000-character pages).
 - **Acceptance criteria:** All three formats import and are searchable. A zip bomb, an oversized member, and a macro-enabled file (`.docm`, `.xlsm`) are each rejected.
@@ -263,7 +263,7 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
     - PowerPoint slides in order;
     - rejected inputs: `.docm`, `.xlsm`, `.pptm`, `.zip`, a renamed macro file, a zip bomb (15 MB packed into under 100 KB), oversized and too many parts, billion-laughs, XXE, UTF-16 XML, and damaged files.
   - **Integration test:** `tests/integration/test_office_upload.py`. Office files upload, process and turn up in search; `.docm` is rejected.
-  - **Status:** REVIEW until Luke approves the merge (file handling).
+  - **Merge:** Luke approved on 2026-10-29 ("merge everything").
 
 #### F02.7 — Path import for large server-side collections
 - **Description:** Admin imports a directory inside `VAULT_IMPORT_ROOTS`; progress reporting for long imports.
@@ -350,6 +350,22 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
     - Llama 3 (Ollama, 2 workers): estimated 92.3–224.0 s, actual 74.9 s; `actual_vs_estimate` 0.47, so the estimate ran high.
   - **Cause of the high Llama estimate:** the 3-document sample includes the model load, which matches the earlier calibration point.
 - **Earlier evidence:** Calibration point: estimate 1,007–4,956 s vs actual 654 s (v1) and 408 s (v3); the 3-doc sample included model load, so estimates ran high.
+
+#### F03.7 — Install Meta models from inside VAULT, sized to the machine
+
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F03.6
+- **Description:** Luke asked for setup to be easy (2026-10-29). VAULT checks the hardware, recommends which Meta models fit, and installs them with one click. It shows download progress and lets an admin choose which installed model VAULT reads with.
+- **Implementation scope:** `backend/core/model_install.py` (the catalog of Meta models, recommendations, background downloads); routes `/system/model-catalog`, `/system/models/install`, `/settings/local-model`; `frontend/src/components/model-installer.tsx` on the Overview.
+- **Acceptance criteria:** admin only; catalog only; local Ollama only; audited; progress shown; switching models changes the model VAULT uses.
+- **Verification evidence (2026-10-29):**
+  - **Tests:** `tests/integration/test_model_install.py`, 3 tests:
+    - recommendations for an 8 GB laptop (Llama 3 8B plus Vision), a machine with no GPU (Llama 3.2 3B only) and an 80 GB server (Llama 3.3 70B plus Vision);
+    - viewer and analyst get 403 and no token gets 401;
+    - non-catalog names and names with shell characters are refused before Ollama is called;
+    - download progress reaches "installed", the active model switches, and every step is audited;
+    - a remote Ollama address is refused.
+  - **This laptop:** the recommendation is Llama 3 8B (installed) plus Llama 3.2 Vision (runs partly on the CPU).
+  - **Not run:** a real download through the button. Pulling a model is Luke's call, and the download path is tested with a fake Ollama.
 
 ---
 
@@ -755,6 +771,38 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 - **Blockers:** none
 - **Related PR/commit:** branch `luke/F05-agent-orchestrator`
 - **Verification evidence:** `test_examples_are_stored_and_selected_by_similarity` passes. Held-out improvement not yet measured (F07.3).
+
+#### F07.7 — The collection brain: separate per collection, taught in plain words, asks about its gaps
+
+- **Priority:** P1 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F07.2, F07.5
+- **Description:** Luke asked (2026-10-29) for VAULT to build a profile of what it knows, learn "this means that" and plain-language instructions, look for its own gaps and ask about them, and keep separate brains for separate divisions.
+- **Implementation scope:**
+  - `backend/workers/brain.py`: profile, meanings, instructions, gap finder, answers.
+  - Migration 6: the `knowledge` table, additive only.
+  - Rules now carry their collection, and examples are matched only within their collection.
+  - Meanings and instructions go into the reading prompt, and into the Ask prompt for local models only.
+  - `backend/api/routes_brain.py`; the Brain screen at `/brain`.
+- **Acceptance criteria:**
+  - Teaching in one collection never changes readings in another.
+  - Questions come from the real collection.
+  - Answers are kept and used, and answered questions do not come back.
+  - Every route checks its permission and is audited.
+- **Isolation fix found on the way:** before this task, rules and labelled examples applied to **every** collection. One division's teaching would have leaked into another's readings. Older rules without a collection still apply everywhere, so existing results do not change.
+- **Verification evidence (2026-10-29):** `tests/integration/test_brain.py`, 5 tests:
+  - two collections ("nuclear" and "retail"): a rule and meanings taught in one do not reach the other's prompt or readings;
+  - questions from dataset v1: terms such as FL, HX and PV, and documents read as "other";
+  - answering stores a meaning and removes the question, and answering again gives 404;
+  - viewer 403, no token 401, unknown collection 404; skip and forget work;
+  - a document type answer becomes a labelled example, and a bad type gives 422;
+  - taught knowledge is kept apart from rules in the prompt.
+- **Blockers:** the merge needs Luke, because it includes a database migration (additive).
+
+#### F07.8 — Brain map: an interactive graph of documents and what they mention
+
+- **Priority:** P2 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F07.7
+- **Description:** A map of the collection on the Brain screen. Documents cluster around their projects, document types, parts and markings. A person can drag and zoom, filter by kind, and search. Clicking a hub lists its documents, and clicking a document opens it. Parts with conflicting values are red. It is drawn on a canvas with no new dependency. A 3D version would need a 3D library, so it is left for Luke to decide.
+- **Verification evidence (2026-10-29):** `test_brain_graph_links_documents_to_what_they_mention`. Every edge joins existing nodes, and every planted rating conflict is flagged red. On v1 there are 222 items and 737 links.
+
 
 ## F08 — Actions & Organization
 

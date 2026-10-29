@@ -145,6 +145,33 @@ Every response carries `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY
 `gpus` is `[]` when no NVIDIA GPU is detected. `physical_cores` may be `null`.
 - **Errors:** 401, 403
 
+### `GET /system/local-models` (F03.6)
+- **Permission:** `system:read`
+- **Response 200:** the installed Ollama models, each with its size, its origin (`meta`, `llama-based` or `other`) and how many copies fit on the GPU or in RAM, plus `different_models_on_gpu_together`. If Ollama is not running, `reachable` is false.
+
+### `GET /system/model-catalog` (F03.7)
+- **Permission:** `system:read`
+- **Response 200:**
+```json
+{"models": [{"name": "llama3:8b", "title": "Llama 3 8B", "size_gb": 4.7, "memory_gb": 6.1, "reads": "text",
+             "good_for": "...", "runs_on": "gpu", "installed": true}],
+ "recommended": ["llama3:8b", "llama3.2-vision:11b"], "vram_gb": 8.0, "ram_gb": 31.2,
+ "installs": [{"name": "llama3.2:3b", "status": "downloading", "completed": 1073741824, "total": 2019393189}],
+ "active_model": "llama3:latest"}
+```
+`runs_on` is `gpu`, `cpu` (partly on the processor) or `too_big`. These values are estimates from download sizes. Only Meta models are listed.
+
+### `POST /system/models/install` → 202 · `POST /system/models/install/cancel` (F03.7)
+- **Permission:** `settings:write` (admin)
+- **Body:** `{"name": "llama3.2:3b"}`. The name must be in the catalog; anything else returns 400 and is audited as denied.
+- **Effect:** the local Ollama downloads the model in the background. Progress appears in `installs` above. Only weights come in from Ollama's library; no document data goes out. A non-local `VAULT_OLLAMA_URL` returns 400.
+- **Errors:** 400, 401, 403, 422
+
+### `PUT /settings/local-model` (F03.7)
+- **Permission:** `settings:write` (admin)
+- **Body:** `{"name": "llama3.1:8b"}`. It must be an installed Meta model (400 otherwise). VAULT reads with it from the next job on.
+- **Response 200:** `{"active_model": "llama3.1:8b"}`
+
 ### `GET /system/providers`
 - **Permission:** `system:read`
 - **Response 200:** `{"default": "ollama", "allow_remote_inference": false, "providers": [ProviderInfo, ...]}`. API keys are never returned.
@@ -286,6 +313,33 @@ Really processes a random sample with the chosen provider (results are saved as 
 - **Permission:** `corrections:create`
 - **Suggestions:** rules from practice-set mistakes, each 100% precise on the practice set: `[{document_id, field, value, when_contains, fixes_train_docs}]`.
 - **Apply:** publishes each rule as a correction with a new policy version, and returns `{applied: [...]}`. Re-read the collection to see the effect.
+
+### `GET /collections/{collection_id}/brain` (F07.7)
+- **Permission:** `documents:read`
+- **Response 200:**
+  - **Profile:** `documents`, `read`, `read_by`, `doc_types` (counts), `projects`, `parts`, `parties`, `markings` (each `[{"name", "documents"}]`), `date_range`, `quotes_verified`.
+  - **`taught`:** counts of `meanings`, `instructions`, `rules` and `examples`.
+  - **`knowledge`:** `[{"id", "kind": "meaning"|"instruction", "term", "text", "source", "created_by", "created_at"}]`.
+  - **`questions`:** `[{"id": "<16 hex>", "kind": "marking"|"term"|"doc_type"|"project"|"check", "subject", "question", "document_id", "choices"}]`.
+- Everything is scoped to this one collection. Rules and examples taught in another collection are not counted or used.
+- **Errors:** 401, 403, 404
+
+### `GET /collections/{collection_id}/brain/graph` (F07.8)
+- **Permission:** `documents:read`
+- **Response 200:** `{"nodes": [{"id": "doc:12", "kind": "document"|"project"|"doc_type"|"part"|"marking", "label", "weight", "document_id"?, "conflict"?}], "edges": [{"source", "target"}], "documents_total", "documents_shown"}`. At most 400 documents and 60 parts are included.
+
+### `POST /collections/{collection_id}/brain/knowledge` → 201 · `DELETE /collections/{collection_id}/brain/knowledge/{knowledge_id}` (F07.7)
+- **Permission:** `corrections:create`
+- **Body:** `{"kind": "meaning", "term": "QA-7 stamp", "text": "Approved by the quality team"}` or `{"kind": "instruction", "text": "..."}`. Up to 500 characters. Teaching a term again replaces its meaning. Delete retires the entry; it is kept for the record but no longer used. Audited as `brain.teach` and `brain.forget`.
+
+### `POST /collections/{collection_id}/brain/answer` · `POST /collections/{collection_id}/brain/skip` (F07.7)
+- **Permission:** `corrections:create`
+- **Body:** `{"gap_id": "<id from questions>", "answer": "..."}`. Only open questions are accepted (404 otherwise).
+- **Effect by question kind:**
+  - Markings and terms become meanings.
+  - Document type and project answers become a correction plus a labelled example; a document type must be a valid type (422 otherwise).
+  - Check questions are confirmed, or kept as an instruction.
+- **Response 200:** `{"question", "saved_as": "meaning"|"example"|"instruction"|"confirmed", ...}`. Audited as `brain.answer`.
 
 ### `GET /policies`
 - **Permission:** `documents:read`

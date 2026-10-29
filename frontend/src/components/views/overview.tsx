@@ -5,6 +5,7 @@ import { TERMINAL, vault, type Job, type ProvidersResponse } from "@/lib/api";
 import { formatBytes, formatNumber, laneLabel, providerLabel, statusText, timeAgo } from "@/lib/format";
 import { useLoad } from "@/lib/use-load";
 import { GettingStarted, LocalModelsCard } from "../first-run";
+import { ModelInstaller } from "../model-installer";
 import { FindingRedline } from "../finding-redline";
 import { useSession } from "../session";
 import { TitleBlock } from "../title-block";
@@ -60,6 +61,7 @@ export function OverviewView() {
 
       <Panel title="This computer" className="mb-8">
         <LocalModelsCard data={localModels.data} compact />
+        {localModels.data?.reachable && <ModelInstaller />}
       </Panel>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">

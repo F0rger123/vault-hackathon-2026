@@ -11,6 +11,7 @@ from backend.providers.fill_fields import fill_from_text
 from backend.providers.prompting import detect_injection
 from backend.providers.schema import verify_evidence
 from backend.storage.db import dumps, loads, now
+from backend.workers.brain import prompt_guidance, scoped_rules
 
 EXCERPT_CHARS = 700
 _WORD = re.compile(r"[a-z0-9-]{3,}")
@@ -30,13 +31,17 @@ def load_pages(conn: sqlite3.Connection, document_id: int) -> list[str]:
 
 def load_examples(conn: sqlite3.Connection) -> list[dict]:
     """Human-labelled examples ("teach by example"), each with a short excerpt of its document."""
-    rows = conn.execute("SELECT document_id, labels FROM examples ORDER BY id").fetchall()
+    rows = conn.execute(
+        "SELECT e.document_id, e.labels, d.collection_id FROM examples e JOIN documents d ON d.id = e.document_id "
+        "ORDER BY e.id"
+    ).fetchall()
     out = []
     for r in rows:
         text = "\n".join(load_pages(conn, r["document_id"]))
         out.append(
             {
                 "document_id": r["document_id"],
+                "collection_id": r["collection_id"],
                 "excerpt": text[:EXCERPT_CHARS],
                 "labels": loads(r["labels"], {}),
                 "words": set(_WORD.findall(text.lower())),
@@ -67,13 +72,18 @@ def process_document(
     examples: list[dict] | None = None,
     lane: str | None = None,
 ) -> dict:
-    doc = conn.execute("SELECT id, filename, media_type FROM documents WHERE id = ?", (document_id,)).fetchone()
+    doc = conn.execute(
+        "SELECT id, collection_id, filename, media_type FROM documents WHERE id = ?", (document_id,)
+    ).fetchone()
     if not doc:
         raise LookupError(f"document {document_id} not found")
     version, rules = policy or current_policy(conn)
+    # Each collection has its own brain: only its rules, examples, meanings and instructions apply (F07.7).
+    rules = scoped_rules(rules, doc["collection_id"]) + prompt_guidance(conn, doc["collection_id"])
     pages = load_pages(conn, document_id)
     info = info or provider.info()
-    shots = pick_examples(examples or [], pages)
+    mine = [e for e in examples or [] if e.get("collection_id", doc["collection_id"]) == doc["collection_id"]]
+    shots = pick_examples(mine, pages)
 
     started = time.perf_counter()
     extraction = provider.extract(pages, doc["filename"], rules, shots)

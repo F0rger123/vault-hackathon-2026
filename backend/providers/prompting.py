@@ -68,10 +68,19 @@ def build_user_prompt(
         parts.append(chunk)
         budget -= len(chunk)
     guidance = ""
-    if policy_rules:
+    overrides = [{k: v for k, v in r.items() if k != "collection_id"} for r in policy_rules if "when_contains" in r]
+    taught = [r for r in policy_rules if "when_contains" not in r]
+    if overrides:
         guidance = (
             "\nOrganisation-specific classification guidance (from approved corrections):\n"
-            + "\n".join(f"- {json.dumps(r)}" for r in policy_rules[:30])
+            + "\n".join(f"- {json.dumps(r)}" for r in overrides[:30])
+            + "\n"
+        )
+    if taught:
+        # Meanings and instructions people in this organization wrote for this collection (F07.7).
+        guidance += (
+            "\nWhat this organization's terms and markings mean, and how they want documents read:\n"
+            + "\n".join(f"- {json.dumps(r)}" for r in taught[:40])
             + "\n"
         )
     shots = ""

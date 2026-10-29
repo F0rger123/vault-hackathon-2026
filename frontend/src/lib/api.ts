@@ -304,6 +304,93 @@ export interface LocalModels {
   fit_together?: string[];
 }
 
+export interface CatalogModel {
+  name: string;
+  title: string;
+  size_gb: number;
+  memory_gb: number;
+  reads: "text" | "text and images";
+  good_for: string;
+  runs_on: "gpu" | "cpu" | "too_big";
+  installed: boolean;
+}
+
+export interface ModelInstall {
+  name: string;
+  status: "idle" | "starting" | "downloading" | "installed" | "failed" | "cancelled";
+  completed: number;
+  total: number;
+  detail?: string;
+}
+
+export interface ModelCatalog {
+  models: CatalogModel[];
+  recommended: string[];
+  vram_gb: number;
+  ram_gb: number;
+  installs: ModelInstall[];
+  active_model: string;
+}
+
+export interface Knowledge {
+  id: number;
+  kind: "meaning" | "instruction";
+  term: string | null;
+  text: string;
+  source: string;
+  created_at: number;
+  created_by: string | null;
+}
+
+export interface BrainQuestion {
+  id: string;
+  kind: "marking" | "term" | "doc_type" | "project" | "check";
+  subject: string;
+  question: string;
+  document_id: number | null;
+  choices: string[] | null;
+}
+
+export interface Named {
+  name: string;
+  documents: number;
+}
+
+export interface Brain {
+  collection_id: number;
+  documents: number;
+  read: number;
+  read_by: string[];
+  doc_types: Record<string, number>;
+  projects: Named[];
+  parts: Named[];
+  parties: Named[];
+  markings: Named[];
+  date_range: [string, string] | null;
+  quotes_verified: number | null;
+  taught: { meanings: number; instructions: number; rules: number; examples: number };
+  knowledge: Knowledge[];
+  questions: BrainQuestion[];
+}
+
+export interface BrainNode {
+  id: string;
+  kind: "document" | "project" | "doc_type" | "part" | "marking";
+  label: string;
+  weight: number;
+  document_id?: number;
+  doc_type?: string | null;
+  conflict?: boolean;
+}
+
+export interface BrainGraph {
+  collection_id: number;
+  nodes: BrainNode[];
+  edges: { source: string; target: string }[];
+  documents_total: number;
+  documents_shown: number;
+}
+
 export const TERMINAL: JobStatus[] = ["completed", "completed_with_errors", "failed", "cancelled"];
 
 export interface AgentEvent {
@@ -527,6 +614,20 @@ export const vault = {
   providers: () => api<ProvidersResponse>("/system/providers"),
   hardware: () => api<Hardware>("/system/hardware"),
   localModels: () => api<LocalModels>("/system/local-models"),
+  modelCatalog: () => api<ModelCatalog>("/system/model-catalog"),
+  brain: (collectionId: number) => api<Brain>(`/collections/${collectionId}/brain`),
+  brainGraph: (collectionId: number) => api<BrainGraph>(`/collections/${collectionId}/brain/graph`),
+  teach: (collectionId: number, body: { kind: Knowledge["kind"]; term?: string; text: string }) =>
+    post<Knowledge>(`/collections/${collectionId}/brain/knowledge`, body),
+  forget: (collectionId: number, knowledgeId: number) =>
+    del<{ retired: number }>(`/collections/${collectionId}/brain/knowledge/${knowledgeId}`),
+  answerQuestion: (collectionId: number, gapId: string, answer: string) =>
+    post<{ saved_as: string }>(`/collections/${collectionId}/brain/answer`, { gap_id: gapId, answer }),
+  skipQuestion: (collectionId: number, gapId: string) =>
+    post<{ skipped: string }>(`/collections/${collectionId}/brain/skip`, { gap_id: gapId }),
+  installModel: (name: string) => post<ModelInstall>("/system/models/install", { name }),
+  cancelModelInstall: (name: string) => post<ModelInstall>("/system/models/install/cancel", { name }),
+  setLocalModel: (name: string) => put<{ active_model: string }>("/settings/local-model", { name }),
   capacity: (provider: ProviderName) => api<Capacity>(`/system/capacity?provider=${provider}`),
   calibrate: (provider: ProviderName, confirm_remote = false) =>
     post<Calibration>("/system/capacity/calibrate", { provider, confirm_remote }),

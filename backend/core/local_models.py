@@ -38,6 +38,11 @@ _cache: dict[tuple[str, str], tuple[float, dict]] = {}
 CACHE_SECONDS = 30
 
 
+def cache_clear() -> None:
+    """After an install or a model change, so the next screen shows it at once."""
+    _cache.clear()
+
+
 def local_models(settings: Settings, hw: HardwareProfile) -> dict:
     """Cached for half a minute: Ollama takes about a second to answer, and several screens ask."""
     key = (settings.ollama_url, settings.ollama_model)
