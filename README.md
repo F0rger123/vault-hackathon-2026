@@ -28,11 +28,13 @@ Engineering firms, manufacturers and public agencies sit on thousands of documen
 
 | | | |
 |---|---|---|
-| **Reads everything** | PDFs, text, CSV spreadsheets and images. Each file is checked by what it really is, not its name, and the original is sealed read-only. | 157 files, 0 failures |
+| **Reads everything** | PDFs, text, CSV spreadsheets and images. Each file is checked by what it really is, not its name, and the original is sealed read-only. Large folders import in the background. | 157 files, 0 failures |
 | **Understands it with Meta Llama** | Llama 3 8B runs on the same computer through Ollama. It pulls out document type, project, dates, part numbers and pressure ratings. | 0.956 document-type accuracy on held-out files |
 | **Proves every fact** | Each extracted value has to match a verbatim quote on a stored page. A quote that isn't really there is flagged, not trusted. | Every finding links to page and quote |
-| **Catches disagreements** | Compares every document against every other and redlines conflicts, like a drawing and an inspection report that rate the same part differently. | 10 of 10 planted conflicts, 0 false alarms |
-| **Knows its own speed** | Benchmarks real files on your hardware before it promises a finish time, then runs parallel model lanes that retry and resume. | 157 documents in 12 min 55 s on a laptop GPU |
+| **Catches disagreements** | Compares every document against every other and redlines conflicts: pressure ratings, quantities and materials that differ for the same part. | 10 of 10 planted rating conflicts, 0 false alarms, also on unseen data |
+| **Knows its own speed** | Shows how many local models fit on your GPU, benchmarks real files before it promises a finish time, then compares each run with its estimate. | 157 documents in 12 min 55 s on a laptop GPU |
+| **Answers questions** | Ask in plain English. Llama answers with numbered citations, and VAULT checks every number against the cited line. Ask for a folder layout the same way. | 8 of 8 layout requests right on held-out phrasing |
+| **Learns from you** | The Training screen grades the reading against known answers, suggests rules from its mistakes, and re-tests on documents nobody corrected. Model weights never change. | Held-out document type 0.889 to 0.978 after one round (rules baseline) |
 | **Never acts alone** | Reorganizing the archive is only ever a proposal. An administrator previews it as a folder tree, and approving it exports copies; originals never move. | Every action, allowed or refused, is in the audit log |
 
 ## See it
@@ -42,7 +44,7 @@ All data below is fictional, made by the project's own synthetic dataset generat
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/run-dark.jpg">
-    <img src="docs/screenshots/run-light.jpg" alt="Live run board: 157 documents flowed through the coordinator, the security gate, a local Meta Llama lane and the reviewer" width="100%">
+    <img src="docs/screenshots/run-light.jpg" alt="Live run board: 150 documents read by Meta Llama 3 on this laptop in 8 minutes 56 seconds, through the coordinator, the security gate and the reviewer" width="100%">
   </picture>
   <br><sub><b>Live run board.</b> Every document moves from the coordinator through the security gate and a local Llama lane to the reviewer. The board only changes when an agent reports real work.</sub>
 </p>
@@ -66,6 +68,16 @@ All data below is fictional, made by the project's own synthetic dataset generat
     <td width="50%" valign="top">
       <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/setup-dark.jpg"><img src="docs/screenshots/setup-light.jpg" alt="Set up a run: teach by example, check this machine, choose model lanes"></picture>
       <br><sub><b>Set up a run.</b> Teach it with a few labelled examples, measure the machine, pick the model lanes, start.</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/training-dark.jpg"><img src="docs/screenshots/training-light.jpg" alt="Training: graded test against known answers, with held-out scores, suggested rules and a ready-for-real-documents check"></picture>
+      <br><sub><b>Training.</b> Grade the reading, teach it with suggested rules, re-test on documents nobody corrected. Here Llama 3 scores 97.7% on held-out document types.</sub>
+    </td>
+    <td width="50%" valign="top">
+      <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/signin-dark.jpg"><img src="docs/screenshots/signin-light.jpg" alt="Sign in: one-click demo roles or a username and password; no API key needed"></picture>
+      <br><sub><b>Sign in.</b> No API key or cloud account. Try the demo with one click, or sign in with your own account.</sub>
     </td>
   </tr>
   <tr>
@@ -111,7 +123,7 @@ The rules baseline is kept for comparison and offline tests and is labelled "not
 
 | Working and tested | Written, not yet run | Next |
 |---|---|---|
-| Ingestion, sealed originals, page text · Local Meta Llama extraction · Parallel lanes with retries, cancel and resume · Verified cross-document conflicts · Search with filters and page references · Corrections and versioned rules · Approvals with copy-only export · Security cases S1–S10 · Six-screen web interface · Coordinator, security and review agents (3,700-file run) | Meta Model API (Muse Spark) lane, waiting for an API key | Final evaluation on frozen code (Nov 1) · First Meta Model API run · Demo video (3 minutes) |
+| One-command start · Demo and Real modes · Password and one-click demo sign-in · Local Meta Llama extraction · Parallel lanes with retries, cancel and resume · Rating, quantity and material conflicts with verified quotes · Plain-English questions with checked citations · Training: graded test, suggested rules, re-test · Approvals with copy-only export · Security tests, Semgrep, Trivy and ZAP in CI · 113 automated tests and 18 browser tests | Meta Model API (Muse Spark) lane, waiting for an API key · OCR for scanned pages | Final evaluation on frozen code (Nov 1) · Demo video (3 minutes) |
 
 Plans in detail: [docs/MASTER_BLUEPRINT.md](docs/MASTER_BLUEPRINT.md) and [coordination/TASKS.md](coordination/TASKS.md).
 
