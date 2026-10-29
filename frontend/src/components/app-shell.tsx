@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useId, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { errorText, setToken, vault, type AuthOptions, type SignedIn } from "@/lib/api";
+import { VaultMark } from "./vault-mark";
 import { SessionGate, SessionProvider, useMaybeSession, useSession } from "./session";
 import { Button, cx, inputClass } from "./ui";
 
@@ -33,28 +34,11 @@ export function sheetNumber(href: string): number {
 }
 export const SHEET_COUNT = NAV.length;
 
-/** Logo mark: a solid ink tile with a keyhole cut through it. */
-function VaultMark({ className }: { className?: string }) {
-  // The rail and the phone header both render a mark; each needs its own mask id, or a hidden copy breaks the other.
-  const maskId = `vault-keyhole-${useId().replace(/:/g, "")}`;
-  return (
-    <svg aria-hidden viewBox="0 0 28 28" className={className}>
-      <defs>
-        <mask id={maskId}>
-          <rect width="28" height="28" fill="white" />
-          <circle cx="14" cy="11.5" r="3.4" fill="black" />
-          <path d="M12.3 13.2h3.4l1.1 7.3h-5.6z" fill="black" />
-        </mask>
-      </defs>
-      <rect width="28" height="28" rx="7" fill="var(--ink)" mask={`url(#${maskId})`} />
-    </svg>
-  );
-}
 
 function Wordmark() {
   return (
     <Link href="/" className="flex items-center gap-3 rounded-control">
-      <VaultMark className="h-7 w-7" />
+      <VaultMark className="h-8 w-8" />
       <span className="text-[15px] font-semibold tracking-[0.32em] text-ink">VAULT</span>
     </Link>
   );
@@ -316,7 +300,7 @@ function Chrome({ children }: { children: ReactNode }) {
         </header>
       )}
 
-      <main id="main" className={cx("min-w-0", ready && "vault-glow mx-auto w-full max-w-[1480px] px-4 pb-16 pt-6 sm:px-6 lg:px-10 lg:pt-9")}>
+      <main id="main" className={cx("page-enter min-w-0", ready && "vault-glow mx-auto w-full max-w-[1480px] px-4 pb-16 pt-6 sm:px-6 lg:px-10 lg:pt-9")}>
         {ready && <DemoBanner />}
         {children}
       </main>
@@ -352,8 +336,8 @@ function SignIn({ onSignedIn, message }: { onSignedIn: () => void; message?: str
 
   return (
     <div className="grid min-h-dvh place-items-center px-4 py-10">
-      <div className="w-full max-w-sm rounded-card border border-line bg-panel shadow-lift">
-        <div className="border-b border-line px-5 py-4">
+      <div className="animate-rise w-full max-w-sm rounded-card border border-line bg-panel shadow-lift">
+        <div className="vault-dial-intro border-b border-line px-5 py-4">
           <Wordmark />
         </div>
         <div className="flex flex-col gap-4 px-5 py-5">
@@ -380,12 +364,13 @@ function SignIn({ onSignedIn, message }: { onSignedIn: () => void; message?: str
                 {(["admin", "analyst", "viewer"] as const).map((role) => (
                   <Button
                     key={role}
+                    aria-label={`Demo: ${role}`}
                     variant={role === "analyst" ? "primary" : "secondary"}
                     busy={busy === role}
                     disabled={!!busy}
                     onClick={() => finish(role, () => vault.demoLogin(role))}
                   >
-                    Demo: {role}
+                    <span className="capitalize">{role}</span>
                   </Button>
                 ))}
               </div>

@@ -19,6 +19,7 @@ import {
 import { dateTime, formatMb, formatNumber, humanize, providerLabel } from "@/lib/format";
 import { useLoad, type Loaded } from "@/lib/use-load";
 import { useSession } from "../session";
+import { LocalModelsCard, QuickStart } from "../first-run";
 import { TitleBlock } from "../title-block";
 import { Button, cx, Empty, Field, inputClass, LoadError, Notice, Panel, Tag } from "../ui";
 
@@ -47,19 +48,29 @@ export function SetupView() {
   const providers = useLoad("providers", vault.providers, 15000);
   const docs = useLoad(collection ? `docs:${collection.id}` : null, () => allDocuments(collection!.id));
   const caps = useCapacities(providers.data?.providers);
+  const localModels = useLoad("local-models", vault.localModels, 30000);
+  const [advanced, setAdvanced] = useState(false);
 
   return (
     <>
       <TitleBlock
         href="/setup"
         title="Set up a run"
-        description="Four steps: show the model a few correct examples, check what this machine can handle, choose model lanes, then start."
+        description="Add your files and press one button. Everything else on this page is optional fine-tuning."
       />
       {!collection ? (
         <NewCollection />
       ) : (
         <div className="flex flex-col">
           <Library collectionId={collection.id} canUpload={atLeast(me, "analyst")} onUploaded={docs.reload} />
+          {atLeast(me, "analyst") && <QuickStart collectionId={collection.id} documents={collection.documents} />}
+          <Panel title="This computer" className="mb-6">
+            <LocalModelsCard data={localModels.data} />
+          </Panel>
+          <details className="group" open={advanced} onToggle={(e) => setAdvanced((e.target as HTMLDetailsElement).open)}>
+            <summary className="mb-6 cursor-pointer select-none text-sm font-medium text-muted hover:text-ink">
+              More options: teach by example, measure this computer, choose model lanes
+            </summary>
           <Step
             n={1}
             title="Teach by example"
@@ -75,6 +86,7 @@ export function SetupView() {
             <MachineCheck providers={providers.data} caps={caps} canCalibrate={atLeast(me, "admin")} />
           </Step>
           <LaneAndStart providers={providers.data} providersError={providers.error} collectionId={collection.id} caps={caps} />
+          </details>
         </div>
       )}
     </>
@@ -137,6 +149,7 @@ function Library({ collectionId, canUpload, onUploaded }: { collectionId: number
   const { collection, refresh } = useSession();
   const input = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
+  const [dragging, setDragging] = useState(false);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<UploadResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -145,7 +158,7 @@ function Library({ collectionId, canUpload, onUploaded }: { collectionId: number
     <Panel title="Files in this collection" className="mb-8" aside={collection && `${formatNumber(collection.documents)} documents, ${formatNumber(collection.processed ?? 0)} processed`}>
       {canUpload ? (
         <form
-          className="flex flex-col gap-3 sm:flex-row sm:items-end"
+          className="flex flex-col gap-3 sm:flex-row sm:items-center"
           onSubmit={async (e) => {
             e.preventDefault();
             if (!files.length) return;
@@ -166,16 +179,48 @@ function Library({ collectionId, canUpload, onUploaded }: { collectionId: number
             }
           }}
         >
-          <Field label="Add files" htmlFor="upload" hint="PDF, text, CSV and images. Each file is checked before it is stored; originals are kept as they are.">
+          <div className="min-w-0 flex-1">
+            {/* The whole area is the file input's label, so a click or a drop both work; the input stays
+                reachable by keyboard and by its "Add files" label. */}
+            <label
+              htmlFor="upload"
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragging(true);
+              }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragging(false);
+                setFiles(Array.from(e.dataTransfer.files));
+              }}
+              className={cx(
+                "flex min-h-24 cursor-pointer flex-col items-center justify-center gap-1 rounded-card border border-dashed px-4 py-4 text-center text-sm transition-colors duration-150",
+                dragging ? "border-accent bg-accent/10" : "border-line-strong hover:border-muted hover:bg-raised/40",
+              )}
+            >
+              <span className="font-medium">
+                {files.length
+                  ? `${files.length} ${files.length === 1 ? "file" : "files"} ready: ${files
+                      .slice(0, 3)
+                      .map((f) => f.name)
+                      .join(", ")}${files.length > 3 ? "…" : ""}`
+                  : "Drop files here, or click to choose"}
+              </span>
+              <span className="text-xs text-muted">
+                PDF, text, CSV and images. Each file is checked before it is stored; originals are kept as they are.
+              </span>
+            </label>
             <input
               ref={input}
               id="upload"
               type="file"
               multiple
+              aria-label="Add files"
               onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
-              className={cx(inputClass, "file:mr-3 file:border-0 file:bg-transparent file:font-medium file:text-blue")}
+              className="sr-only"
             />
-          </Field>
+          </div>
           <Button type="submit" variant="secondary" busy={busy} disabled={!files.length} className="sm:mb-6">
             {busy ? "Uploading" : files.length ? `Upload ${files.length} ${files.length === 1 ? "file" : "files"}` : "Upload"}
           </Button>

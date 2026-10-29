@@ -277,6 +277,33 @@ export interface RuleSuggestion {
   fixes_train_docs: number;
 }
 
+/** Installed Ollama models and how many copies fit on this computer at once (F03.6). */
+export interface LocalModel {
+  name: string;
+  size_gb: number;
+  memory_gb: number;
+  parameters: string | null;
+  quantization: string | null;
+  family: string | null;
+  origin: "meta" | "llama-based" | "other";
+  used_by_vault: boolean;
+  loaded: boolean;
+  copies_on_gpu: number;
+  copies_in_ram: number;
+  requests_per_copy: number;
+}
+
+export interface LocalModels {
+  reachable: boolean;
+  detail: string;
+  models: LocalModel[];
+  gpu?: string | null;
+  vram_gb?: number;
+  ram_free_gb?: number;
+  different_models_on_gpu_together?: number;
+  fit_together?: string[];
+}
+
 export const TERMINAL: JobStatus[] = ["completed", "completed_with_errors", "failed", "cancelled"];
 
 export interface AgentEvent {
@@ -499,6 +526,7 @@ export const vault = {
   stats: () => api<Stats>("/stats"),
   providers: () => api<ProvidersResponse>("/system/providers"),
   hardware: () => api<Hardware>("/system/hardware"),
+  localModels: () => api<LocalModels>("/system/local-models"),
   capacity: (provider: ProviderName) => api<Capacity>(`/system/capacity?provider=${provider}`),
   calibrate: (provider: ProviderName, confirm_remote = false) =>
     post<Calibration>("/system/capacity/calibrate", { provider, confirm_remote }),

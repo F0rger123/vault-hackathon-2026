@@ -1,4 +1,6 @@
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+"use client";
+
+import { useEffect, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
 
 export function cx(...parts: (string | false | null | undefined)[]): string {
   return parts.filter(Boolean).join(" ");
@@ -26,7 +28,7 @@ export function Button({
       disabled={rest.disabled || busy}
       aria-busy={busy || undefined}
       className={cx(
-        "inline-flex min-h-9 items-center justify-center gap-2 rounded-control border px-3.5 py-1.5 text-sm font-medium transition-[background-color,border-color,filter] duration-150",
+        "press inline-flex min-h-9 items-center justify-center gap-2 rounded-control border px-3.5 py-1.5 text-sm font-medium",
         "disabled:cursor-not-allowed disabled:opacity-50",
         VARIANTS[variant],
         className,
@@ -146,7 +148,20 @@ export function Empty({ children }: { children: ReactNode }) {
   return <p className="rounded-card border border-dashed border-line-strong px-5 py-8 text-center text-sm text-muted">{children}</p>;
 }
 
-export function Meter({ value, max, tone = "blue", label }: { value: number; max: number; tone?: "blue" | "green"; label: string }) {
+export function Meter({
+  value,
+  max,
+  tone = "blue",
+  label,
+  running,
+}: {
+  value: number;
+  max: number;
+  tone?: "blue" | "green";
+  label: string;
+  /** Moving stripes while work is in progress, so a slow step never looks frozen. */
+  running?: boolean;
+}) {
   const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
   return (
     <div
@@ -157,7 +172,14 @@ export function Meter({ value, max, tone = "blue", label }: { value: number; max
       aria-valuenow={value}
       className="h-1.5 w-full overflow-hidden rounded-full bg-raised ring-1 ring-line"
     >
-      <div className={cx("h-full rounded-full transition-[width] duration-500", tone === "blue" ? "bg-accent" : "bg-accent/70")} style={{ width: `${pct}%` }} />
+      <div
+        className={cx(
+          "h-full rounded-full transition-[width] duration-700 ease-out",
+          tone === "blue" ? "bg-accent" : "bg-accent/70",
+          running && "bar-running",
+        )}
+        style={{ width: `${Math.max(pct, running ? 2 : 0)}%` }}
+      />
     </div>
   );
 }
@@ -177,6 +199,30 @@ export function Field({ label, hint, children, htmlFor }: { label: string; hint?
 export const inputClass =
   "min-h-9 w-full min-w-0 rounded-control border border-line-strong bg-raised px-3 py-1.5 text-sm text-ink placeholder:text-muted hover:border-muted focus-visible:border-accent";
 
+/** A soft shimmering placeholder while data loads. */
+export function Skeleton({ className }: { className?: string }) {
+  return <span aria-hidden className={cx("skeleton inline-block align-middle", className)} />;
+}
+
+/** Counts a whole number up from zero once, on first show. Plain text for reduced motion or non-numbers. */
+function CountUp({ text }: { text: string }) {
+  const target = Number(text.replace(/,/g, ""));
+  const [shown, setShown] = useState<number | null>(null);
+  useEffect(() => {
+    if (!Number.isFinite(target) || target < 10 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    let frame = 0;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / 650);
+      setShown(Math.round(target * (1 - Math.pow(1 - t, 3))));
+      if (t < 1) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [target]);
+  return <>{shown === null || shown === target ? text : shown.toLocaleString("en-US")}</>;
+}
+
 export function Figure({ label, value, tone }: { label: string; value: ReactNode; tone?: "red" | "amber" | "green" }) {
   return (
     <div className="min-w-0">
@@ -189,7 +235,13 @@ export function Figure({ label, value, tone }: { label: string; value: ReactNode
           tone === "green" && "text-green",
         )}
       >
-        {value}
+        {value === undefined || value === null ? (
+          <Skeleton className="h-[26px] w-14" />
+        ) : typeof value === "string" && /^\d[\d,]*$/.test(value) ? (
+          <CountUp text={value} />
+        ) : (
+          value
+        )}
       </div>
     </div>
   );

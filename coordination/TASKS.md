@@ -16,17 +16,17 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 |---|---|---|---|---|---|---|---|---|
 | F01 Project Foundation | 9 | 8 | 1 | 0 | 0 | 0 | 0 | 0 |
 | F02 File Ingestion | 7 | 6 | 0 | 0 | 0 | 1 | 0 | 0 |
-| F03 Hardware & Collection Analysis | 5 | 5 | 0 | 0 | 0 | 0 | 0 | 0 |
+| F03 Hardware & Collection Analysis | 6 | 6 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F04 AI Model System | 10 | 6 | 0 | 0 | 1 | 2 | 1 | 0 |
 | F05 Parallel Processing | 9 | 8 | 0 | 0 | 0 | 0 | 1 | 0 |
 | F06 Search & Investigation | 6 | 5 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F07 Teaching & Corrections | 6 | 5 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F08 Actions & Organization | 5 | 4 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F09 Security | 10 | 10 | 0 | 0 | 0 | 0 | 0 | 0 |
-| F10 User Interface | 11 | 11 | 0 | 0 | 0 | 0 | 0 | 0 |
+| F10 User Interface | 12 | 12 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F11 Synthetic Data & Evaluation | 7 | 6 | 0 | 1 | 0 | 0 | 0 | 0 |
-| F12 Deployment & Submission | 8 | 5 | 0 | 0 | 0 | 2 | 1 | 0 |
-| **Total** | **93** | **79** | **1** | **1** | **1** | **8** | **3** | **0** |
+| F12 Deployment & Submission | 9 | 6 | 0 | 0 | 0 | 2 | 1 | 0 |
+| **Total** | **96** | **82** | **1** | **1** | **1** | **8** | **3** | **0** |
 
 **Recorded evidence used below**
 
@@ -323,6 +323,18 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 ---
 
 ## F04 — AI Model System
+
+#### F03.6 — How many local models fit on this computer
+
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F03.1
+- **Description:** List the installed Ollama models and estimate, from their sizes, how many copies of each fit in GPU memory or RAM, and how many different models fit together.
+- **Implementation scope:** `backend/core/local_models.py`; `GET /system/local-models`; the "This computer" card on Overview and Set up a run.
+- **Acceptance criteria:** the card shows the GPU, each model's origin (Meta, Llama-based or other), its memory need and copies, and VAULT's model first; a remote Ollama URL is never contacted.
+- **Required tests:** `tests/unit/test_local_models.py`.
+- **Blockers:** none
+- **Verification evidence (2026-10-28):**
+  - **Tests:** 3 unit tests: copies and origins, Ollama down, and a remote URL refused.
+  - **Live on the RTX 5070 Laptop (8 GB):** llama3:latest needs about 5.7 GB, so 1 copy fits on the GPU at 8 requests each; 1 different model at a time. qwen2.5 is flagged "Not Meta" and nous-hermes "Llama-based".
 
 #### F04.1 — Provider abstraction and registry
 - **Description:** `Provider` interface returning a validated `Extraction`; `ProviderInfo` exposes name, model, locality, is_ai_model, tasks, privacy, availability.
@@ -1163,6 +1175,31 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 - **Verification evidence:** Generated 3,700 files in 53 s; v1 hashes unchanged; pipeline found 200/200 planted conflicts.
 
 ## F12 — Deployment & Submission
+
+#### F12.9 — One-command start and guided first run
+
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F12.6, F10.11
+- **Description:** Start VAULT with `start.ps1` or `start.sh`, and guide a new user through the first run.
+- **Implementation scope:**
+  - `scripts/start.py`: installs what is missing, checks Ollama and the model without downloading it, builds the demo or sets up Real mode with an admin password, and starts both servers on 127.0.0.1.
+  - Getting-started checklist on Overview.
+  - Set up a run: a Quick start button, a drop zone for files, and the advanced options folded away.
+- **Acceptance criteria:** a new user reaches a running VAULT with one command and reads documents with one button.
+- **Required tests:** e2e `01-sign-in`, `04-setup-run`; a manual launcher run.
+- **Blockers:** none
+- **Verification evidence (2026-10-28):**
+  - **Launcher run on Windows:** every step reported, Llama 3 detected, API healthy, interface 200.
+  - **Network exposure:** the interface is now bound to 127.0.0.1, after the first run showed it on the network.
+  - **e2e:** 18 of 18.
+
+#### F10.12 — New logo, motion and polish
+
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F10.1
+- **Description:** A vault-door logo and favicon; page entrance motion, press feedback, loading skeletons, counting figures and striped running bars; demo sign-in buttons that fit; checklist steps that collapse on a phone.
+- **Acceptance criteria:** motion respects reduced-motion settings, no behaviour changes, e2e green.
+- **Required tests:** e2e suite; screenshots at 1440 px and 390 px reviewed.
+- **Blockers:** none
+- **Verification evidence (2026-10-28):** screenshots of sign-in, Overview, Set up a run and Training reviewed at desktop and phone size; the issues found were fixed (duplicate logo, wrapping demo buttons, the checklist filling a phone screen, a slow local-models call now cached for 30 s). e2e 18 of 18; tsc and eslint clean.
 
 #### F12.1 — Command-line interface
 - **Description:** `vault init`, `token`, `ingest`, `hardware`, `providers`, `estimate`, `process`, `search`, `findings`, `serve`.

@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { VaultMark } from "./vault-mark";
 import { ApiError, errorText, getToken, setToken, vault, type Collection, type Me, type Stats } from "@/lib/api";
 
 const COLLECTION_KEY = "vault.collection";
@@ -196,7 +197,10 @@ export function SessionGate({
   if (state.phase === "loading")
     return (
       <div className="grid min-h-[70dvh] place-items-center text-sm text-muted" role="status">
-        Opening the vault
+        <span className="vault-dial-spin flex flex-col items-center gap-3">
+          <VaultMark className="h-10 w-10 animate-pulse" />
+          Opening the vault
+        </span>
       </div>
     );
   if (state.phase === "signed_out") return <>{signIn({ onSignedIn: refresh, message: state.message })}</>;

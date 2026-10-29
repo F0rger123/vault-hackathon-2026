@@ -4,6 +4,7 @@ import Link from "next/link";
 import { TERMINAL, vault, type Job, type ProvidersResponse } from "@/lib/api";
 import { formatBytes, formatNumber, laneLabel, providerLabel, statusText, timeAgo } from "@/lib/format";
 import { useLoad } from "@/lib/use-load";
+import { GettingStarted, LocalModelsCard } from "../first-run";
 import { FindingRedline } from "../finding-redline";
 import { useSession } from "../session";
 import { TitleBlock } from "../title-block";
@@ -12,6 +13,7 @@ import { cx, Empty, Figure, LoadError, Meter, Panel, Tag } from "../ui";
 export function OverviewView() {
   const { collection, stats } = useSession();
   const providers = useLoad("providers", vault.providers, 15000);
+  const localModels = useLoad("local-models", vault.localModels, 30000);
   const all = useLoad("jobs", vault.jobs, 3000);
   const jobs = { ...all, data: all.data?.filter((j) => j.kind === "process") };
   const findings = useLoad(collection ? `findings:${collection.id}` : null, () => vault.findings(collection!.id), 15000);
@@ -28,17 +30,19 @@ export function OverviewView() {
         description="What is in this vault, where its documents can go, and what the agents have found."
       />
 
+      <GettingStarted />
+
       <section aria-label="Collection figures" className="mb-8">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">
-          {[
-            ["Documents", stats ? formatNumber(stats.documents) : "..."],
-            ["Processed", stats ? formatNumber(stats.processed) : "..."],
-            ["Pages", stats ? formatNumber(stats.pages) : "..."],
-            ["Stored", stats ? formatBytes(stats.bytes) : "..."],
-            ["Findings", stats ? formatNumber(stats.findings) : "..."],
-            ["Active runs", stats ? formatNumber(stats.jobs_active) : "..."],
-            ["Waiting for approval", stats ? formatNumber(stats.proposals_pending) : "..."],
-          ].map(([label, value], i, all) => (
+          {([
+            ["Documents", stats ? formatNumber(stats.documents) : undefined],
+            ["Processed", stats ? formatNumber(stats.processed) : undefined],
+            ["Pages", stats ? formatNumber(stats.pages) : undefined],
+            ["Stored", stats ? formatBytes(stats.bytes) : undefined],
+            ["Findings", stats ? formatNumber(stats.findings) : undefined],
+            ["Active runs", stats ? formatNumber(stats.jobs_active) : undefined],
+            ["Waiting for approval", stats ? formatNumber(stats.proposals_pending) : undefined],
+          ] as [string, string | undefined][]).map(([label, value], i, all) => (
             <div
               key={label}
               className={cx(
@@ -53,6 +57,10 @@ export function OverviewView() {
           ))}
         </div>
       </section>
+
+      <Panel title="This computer" className="mb-8">
+        <LocalModelsCard data={localModels.data} compact />
+      </Panel>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
         <div className="flex min-w-0 flex-col gap-6">
