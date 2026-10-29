@@ -106,6 +106,8 @@ The UI was rechecked after the header change. All six screens load in Chromium w
 
 ## Tooling
 
+To pen-test VAULT yourself with open-source tools (ZAP, Schemathesis, Nuclei, sqlmap, ffuf, Nmap, garak), follow [`PENTEST_GUIDE.md`](PENTEST_GUIDE.md).
+
 | Tool | Status |
 |---|---|
 | Ruff with the `S` (bandit) ruleset | CI, blocking |
