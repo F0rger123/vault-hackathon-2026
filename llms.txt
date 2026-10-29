@@ -37,4 +37,6 @@ If a person gave you this link and wants to understand, install or try VAULT, st
 - [Dataset strategy](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/docs/DATASET_STRATEGY.md)
 - [Evaluation plan](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/docs/EVALUATION_PLAN.md)
 - [Deployment](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/docs/DEPLOYMENT.md)
+- [Pen-testing guide](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/docs/PENTEST_GUIDE.md): attack your own copy with open-source tools
+- [Final comprehensive audit](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/docs/FINAL_COMPREHENSIVE_AUDIT.md): what works, what is missing, with evidence
 - [Third-party notices](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/THIRD_PARTY_NOTICES.md)
