@@ -20,13 +20,13 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 | F04 AI Model System | 11 | 7 | 0 | 0 | 1 | 2 | 1 | 0 |
 | F05 Parallel Processing | 10 | 9 | 0 | 0 | 0 | 0 | 1 | 0 |
 | F06 Search & Investigation | 7 | 6 | 0 | 0 | 0 | 1 | 0 | 0 |
-| F07 Teaching & Corrections | 9 | 8 | 0 | 0 | 0 | 1 | 0 | 0 |
+| F07 Teaching & Corrections | 10 | 9 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F08 Actions & Organization | 6 | 6 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F09 Security | 12 | 10 | 1 | 0 | 0 | 1 | 0 | 0 |
 | F10 User Interface | 13 | 13 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F11 Synthetic Data & Evaluation | 7 | 6 | 0 | 1 | 0 | 0 | 0 | 0 |
-| F12 Deployment & Submission | 11 | 8 | 0 | 0 | 0 | 2 | 1 | 0 |
-| **Total** | **111** | **96** | **2** | **1** | **1** | **8** | **3** | **0** |
+| F12 Deployment & Submission | 12 | 9 | 0 | 0 | 0 | 2 | 1 | 0 |
+| **Total** | **113** | **98** | **2** | **1** | **1** | **8** | **3** | **0** |
 
 **Recorded evidence used below**
 
@@ -826,6 +826,20 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 - **Verification evidence (2026-10-29):** `test_brain_graph_links_documents_to_what_they_mention`. Every edge joins existing nodes, and every planted rating conflict is flagged red. On v1 there are 222 items and 737 links.
 
 
+#### F07.10 — Brain in 3D you can fly through
+
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F07.8
+- **Description:** Luke asked (2026-10-30) for an immersive brain. The Brain screen opens a three.js space by default:
+  - drag to look, scroll to zoom, WASD or the arrow keys to fly, Q and E for down and up;
+  - click a hub to fly to it and list its documents; click a document to open it;
+  - conflicts are red, the colours follow the theme, and it auto-rotates when idle (off under reduced motion);
+  - it falls back to the 2D map without WebGL.
+- **Verification evidence (2026-10-30, PR #79):**
+  - `npm run build`, lint and tsc pass.
+  - `058-brain.spec.ts` passes with 3D as the default.
+  - Headless Chromium screenshots show the scene, flying, hover labels and the light theme.
+  - **Not tested:** a real GPU, Firefox, Safari, or touch flying.
+
 #### F07.9 — Training made clear: steps, trend, and Quiz VAULT; easier navigation
 
 - **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F07.6
@@ -1413,6 +1427,15 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
     - weak or huge key settings in the header are refused.
   - **`tests/integration/test_cli.py::test_transfer_moves_the_vault_with_one_passphrase`:** export, verify, a wrong passphrase, and import through the real CLI.
 - **Merge:** Luke approved on 2026-10-30; merged as PR #72.
+
+#### F12.12 — Desktop window for Windows and Linux
+
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F12.9
+- **Description:** Luke asked (2026-10-30) for a native app instead of a browser tab. `start.ps1 -App` (or `start.sh --app`) opens VAULT in its own window. It uses pywebview: WebView2 on Windows, GTK or Qt on Linux. Developer tools are off, private mode is on, and only local addresses are allowed. Closing the window stops both servers, and their whole process trees.
+- **Verification evidence (2026-10-30, PR #77):**
+  - **Live run:** a smoke test on this Windows laptop loaded the sign-in page inside the window, then shut down with no processes left, three runs in a row.
+  - **Tests:** `tests/unit/test_desktop_launcher.py`.
+  - **Not tested:** Linux on real hardware. Installers (PyInstaller) are a later step.
 
 #### F12.1 — Command-line interface
 - **Description:** `vault init`, `token`, `ingest`, `hardware`, `providers`, `estimate`, `process`, `search`, `findings`, `serve`.
