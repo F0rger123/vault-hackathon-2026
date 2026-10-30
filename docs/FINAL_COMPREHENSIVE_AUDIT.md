@@ -27,6 +27,22 @@ Still open:
 
 The sections below are the audit as written on 2026-10-29.
 
+## 0a. Second review of the roadmap and blueprint (2026-10-30)
+
+- **Stale records, fixed:**
+  - blueprint FR6 and FR12;
+  - the roadmap's MVP, near-term and post-hackathon tables, which listed finished work as still to come;
+  - task F01.9;
+  - the threat model, which predated transfer packs, share packs, passkeys and the security gate.
+- **New tracked gaps:** encryption at rest (F09.15), parsing in a separate process (F09.16), model install from a file (F03.8).
+- **Also listed in the roadmap, section 4:** scheduled backup, progress streaming, a side-by-side evidence viewer, and installers.
+- **Not tested for real:**
+  - passkeys inside the desktop window, and on a physical YubiKey (a virtual authenticator passed in Chromium);
+  - the model install button with a real download;
+  - the desktop window on Linux;
+  - any run with the network unplugged.
+- **Still only Luke can do:** the official rules check (B1), the video and the submission.
+
 ## 1. Summary
 
 VAULT's core loop works end to end on this laptop with a real Meta model. The steps are:

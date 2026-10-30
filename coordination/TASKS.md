@@ -14,19 +14,19 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 
 | Feature | Subtasks | VERIFIED | REVIEW | IN_PROGRESS | READY | BACKLOG | BLOCKED | DEFERRED |
 |---|---|---|---|---|---|---|---|---|
-| F01 Project Foundation | 10 | 9 | 1 | 0 | 0 | 0 | 0 | 0 |
+| F01 Project Foundation | 10 | 10 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F02 File Ingestion | 8 | 7 | 0 | 0 | 0 | 1 | 0 | 0 |
-| F03 Hardware & Collection Analysis | 7 | 7 | 0 | 0 | 0 | 0 | 0 | 0 |
+| F03 Hardware & Collection Analysis | 8 | 7 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F04 AI Model System | 11 | 7 | 0 | 0 | 1 | 2 | 1 | 0 |
 | F05 Parallel Processing | 10 | 9 | 0 | 0 | 0 | 0 | 1 | 0 |
 | F06 Search & Investigation | 7 | 6 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F07 Teaching & Corrections | 10 | 9 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F08 Actions & Organization | 6 | 6 | 0 | 0 | 0 | 0 | 0 | 0 |
-| F09 Security | 13 | 12 | 0 | 0 | 0 | 1 | 0 | 0 |
+| F09 Security | 15 | 12 | 0 | 0 | 0 | 3 | 0 | 0 |
 | F10 User Interface | 13 | 13 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F11 Synthetic Data & Evaluation | 7 | 6 | 0 | 1 | 0 | 0 | 0 | 0 |
 | F12 Deployment & Submission | 12 | 9 | 0 | 0 | 0 | 2 | 1 | 0 |
-| **Total** | **114** | **100** | **1** | **1** | **1** | **8** | **3** | **0** |
+| **Total** | **117** | **101** | **0** | **1** | **1** | **11** | **3** | **0** |
 
 **Recorded evidence used below**
 
@@ -114,7 +114,7 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 - **Required tests:** fresh-session dry runs (see F01.9).
 - **Blockers:** none
 - **Related PR/commit:** pending (next docs commit)
-- **Verification evidence:** Pending. Coordination set committed in `05075ae`.
+- **Verification evidence:** Coordination set committed in `05075ae`. `scripts/check_coordination.py` has run in CI on every push since.
 
 #### F01.7 — Issue templates, PR template, GitHub labels and issues
 - **Description:** Templates exist; labels and one issue per READY task still need creating.
@@ -143,7 +143,7 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 
 #### F01.9 — Permanent project memory and coordination checks
 
-- **Priority:** P1 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F01.6, F01.8
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F01.6, F01.8
 - **Description:** Make the repository enough for any new agent or chat to resume. It needs a vision, a project snapshot, per-agent status files, a communication protocol, onboarding for a new chat, a bootstrap prompt, task claims through issues, and automated validation.
 - **Implementation scope:**
   - Docs: `docs/PROJECT_VISION.md`, `docs/LONG_TERM_ROADMAP.md`, `docs/AI_ONBOARDING.md`.
@@ -366,6 +366,11 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
     - a remote Ollama address is refused.
   - **This laptop:** the recommendation is Llama 3 8B (installed) plus Llama 3.2 Vision (runs partly on the CPU).
   - **Not run:** a real download through the button. Pulling a model is Luke's call, and the download path is tested with a fake Ollama.
+
+#### F03.8 — Install a model from a checked file
+
+- **Priority:** P2 · **Owner:** luke · **Status:** BACKLOG · **Dependencies:** F03.7
+- **Description:** Disconnected sites cannot use Ollama's registry. Import a model file carried in by hand, after checking its SHA-256 against a published value. Found by the 2026-10-30 review. Waits for Luke's decision.
 
 ---
 
@@ -1118,6 +1123,16 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
     - with "require passkey" on, a wrong password still gives 401, a right password gives 403, and removing the last passkey lifts the requirement.
   - **`tests/e2e/specs/059-passkeys.spec.ts`:** a real WebAuthn ceremony in Chromium with a virtual authenticator registers a passkey, then signs in with it and no password. It passed locally.
 - **Merge:** Luke approved on 2026-10-30; merged as PR #82.
+
+#### F09.15 — Encrypt data at rest
+
+- **Priority:** P2 · **Owner:** luke · **Status:** BACKLOG · **Dependencies:** F09.14
+- **Description:** VAULT does not encrypt its database or originals itself. Options: SQLCipher plus file encryption, with the key unlocked by a passphrase or hardware key. Until then, use BitLocker or LUKS. Found by the 2026-10-30 review. This is a security design decision for Luke.
+
+#### F09.16 — Parse uploads in a separate, limited process
+
+- **Priority:** P2 · **Owner:** luke · **Status:** BACKLOG · **Dependencies:** F02.8
+- **Description:** PDF and Office parsing runs inside the API process. Move it to a child process with memory and time limits. Found by the 2026-10-30 review.
 
 ## F10 — User Interface
 

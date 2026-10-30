@@ -78,3 +78,15 @@ pytest tests/security -p no:warnings
 - Injection detection is heuristic.
 - The host OS and disk encryption are the deployer's responsibility.
 - If remote inference is enabled, the Meta Model API's data handling applies. The non-contributor model is used by default, but its retention terms have not been verified.
+
+## Added since the first version (reviewed 2026-10-30)
+
+| Surface | Threat | Control | Remaining risk |
+|---|---|---|---|
+| Transfer packs | Stolen or altered pack | AES-256-GCM, scrypt, per-chunk binding, SHA-256 per file | A weak or leaked passphrase |
+| Share packs | Hidden data or a sensitive value reaches an outsider | New PDFs from checked text; markings refuse; admin approval; report | Redaction misses a name it was not told about, so a person must review |
+| Passkeys | Stolen password or database | WebAuthn with user verification; public keys only | Losing every passkey while required needs an admin to reset |
+| Uploads with active content | A person opens a malicious original | Held until an admin releases it | The admin's check; parsers still run in the API process (F09.16) |
+| First-run setup | Someone else claims the owner account | One use only, while no account has a password; local origin only | Anyone at this computer before setup |
+| Data at rest | Stolen disk | None in VAULT yet (F09.15); use BitLocker or LUKS | Full exposure without disk encryption |
+

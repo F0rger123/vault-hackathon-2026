@@ -20,45 +20,41 @@ This is the whole roadmap, from what already works to research ideas. Task-level
 | Auth and roles, audit log, injection containment, path containment, remote-inference gate, sensitivity routing | F09.1–F09.5, F09.9 | Security tests S1–S10 pass |
 | Synthetic dataset, scale generator, evaluation harness | F11.1–F11.3, F11.7 | Deterministic, scored runs |
 | Demo reset script | F12.6 | Clean demo in about 12 s |
+| Web interface, browser tests, scanning, ZAP, CLI, Docker, licence | F10.1–F10.13, F11.5, F09.6, F09.7, F12.1, F12.2, F12.5 | Eight screens; CI runs every check |
+| Office files, path import, estimate calibration, worker limits | F02.7, F02.8, F03.5, F05.6, F05.10 | Reads only new documents |
+| One-click model installs; the brain per collection with gap questions and a 3D map | F03.7, F07.7–F07.10 | Teaching never crosses collections |
+| Quantity and material conflicts, dataset v2, narrowing, table export, plain-language layouts | F04.11, F06.5, F06.7, F08.4, F08.5, F11.6 | Llama 3: 5 of 5 quantity conflicts |
+| Share packs, encrypted transfer, desktop window | F08.6, F12.11, F12.12 | Redacted copies with a report; one encrypted file |
+| Token lifecycle, security gate, passkeys, hardening | F09.8, F09.11, F09.13, F09.14 | Active content held; face, fingerprint or hardware key |
 
-## 2. Current MVP (in progress before the November 4 deadline)
+## 2. Left before the November 4 deadline
 
-| Feature | Task IDs | Purpose | Depends on | Expected outcome |
-|---|---|---|---|---|
-| Six-screen web interface | F10.1–F10.10 (REVIEW) | Demo and daily use | API | Browser flows verified by e2e tests |
-| Browser end-to-end tests | F11.5 | Prove the UI works, not just the API | F10.x | Playwright suite in CI |
-| Dependency and static scanning | F09.6 | Catch known vulnerabilities automatically | CI | Blocking Semgrep, Trivy, pip-audit and npm audit |
-| Controlled security verification | F09.7 | ZAP baseline against our own localhost | Running app | Triaged report |
-| Meta Model API lane | F04.3, F05.9 (BLOCKED on B2) | Remote Meta inference at scale | API key, spend approval | First authenticated run |
-| Full local evaluation, final figures | F11.4 | Honest results for the submission | F04.5 | Committed result files |
-| CLI and Docker verification | F12.1, F12.2 | One-command install | — | Verified on a clean machine |
-| Compliance, licence, video, submission | F12.4, F12.5, F12.7, F12.8 | Submit on time | B1, B3 | Submission accepted |
+| Item | Task IDs | Who | Expected outcome |
+|---|---|---|---|
+| Official rules check | F12.4 (B1) | Luke | Video length, repository, licence and model rules confirmed |
+| Final evaluation on frozen code | F11.4 | Agent, Nov 1 | Final figures committed |
+| Demo video and submission | F12.7, F12.8 | Luke, Nov 3–4 | Submission accepted |
+| Meta Model API lane, first real call | F04.3, F05.9 (B2) | Luke, optional | Authenticated run |
 
-## 3. Near-term improvements (right after the MVP, or sooner if time allows)
+## 3. Next, needing a decision or a model download
 
-| Feature | Task IDs | Purpose | Depends on | Expected outcome |
-|---|---|---|---|---|
-| OCR for scanned PDFs and images | F02.6 | Read scanned archives | Local OCR engine | Text from image-only pages |
-| Path import for server-side collections | F02.7 | Import large folders without upload | Admin import roots | Thousands of files in one step |
-| Estimate calibration against actual runs | F03.5 | Better finish-time predictions | Run history | Smaller prediction error |
-| Muse Glimmer 30B local test | F04.6 (needs B5) | Larger local Meta model | 18 GB download | Quality and speed comparison |
-| Vision for stamps, photos and drawings | F04.7, F04.10 | Understand images | Vision-capable Meta model | Stamps and title blocks extracted |
-| Worker robustness and resource limits | F05.6 | Survive hostile or huge files | — | Bounded memory and time per file |
-| More relationship checks (material, quantity, revision, dates) | F06.5 | Catch more kinds of disagreement | Extraction fields | New finding types with evidence |
-| Token lifecycle | F09.8 | Expiry, rotation, revocation | — | Short-lived sessions |
-| Dataset v2 | F11.6 | Scanned pages and new anomaly kinds | Generator | Harder evaluation |
+| Feature | Task IDs | Needs | Expected outcome |
+|---|---|---|---|
+| Reading photos, stamps and scanned pages | F02.6, F04.7, F04.10, F07.4 | Llama 3.2 Vision download (B7) | Images become searchable text |
+| Muse Glimmer 30B local test | F04.6 | Download (B5) | Quality and speed comparison |
+| Semantic search | F06.6 | A local embedding model | Finds by meaning |
 
-## 4. Post-hackathon priorities
+## 4. Gaps this review found (2026-10-30), not yet built
 
-| Feature | Task IDs | Purpose | Depends on | Expected outcome |
-|---|---|---|---|---|
-| Semantic (embedding) retrieval | F06.6 | Find documents by meaning, where it measurably helps | Local embedding model | Higher recall on paraphrased questions |
-| Example-based teaching for new markings | F07.4 | Teach new layouts from a few examples | F07.5 | New document types without code |
-| Natural-language organization requests | F08.4 | "Group by supplier and year" in plain words | F08.1 | Proposals from a sentence |
-| Export to a searchable database file | F08.5 | Hand results to other tools | F08.3 | Portable SQLite export |
-| Progress streaming (SSE) | — | Replace polling | Jobs API | Live updates without refresh |
-| Side-by-side PDF evidence viewer | — | See both pages of a conflict | F10.6 | Highlighted quotes on the page |
-| Sandboxed parsing in a separate worker process | — | Contain parser exploits | F05.6 | Parser crashes cannot reach the API |
+| Gap | Task ID | Why it matters |
+|---|---|---|
+| Data at rest is not encrypted by VAULT | F09.15 | A stolen disk exposes documents unless BitLocker or LUKS is on |
+| Parsers run inside the API process | F09.16 | A parser exploit would reach the API; run them in a separate, limited process |
+| Installing models needs Ollama's registry | F03.8 | Disconnected sites need install from a checked file |
+| Per-collection permissions | F09.12 | Any viewer can read every collection |
+| Backup and restore on a schedule | none yet | `vault transfer` is manual |
+| Progress streaming; side-by-side evidence viewer | none yet | Polling today; quotes are text only |
+| Installers for Windows and Linux | none yet | The desktop window still needs Python and Node |
 
 ## 5. Enterprise features
 

@@ -105,13 +105,13 @@ See `docs/LONG_TERM_ROADMAP.md`. None of it is in scope before November 4.
 | FR3 | De-duplicate by SHA-256 within a collection | F02 | Confirmed |
 | FR4 | Report hardware, inventory and a measured runtime estimate | F03 | Confirmed |
 | FR5 | Run extraction with a selectable provider and worker count | F04/F05 | Confirmed |
-| FR6 | Show job progress; support cancel; resume after restart | F05 | Confirmed (resume is implemented but not yet covered by a test) |
+| FR6 | Show job progress; support cancel; resume after restart | F05 | Confirmed (`test_restart_resumes_unfinished_job`) |
 | FR7 | Full-text search with doc_type, project, date and part filters, and page references | F06 | Confirmed |
 | FR8 | Detect cross-document rating conflicts with verified evidence | F06 | Confirmed |
 | FR9 | Record corrections and publish versioned rules | F07 | Confirmed |
 | FR10 | Create, approve and reject organization proposals; export copies | F08 | Confirmed |
 | FR11 | Audit every mutating action and every denial | F09 | Confirmed |
-| FR12 | Browser UI covering the flows above | F10 | Scaffold only |
+| FR12 | Browser UI covering the flows above | F10 | Confirmed (eight screens, Playwright in CI) |
 
 ## 11. Nonfunctional requirements
 
