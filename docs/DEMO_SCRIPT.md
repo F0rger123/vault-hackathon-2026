@@ -2,23 +2,16 @@
 
 This is the word-for-word script and click path for the hackathon video. The timing table and segment statuses are in [`DEMO_STORYBOARD.md`](DEMO_STORYBOARD.md).
 
-- **Target:** 2:50 of footage plus 10 seconds of slack. At a normal speaking pace, about 140 words a minute, the narration below runs about 2:45.
+- **Target:** 2:50 of footage plus 10 seconds of slack. At a normal speaking pace, about 140 words a minute, the narration below (about 300 words) runs about 2:10, leaving room for pauses and clicks.
 - **Rule:** show only things that really work, on fictional data. If a feature is not merged by Nov 2, cut its lines.
 
 ## Before you record
 
 1. Reset the demo: `.\scripts\demo_reset.ps1 --provider ollama`. It takes about 13 minutes, so do it once before the session. Use `--provider heuristic` for a 12-second rehearsal reset.
-2. Start the API on the demo data. In PowerShell:
-
-   ```powershell
-   $env:VAULT_DATA_DIR = "data/demo"
-   .venv\Scripts\vault serve
-   ```
-
-3. Start the interface in another terminal: `cd frontend; npm run build; npx next start -p 3000`.
-4. Open `http://localhost:3000` in a clean browser profile at 1920×1080, zoomed to 110%. Close other tabs.
-5. Check that Ollama is running (`ollama ps`), so Llama 3 answers live.
-6. Never show a token, `.env`, or a real file on screen. Use **Demo mode** and the demo sign-in buttons.
+2. Start VAULT in its own window: `.\start.ps1 -App`. It uses the demo data in `data/demo`. To record in a browser instead, run `.\start.ps1` and open `http://localhost:3000` in a clean profile at 1920×1080, zoomed to 110%.
+3. Check that Ollama is running (`ollama ps`), so Llama 3 answers live.
+4. **Passkey shot:** register a passkey on Security beforehand (Windows Hello face or fingerprint, or a YubiKey), then sign out. Never show the PIN.
+5. Never show a token, `.env`, or a real file on screen. Use **Demo mode**.
 
 ## Script
 
@@ -29,47 +22,61 @@ This is the word-for-word script and click path for the hackathon video. The tim
 **Say:**
 > "Engineering firms sit on thousands of drawings, inspection reports and contracts. The facts that matter are scattered across them, and they often disagree. These archives are confidential, so they can't go to a cloud AI. People check them by hand, and it takes days."
 
-### 0:20–0:45 · It runs here (Set up a run)
+### 0:20–0:40 · It runs here (sign in, Overview)
 
-**Show:** the sign-in screen. Click **Demo: analyst**, then the Overview. Point at the green "Private. Runs on this machine." line, then go to **Set up a run**: the hardware panel and the measured capacity.
-
-**Say:**
-> "VAULT runs entirely on this laptop. Meta's Llama 3 runs locally through Ollama, so no document leaves the machine. Before it promises a finish time, it measures this computer and benchmarks real documents."
-
-### 0:45–1:10 · Reading with Llama (live run board)
-
-**Show:** start a run on a small collection with the **Meta Llama 3** lane. Watch the live board: the coordinator, the security gate pinning an export-controlled file to local lanes, the Llama lane, and the reviewer.
+**Show:**
+- The VAULT window. Sign in with **Sign in with face, fingerprint or security key**; Windows Hello appears.
+- On the Overview, scroll to **Meta models for this computer**: the graphics card, the recommended Llama models and the Install buttons.
 
 **Say:**
-> "A coordinator hands documents to Llama 3 lanes. A security gate reads every file first: export-controlled files never leave local lanes, and text that tries to give the AI instructions is flagged. Llama returns structured facts, and every fact must quote the page it came from."
+> "VAULT is an app on this laptop. I sign in with my face, and the face never leaves the device. It checks the hardware and installs the Meta Llama models that fit, so no document ever leaves the machine."
 
-### 1:10–1:45 · Finding what disagrees (Investigate)
+### 0:40–1:05 · Reading with Llama (live run board)
 
-**Show:** **Investigate**. Open the BV-7891 conflict card: 600 psi in the inspection, 1500 psi on the drawings, both quotes marked "Verified in source". Then type in **Ask the archive**: *"Which parts in Project Alpha have conflicting pressure ratings?"* Llama answers with numbered citations; click one and it scrolls to the quote.
-
-**Say:**
-> "Here's what matters: this valve is rated 1500 psi on six drawings but was tested at 600. VAULT found it across documents and shows both lines. You can just ask, too: every sentence of Llama's answer is tied to a source, and VAULT checks each number against that source."
-
-### 1:45–2:10 · Teaching it (Training)
-
-**Show:** **Training**. Press **Run graded test**: the scores per field. Correct one wrong document, then press **Re-test**: the score before and after, measured on documents nobody corrected.
+**Show:**
+- Start a run on a small collection with **Read new documents with Llama 3**.
+- On the live board: the coordinator, the security gate, the Llama lane and the reviewer.
+- Then the **Run summary**. Ask the coordinator *"How fast is it?"*; Llama answers from the run's records.
 
 **Say:**
-> "When it gets something wrong, you correct it once. VAULT turns that into a versioned rule and re-tests on documents you never touched, so you can see whether it really improved before you trust it with real data."
+> "A coordinator hands documents to parallel Llama lanes, and a security gate checks every file first. Every fact Llama extracts must quote its page. Files already read are skipped, and I can ask the coordinator how the run is going."
 
-### 2:10–2:30 · Nothing moves without approval (Approvals)
+### 1:05–1:35 · Finding what disagrees (Investigate)
 
-**Show:** **Approvals**. Type *"Group by year, then project"* and press **Suggest a pattern from this request**; Llama fills in `{year}/{project}`. Then switch to the admin account, preview the folder tree, and approve. The page shows "The originals were not touched."
-
-**Say:**
-> "Reorganizing is only ever a proposal. Llama turns a plain request into a folder plan, an administrator previews it, and approving exports copies. Originals never change."
-
-### 2:30–2:45 · Security (Security screen, then a CI checks slide)
-
-**Show:** **Security**: remote inference Off, and the audit log filtered to **Denied**. Cut for 3 seconds to a slide listing the automated checks: Semgrep, Trivy, OWASP ZAP baseline and API scan, 0 failures, plus 80+ automated tests.
+**Show:**
+- **Investigate**: open the BV-7891 conflict card. It shows 600 psi in the inspection and 1500 psi on the drawings, with both quotes "Verified in source".
+- Ask: *"Which parts in Project Alpha have conflicting pressure ratings?"* Click a numbered citation.
 
 **Say:**
-> "Permissions are enforced on the server and every denial is logged. Every change is scanned automatically, and we ran OWASP ZAP against our own stack. We don't claim it's unhackable; we test it."
+> "This valve is rated 1500 psi on six drawings but was tested at 600. VAULT found it across documents and shows both lines. Ask in plain words, and every sentence of the answer cites a source VAULT has checked."
+
+### 1:35–2:05 · It learns your organization (Brain and Training)
+
+**Show:**
+- **Brain**: fly through the 3D map for two seconds; the red parts are conflicts.
+- Answer one of VAULT's questions: *"What does PV stand for?"* → *"Pressure valve"*.
+- Cut to **Training**: the held-out score and its trend, and one **Quiz VAULT** card.
+
+**Say:**
+> "Each project gets its own brain. VAULT finds gaps in what it knows and asks, like what PV means, and every answer is kept for that project only. Training shows the score on documents nobody corrected, so you see real improvement, not memorisation."
+
+### 2:05–2:25 · Sharing safely (Approvals)
+
+**Show:**
+- **Approvals → Share with someone outside**. Type *"Everything on Alpha for the buyer, hide names and prices"*, then press **Fill in the settings from my words** and **Plan the share pack**.
+- The plan: what is shared, what is left out and why.
+
+**Say:**
+> "Say a buyer needs some of this archive. VAULT plans redacted copies, never the originals, and lists everything it left out and why. Nothing is written until an administrator approves."
+
+### 2:25–2:45 · Security (Security screen, then a CI checks slide)
+
+**Show:**
+- **Security**: the protection checklist and **Held by the security gate**.
+- Cut for 3 seconds to a slide of the automated checks: Semgrep, Trivy, OWASP ZAP, and over 200 automated tests (189 backend, 24 browser).
+
+**Say:**
+> "A live checklist shows which protections are on. Files that could run code when opened are held until an admin releases them. Every change is scanned automatically. We don't claim it's unhackable; we test it."
 
 ### 2:45–3:00 · Results (results slide)
 
