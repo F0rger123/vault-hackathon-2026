@@ -88,6 +88,13 @@ def set_password(conn: sqlite3.Connection, username: str, password: str) -> int:
     return cur.rowcount
 
 
+def end_sessions(conn: sqlite3.Connection, user_id: int) -> int:
+    """Revoke every token the person holds, including long-lived API tokens (F09.17)."""
+    return conn.execute(
+        "UPDATE api_tokens SET revoked = 1, revoked_at = ? WHERE user_id = ? AND revoked = 0", (now(), user_id)
+    ).rowcount
+
+
 def _start_attempt(key: str) -> None:
     """Count an attempt before checking it, atomically, or raise LoginLocked."""
     with _lock:
@@ -118,7 +125,8 @@ def password_login(conn: sqlite3.Connection, username: str, password: str, ttl_h
     Raises LoginLocked when the username used up its attempts, LoginBusy when too many run at once.
     """
     row = conn.execute(
-        "SELECT id, username, role, password_hash, require_passkey FROM users WHERE username = ?", (username,)
+        "SELECT id, username, role, password_hash, require_passkey, disabled FROM users WHERE username = ?",
+        (username,),
     ).fetchone()
     _start_attempt(row["username"] if row else UNKNOWN)
     if not _slots.acquire(timeout=5):
@@ -128,7 +136,8 @@ def password_login(conn: sqlite3.Connection, username: str, password: str, ttl_h
         ok = verify_password(password, stored) and bool(row and row["password_hash"])
     finally:
         _slots.release()
-    if not ok:
+    # A disabled account answers exactly like a wrong password, after the same work.
+    if not ok or row["disabled"]:
         return None
     clear_attempts(row["username"])
     # Told only after a correct password, so it reveals nothing to someone guessing.

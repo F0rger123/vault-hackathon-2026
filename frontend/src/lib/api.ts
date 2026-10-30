@@ -671,7 +671,36 @@ export function del<T>(path: string): Promise<T> {
   return api<T>(path, { method: "DELETE" });
 }
 
+export interface ManagedUser {
+  id: number;
+  username: string;
+  role: "admin" | "analyst" | "viewer";
+  disabled: boolean;
+  has_password: boolean;
+  created_at: number;
+  last_sign_in: { ts: number; method: string } | null;
+}
+
+export interface SigninEntry {
+  id: number;
+  ts: number;
+  username: string;
+  method: string;
+  outcome: "allowed" | "denied";
+  reason: string | null;
+  ip: string | null;
+  user_agent: string | null;
+}
+
 export const vault = {
+  users: () => api<ManagedUser[]>("/users"),
+  addUser: (username: string, role: string, password: string) => post<ManagedUser>("/users", { username, role, password }),
+  changeUser: (id: number, change: { role?: string; disabled?: boolean }) =>
+    api<ManagedUser>(`/users/${id}`, { method: "PATCH", body: JSON.stringify(change) }),
+  resetPassword: (id: number, password: string) => put<{ sessions_ended: number }>(`/users/${id}/password`, { password }),
+  changeOwnPassword: (current: string, password: string) => post<{ sessions_ended: number }>("/auth/password", { current, password }),
+  signinLog: (limit = 200) => api<SigninEntry[]>(`/signin-log?limit=${limit}`),
+  signinVerify: () => api<{ intact: boolean; entries: number; first_bad_id: number | null }>("/signin-log/verify"),
   me: () => api<Me>("/me"),
   stats: () => api<Stats>("/stats"),
   providers: () => api<ProvidersResponse>("/system/providers"),

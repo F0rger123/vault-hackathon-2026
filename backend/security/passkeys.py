@@ -143,6 +143,8 @@ def login(conn: sqlite3.Connection, handle: str, credential: dict, origins: list
     stored = conn.execute("SELECT * FROM passkeys WHERE credential_id = ?", (cred_id,)).fetchone()
     if not stored or user_id is None or stored["user_id"] != user_id:
         raise PasskeyError("this passkey is not registered for that account")
+    if conn.execute("SELECT disabled FROM users WHERE id = ?", (user_id,)).fetchone()["disabled"]:
+        raise PasskeyError("this passkey is not registered for that account")
     try:
         v = verify_authentication_response(
             credential=credential,

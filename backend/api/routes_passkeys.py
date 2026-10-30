@@ -4,9 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from backend.api.deps import get_conn, get_settings, require
-from backend.api.routes import _browser_origin_ok
+from backend.api.routes import _browser_origin_ok, _log_signin
 from backend.core.config import Settings
-from backend.security import audit, passkeys
+from backend.security import audit, passkeys, signin_log
 from backend.security import login as signin
 from backend.security.auth import Principal
 
@@ -94,6 +94,9 @@ def login_options(
     try:
         signin._start_attempt(body.username if known else signin.UNKNOWN)
     except signin.LoginLocked as exc:
+        ip = request.client.host if request.client else None
+        who = body.username if known else "unknown-user"
+        signin_log.record_locked(conn, who, "passkey", ip, request.headers.get("user-agent"))
         raise HTTPException(status_code=429, detail=f"too many attempts; try again in {int(exc.wait) + 1} s") from exc
     return passkeys.login_options(conn, body.username, _origins(settings))
 
@@ -108,7 +111,9 @@ def login(
         row = passkeys.login(conn, body.handle, body.credential, _origins(settings))
     except passkeys.PasskeyError as exc:
         audit.record(conn, "unknown-user", "auth.passkey_login", "denied", detail={"reason": str(exc)})
+        _log_signin(conn, request, "unknown-user", "passkey", "denied", str(exc))
         raise HTTPException(status_code=401, detail=str(exc)) from exc
     signin.clear_attempts(row["username"])
     audit.record(conn, row["username"], "auth.passkey_login", "allowed")
+    _log_signin(conn, request, row["username"], "passkey", "allowed")
     return signin.passkey_session(conn, row, settings.session_ttl_hours)

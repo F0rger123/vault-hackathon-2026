@@ -113,7 +113,8 @@ def authenticate(conn: sqlite3.Connection, token: str) -> Principal | None:
     t = now()
     row = conn.execute(
         """SELECT t.id AS token_id, u.id, u.username, u.role FROM api_tokens t JOIN users u ON u.id = t.user_id
-           WHERE t.token_hash = ? AND t.revoked = 0 AND (t.expires_at IS NULL OR t.expires_at > ?)""",
+           WHERE t.token_hash = ? AND t.revoked = 0 AND u.disabled = 0
+             AND (t.expires_at IS NULL OR t.expires_at > ?)""",
         (hash_token(token), t),
     ).fetchone()
     if not row:

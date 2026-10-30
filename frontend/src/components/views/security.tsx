@@ -6,6 +6,7 @@ import { dateTime, formatNumber, humanize, providerLabel } from "@/lib/format";
 import { useLoad } from "@/lib/use-load";
 import { PasskeysPanel } from "../passkeys-panel";
 import { Quarantine, SecurityPosture } from "../security-posture";
+import { SigninLogPanel, UsersPanel } from "../users-panel";
 import { useSession } from "../session";
 import { TitleBlock } from "../title-block";
 import { Button, cx, Empty, Figure, inputClass, LoadError, Notice, Panel, Tag } from "../ui";
@@ -29,6 +30,12 @@ export function SecurityView() {
       <div className="mb-6">
         <PasskeysPanel />
       </div>
+      {isAdmin && (
+        <div className="mb-6 flex flex-col gap-6">
+          <UsersPanel />
+          <SigninLogPanel />
+        </div>
+      )}
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <RemoteInference isAdmin={isAdmin} />
         <Summary />
