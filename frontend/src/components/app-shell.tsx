@@ -142,7 +142,7 @@ function ModeSwitch() {
           onClick={() => setMode(m)}
           className={cx(
             "rounded-[3px] px-2 py-1 text-xs font-medium",
-            mode === m ? (m === "demo" ? "bg-amber text-paper" : "bg-ink text-panel") : "text-muted hover:text-ink",
+            mode === m ? "bg-raised text-ink shadow-panel" : "text-muted hover:text-ink",
           )}
         >
           {label}

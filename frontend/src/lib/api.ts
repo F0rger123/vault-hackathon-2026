@@ -325,9 +325,19 @@ export interface ModelInstall {
   detail?: string;
 }
 
+export interface AgentPlan {
+  model: string;
+  copies: number;
+  readers: number;
+  agents: number;
+  lanes: { name: string; slots: number }[];
+  summary: string;
+}
+
 export interface ModelCatalog {
   models: CatalogModel[];
   recommended: string[];
+  plan: AgentPlan | null;
   vram_gb: number;
   ram_gb: number;
   installs: ModelInstall[];

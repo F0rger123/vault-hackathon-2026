@@ -114,3 +114,12 @@ def test_a_remote_ollama_address_is_refused(client, tokens, settings, monkeypatc
     monkeypatch.setattr(settings, "ollama_url", "http://203.0.113.5:11434")
     r = client.post(f"{API}/system/models/install", json={"name": "llama3.2:3b"}, headers=auth(tokens["admin"]))
     assert r.status_code == 400 and "local" in r.json()["detail"]
+
+
+def test_agent_plan_follows_the_hardware():
+    laptop = mi.catalog_for(hw(8192, 32768), set())["plan"]
+    assert laptop["copies"] == 1 and laptop["readers"] == 8 and laptop["agents"] == 11
+    server = mi.catalog_for(hw(81920, 262144), set())["plan"]
+    assert server["model"] == "Llama 3.3 70B" and server["copies"] == 1
+    no_gpu = mi.catalog_for(hw(0, 16384), set())["plan"]
+    assert no_gpu["readers"] == no_gpu["copies"] and all(lane["slots"] == 1 for lane in no_gpu["lanes"])

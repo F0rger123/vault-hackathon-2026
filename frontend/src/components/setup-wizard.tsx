@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { errorText, setToken, vault, type Hardware } from "@/lib/api";
 import { useLoad } from "@/lib/use-load";
+import { AgentTree } from "./agent-tree";
 import { ModelInstaller } from "./model-installer";
 import { PasskeysPanel } from "./passkeys-panel";
 import { Button, cx, Field, inputClass, Notice } from "./ui";
@@ -44,6 +45,7 @@ function ScanLine({ label, value, delay }: { label: string; value: string; delay
 function ScanStep({ onNext }: { onNext: () => void }) {
   const hw = useLoad<Hardware>("wizard-hw", vault.hardware);
   const d = hw.data;
+  const catalog = useLoad("wizard-catalog", vault.modelCatalog);
   return (
     <Pane title="Checking this computer" text="Measured now, on this machine. Nothing is sent anywhere.">
       {hw.error && <Notice>{hw.error}</Notice>}
@@ -61,6 +63,7 @@ function ScanStep({ onNext }: { onNext: () => void }) {
       ) : (
         !hw.error && <div className="scan-sweep h-40 rounded-control border border-line" role="status" aria-label="Checking this computer" />
       )}
+      {catalog.data?.plan && <AgentTree plan={catalog.data.plan} />}
       <Actions onNext={onNext} ready={!!d} next="See which AI models fit" />
     </Pane>
   );

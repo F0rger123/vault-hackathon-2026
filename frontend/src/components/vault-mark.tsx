@@ -16,14 +16,14 @@ export function VaultMark({ className, intro }: { className?: string; intro?: bo
   return (
     <svg aria-hidden viewBox="0 0 32 32" className={cx(className, intro && "vault-dial-intro")}>
       <rect width="32" height="32" rx="8" fill="var(--ink)" />
-      <g className="vault-dial" stroke="var(--on-accent)" strokeLinecap="round">
+      <g className="vault-dial" stroke="var(--paper)" strokeLinecap="round">
         <circle cx="16" cy="16" r="11" fill="none" strokeWidth="1.5" />
         {DIAL_TICKS.map(([x1, y1, x2, y2], i) => (
           <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} strokeWidth={i % 2 ? 1.1 : 1.6} />
         ))}
       </g>
-      <circle cx="16" cy="14.4" r="2.4" fill="var(--on-accent)" />
-      <path d="M14.9 15.6h2.2l0.9 5.2h-4z" fill="var(--on-accent)" />
+      <circle cx="16" cy="14.4" r="2.4" fill="var(--paper)" />
+      <path d="M14.9 15.6h2.2l0.9 5.2h-4z" fill="var(--paper)" />
     </svg>
   );
 }
