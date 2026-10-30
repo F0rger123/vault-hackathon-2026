@@ -462,6 +462,21 @@ section.rounded-card:hover {
   --redline: #ff4d4d;
 }
 
+/* The sign-in button's coil turns on its own axis, faster when pointed at. */
+.face-coil-ring {
+  transform-origin: 16px 16px;
+  animation: coil-tilt 3.2s linear infinite;
+}
+.face-unlock:hover .face-coil-ring {
+  animation-duration: 1s;
+  stroke: var(--green);
+}
+@keyframes coil-tilt {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .unlock-stage {
   background: var(--paper);
   animation: fade-in 0.25s ease both;
