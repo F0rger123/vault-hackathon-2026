@@ -4,6 +4,7 @@ import re
 import sqlite3
 import time
 
+from backend.agents.security_agent import screen
 from backend.core.config import Settings
 from backend.providers import apply_policy, get_provider
 from backend.providers.base import Provider, ProviderInfo
@@ -27,6 +28,18 @@ def current_policy(conn: sqlite3.Connection) -> tuple[int, list[dict]]:
 def load_pages(conn: sqlite3.Connection, document_id: int) -> list[str]:
     rows = conn.execute("SELECT text FROM pages WHERE document_id = ? ORDER BY page_no", (document_id,)).fetchall()
     return [r["text"] for r in rows]
+
+
+def may_go_remote(conn: sqlite3.Connection, document_id: int) -> bool:
+    """The one test for sending document text off this machine. Screens live, so an unscreened document cannot slip by.
+
+    Fails closed: held, restricted, personal or instruction-carrying documents, and unknown ids, stay local.
+    """
+    doc = conn.execute("SELECT status FROM documents WHERE id = ?", (document_id,)).fetchone()
+    if not doc or doc["status"] == "quarantined":
+        return False
+    s = screen(document_id, load_pages(conn, document_id))
+    return s.route != "local_only" and not s.injection
 
 
 def load_examples(conn: sqlite3.Connection) -> list[dict]:
@@ -73,16 +86,22 @@ def process_document(
     lane: str | None = None,
 ) -> dict:
     doc = conn.execute(
-        "SELECT id, collection_id, filename, media_type FROM documents WHERE id = ?", (document_id,)
+        "SELECT id, collection_id, filename, media_type, status FROM documents WHERE id = ?", (document_id,)
     ).fetchone()
     if not doc:
         raise LookupError(f"document {document_id} not found")
+    if doc["status"] == "quarantined":
+        # Reading it would mark it processed, which is what lets people download it. Only an admin release does that.
+        raise LookupError(f"document {document_id} is held by the security gate")
     version, rules = policy or current_policy(conn)
     # Each collection has its own brain: only its rules, examples, meanings and instructions apply (F07.7).
     rules = scoped_rules(rules, doc["collection_id"]) + prompt_guidance(conn, doc["collection_id"])
     pages = load_pages(conn, document_id)
     info = info or provider.info()
     mine = [e for e in examples or [] if e.get("collection_id", doc["collection_id"]) == doc["collection_id"]]
+    if info.locality == "remote":
+        # An example's excerpt is document text too, so it follows the same rule as the document itself.
+        mine = [e for e in mine if "document_id" not in e or may_go_remote(conn, e["document_id"])]
     shots = pick_examples(mine, pages)
 
     started = time.perf_counter()

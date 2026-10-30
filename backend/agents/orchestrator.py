@@ -280,7 +280,10 @@ class Orchestrator:
     def _fail_item(self, c, item_id: int, document_id: int, error: str, filename: str | None = None) -> None:
         c.execute("UPDATE job_items SET status = 'failed', error = ? WHERE id = ?", (error, item_id))
         self.event(c, "coordinator", "item.failed", "error", document_id, filename=filename, reason=error)
-        c.execute("UPDATE documents SET status = 'error', error = ? WHERE id = ?", (error, document_id))
+        c.execute(
+            "UPDATE documents SET status = 'error', error = ? WHERE id = ? AND status != 'quarantined'",
+            (error, document_id),
+        )
         c.execute("UPDATE jobs SET failed = failed + 1 WHERE id = ?", (self.job_id,))
 
     def _wait_for_memory(self, c, lane: Lane, document_id: int) -> None:

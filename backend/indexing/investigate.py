@@ -19,6 +19,7 @@ from backend.indexing.search import search
 from backend.providers.base import Provider, ProviderError
 from backend.storage.db import loads
 from backend.workers.brain import prompt_guidance
+from backend.workers.processing import may_go_remote
 
 MAX_SOURCES = 16
 MAX_FINDINGS = 4
@@ -148,8 +149,7 @@ def _line_for(conn: sqlite3.Connection, document_id: int, page: int | None, need
 
 
 def _local_only(conn: sqlite3.Connection, document_id: int) -> bool:
-    r = conn.execute("SELECT route FROM screenings WHERE document_id = ?", (document_id,)).fetchone()
-    return bool(r and r["route"] == "local_only")
+    return not may_go_remote(conn, document_id)
 
 
 def retrieve(conn: sqlite3.Connection, collection_id: int, plan: dict, remote: bool) -> tuple[list[dict], list, int]:

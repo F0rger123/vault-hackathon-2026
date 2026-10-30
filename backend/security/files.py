@@ -96,3 +96,13 @@ def safe_join(root: Path, *parts: str) -> Path:
         if not part or Path(part).is_absolute() or PureWindowsPath(part).drive or ".." in Path(part).parts:
             raise FileRejected("invalid path component")
     return contained(root.joinpath(*parts), [root])
+
+
+_ORIGINAL = re.compile(r"^originals[/\\][0-9a-f]{2}[/\\][0-9a-f]{64}[^/\\]*$")
+
+
+def original_path(data_dir: Path, stored_path: str) -> Path:
+    """The file for a document row. A row can only name an original, so a tampered database cannot point at secrets."""
+    if not _ORIGINAL.match(stored_path or ""):
+        raise FileRejected("this document's stored location is not valid")
+    return safe_join(data_dir, *stored_path.replace("\\", "/").split("/"))

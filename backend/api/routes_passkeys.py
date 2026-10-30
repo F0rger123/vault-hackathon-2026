@@ -8,9 +8,24 @@ from backend.api.routes import _browser_origin_ok, _log_signin
 from backend.core.config import Settings
 from backend.security import audit, passkeys, signin_log
 from backend.security import login as signin
-from backend.security.auth import Principal
+from backend.security.auth import Principal, hash_token
+from backend.storage.db import now
 
 router = APIRouter(prefix="/api/v1")
+
+FRESH_SECONDS = 15 * 60
+
+
+def fresh_session(
+    request: Request, conn=Depends(get_conn), p: Principal = Depends(require("system:read"))
+) -> Principal:
+    """Passkeys outlive a session, so a stolen or forgotten session must not be able to add or weaken them."""
+    token = request.headers.get("authorization", "").partition(" ")[2].strip()
+    row = conn.execute("SELECT created_at FROM api_tokens WHERE token_hash = ?", (hash_token(token),)).fetchone()
+    if not row or now() - row["created_at"] > FRESH_SECONDS:
+        audit.record(conn, p.username, "passkey.change", "denied", detail={"reason": "stale session"})
+        raise HTTPException(status_code=403, detail="sign in again to change your passkeys")
+    return p
 
 
 def _origins(settings: Settings) -> list[str]:
@@ -38,7 +53,7 @@ class Required(BaseModel):
 
 @router.post("/auth/passkeys/register/options")
 def register_options(
-    conn=Depends(get_conn), settings: Settings = Depends(get_settings), p: Principal = Depends(require("system:read"))
+    conn=Depends(get_conn), settings: Settings = Depends(get_settings), p: Principal = Depends(fresh_session)
 ) -> dict:
     return passkeys.registration_options(conn, p.user_id, p.username, _origins(settings))
 
@@ -48,7 +63,7 @@ def register(
     body: RegisterVerify,
     conn=Depends(get_conn),
     settings: Settings = Depends(get_settings),
-    p: Principal = Depends(require("system:read")),
+    p: Principal = Depends(fresh_session),
 ) -> dict:
     try:
         saved = passkeys.register(conn, p.user_id, body.handle, body.credential, body.name, _origins(settings))
@@ -66,7 +81,7 @@ def mine(conn=Depends(get_conn), p: Principal = Depends(require("system:read")))
 
 
 @router.delete("/auth/passkeys/{passkey_id}")
-def remove(passkey_id: int, conn=Depends(get_conn), p: Principal = Depends(require("system:read"))) -> dict:
+def remove(passkey_id: int, conn=Depends(get_conn), p: Principal = Depends(fresh_session)) -> dict:
     if not passkeys.remove(conn, p.user_id, passkey_id):
         raise HTTPException(status_code=404, detail="not found")
     audit.record(conn, p.username, "passkey.remove", "allowed")
@@ -74,7 +89,7 @@ def remove(passkey_id: int, conn=Depends(get_conn), p: Principal = Depends(requi
 
 
 @router.put("/auth/passkeys/required")
-def set_required(body: Required, conn=Depends(get_conn), p: Principal = Depends(require("system:read"))) -> dict:
+def set_required(body: Required, conn=Depends(get_conn), p: Principal = Depends(fresh_session)) -> dict:
     try:
         passkeys.set_required(conn, p.user_id, body.required)
     except passkeys.PasskeyError as exc:

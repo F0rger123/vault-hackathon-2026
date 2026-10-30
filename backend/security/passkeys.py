@@ -11,6 +11,7 @@ that it holds a private key, and VAULT stores the matching public key. A copied 
 
 from __future__ import annotations
 
+import hmac
 import json
 import secrets
 import sqlite3
@@ -39,6 +40,9 @@ RP_NAME = "VAULT"
 CHALLENGE_SECONDS = 120
 _challenges: dict[str, tuple[bytes, str, int | None, float]] = {}
 _lock = threading.Lock()
+
+
+_DECOY_KEY = secrets.token_bytes(32)
 
 
 class PasskeyError(ValueError):
@@ -120,13 +124,12 @@ def register(
 
 def login_options(conn: sqlite3.Connection, username: str, origins: list[str]) -> dict:
     row = conn.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
-    allow = (
-        [PublicKeyCredentialDescriptor(id=base64url_to_bytes(c["credential_id"])) for c in _creds(conn, row["id"])]
-        if row
-        else []
-    )
-    # An unknown name gets an ordinary-looking challenge with no credentials, so the answer does not reveal
-    # which accounts exist; verification then fails like a wrong key.
+    creds = _creds(conn, row["id"]) if row else []
+    allow = [PublicKeyCredentialDescriptor(id=base64url_to_bytes(c["credential_id"])) for c in creds]
+    # A name with no passkey gets a made-up credential that is the same each time, so the answer does not reveal which
+    # accounts exist or have passkeys. Verification then fails like a wrong key.
+    if not allow:
+        allow = [PublicKeyCredentialDescriptor(id=hmac.digest(_DECOY_KEY, username.encode(), "sha256"))]
     opts = generate_authentication_options(
         rp_id=rp_id(origins), allow_credentials=allow, user_verification=UserVerificationRequirement.REQUIRED
     )
