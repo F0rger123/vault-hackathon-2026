@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { atLeast, errorText, vault, type CatalogModel, type ModelInstall } from "@/lib/api";
 import { useLoad } from "@/lib/use-load";
-import { useSession } from "./session";
+import { useMaybeSession } from "./session";
 import { Button, Meter, Notice, Tag } from "./ui";
 
 const WHERE = {
@@ -17,8 +17,8 @@ const BUSY: ModelInstall["status"][] = ["starting", "downloading"];
  * F03.7: the Meta models this computer can run, with one-click installs into the local Ollama.
  * Downloads come from Ollama's registry; no document ever leaves the machine.
  */
-export function ModelInstaller() {
-  const { me } = useSession();
+export function ModelInstaller({ admin: forceAdmin }: { admin?: boolean } = {}) {
+  const me = useMaybeSession()?.me;
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState<string | null>(null);
   const first = useLoad("model-catalog", vault.modelCatalog);
@@ -26,7 +26,7 @@ export function ModelInstaller() {
   // Poll quickly only while something downloads.
   const live = useLoad(downloading ? "model-catalog:live" : null, vault.modelCatalog, 1500);
   const data = (downloading && live.data) || first.data;
-  const admin = atLeast(me, "admin");
+  const admin = forceAdmin || atLeast(me, "admin");
 
   if (!data) return null;
   const installs = Object.fromEntries(data.installs.map((i) => [i.name, i]));
@@ -117,7 +117,7 @@ function ModelRow(props: {
           <Tag tone={where.tone}>{where.text}</Tag>
           {admin && !installed && !downloading && m.runs_on !== "too_big" && (
             <Button busy={busy} onClick={props.onInstall}>
-              Install ({m.size_gb} GB)
+              <span className="whitespace-nowrap">Install ({m.size_gb} GB)</span>
             </Button>
           )}
           {admin && downloading && (

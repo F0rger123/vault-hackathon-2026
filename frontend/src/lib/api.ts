@@ -102,6 +102,7 @@ export interface AuthOptions {
   demo_login: boolean;
   password_login: boolean;
   passkey_login?: boolean;
+  needs_owner?: boolean;
 }
 
 export interface SignedIn {
@@ -703,6 +704,7 @@ export const vault = {
   authOptions: () => api<AuthOptions>("/auth/options"),
   login: (username: string, password: string) => post<SignedIn>("/auth/login", { username, password }),
   demoLogin: (role: Role) => post<SignedIn>("/auth/demo-login", { role }),
+  setupOwner: (username: string, password: string) => post<SignedIn>("/setup/owner", { username, password }),
   logout: () => post<{ signed_out: boolean }>("/auth/logout", {}),
   apiKeyStatus: () => api<ApiKeyStatus>("/settings/meta-api-key"),
   setApiKey: (key: string) => put<ApiKeyStatus>("/settings/meta-api-key", { key }),

@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { errorText, setToken, vault, type AuthOptions, type SignedIn } from "@/lib/api";
 import { signInWithPasskey, passkeysSupported } from "@/lib/passkeys";
 import { CollectionSwitcher } from "./collection-switcher";
 import { CommandPalette } from "./command-palette";
+import { SetupWizard } from "./setup-wizard";
 import { PostureBadge } from "./security-posture";
 import { VaultMark } from "./vault-mark";
 import { SessionGate, SessionProvider, useMaybeSession, useSession } from "./session";
@@ -56,8 +57,21 @@ function Wordmark() {
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const { stats } = useSession();
+  const list = useRef<HTMLUListElement>(null);
+  const pill = useRef<HTMLSpanElement>(null);
+  // The highlight glides to the current page. Written straight to the element, so nothing re-renders.
+  useLayoutEffect(() => {
+    const here = list.current?.querySelector<HTMLElement>('a[aria-current="page"]');
+    if (!pill.current) return;
+    pill.current.style.opacity = here ? "1" : "0";
+    if (here) {
+      pill.current.style.transform = `translateY(${here.offsetTop}px)`;
+      pill.current.style.height = `${here.offsetHeight}px`;
+    }
+  }, [pathname]);
   return (
-    <ul className="flex flex-col gap-0.5">
+    <ul ref={list} className="relative flex flex-col gap-0.5">
+      <span ref={pill} aria-hidden className="nav-pill absolute inset-x-0 top-0 rounded-control bg-raised" />
       {NAV.map((item) => {
         const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
         const badge =
@@ -79,10 +93,9 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
               aria-current={active ? "page" : undefined}
               className={cx(
                 "group relative flex items-center gap-3 rounded-control py-2 pl-3 pr-2.5 text-sm transition-colors duration-150",
-                active ? "bg-raised font-medium text-ink" : "text-muted hover:bg-raised/60 hover:text-ink",
+                active ? "font-medium text-ink" : "text-muted hover:text-ink",
               )}
             >
-              {active && <span aria-hidden className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-accent" />}
               <svg
                 aria-hidden
                 viewBox="0 0 16 16"
@@ -311,6 +324,8 @@ function SignIn({ onSignedIn, message }: { onSignedIn: () => void; message?: str
   useEffect(() => {
     vault.authOptions().then(setOptions, () => setOptions({ demo_login: false, password_login: false, passkey_login: false }));
   }, []);
+
+  if (options?.needs_owner) return <SetupWizard createOwner onFinish={onSignedIn} />;
 
   const finish = async (label: string, attempt: () => Promise<SignedIn>) => {
     setBusy(label);

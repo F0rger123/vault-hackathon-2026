@@ -9,7 +9,7 @@ What it does, printing each step in plain words:
 2. Checks for Ollama and the Meta Llama 3 model. Without them VAULT still runs, with the rules baseline.
    It never downloads a model by itself; it tells you the one command to run.
 3. Demo (default): builds the fictional demo archive once, with one-click demo sign-in.
-   Real (--real): uses data/runtime and asks you to set an administrator password the first time.
+   Real (--real): uses data/runtime. The first time, the setup wizard creates the owner account.
 4. Starts the API on 127.0.0.1:8000 and the interface on localhost:3000, then opens your browser,
    or with --app a native window. Press Ctrl+C (or close the window) to stop both.
 """
@@ -192,14 +192,7 @@ def prepare_data(real: bool) -> dict:
         env.update(VAULT_DATA_DIR=str(data), VAULT_DEMO_LOGIN="false")
         if not (data / "vault.db").exists():
             run([str(VAULT), "init"], env=env, stdout=subprocess.DEVNULL)
-        users = subprocess.run(  # noqa: S603
-            [str(VENV_PY), "-c", _ADMIN_READY_SCRIPT], env=env, capture_output=True, text=True, check=True
-        ).stdout.strip()
-        if users == "no":
-            say("Create the administrator account (you will sign in with it).")
-            run([str(VAULT), "token", "admin", "--role", "admin"], env=env, stdout=subprocess.DEVNULL)
-            while subprocess.run([str(VAULT), "set-password", "admin"], env=env).returncode != 0:  # noqa: S603
-                say("Try again (at least 10 characters, typed the same twice).")
+        # With no account yet, the interface opens the setup wizard, which creates the owner.
         say(f"data folder: {data}")
     else:
         step("Demo archive (fictional documents)")
@@ -215,13 +208,6 @@ def prepare_data(real: bool) -> dict:
             say("ready. Reset it any time with scripts/demo_reset.ps1 (or .sh).")
     env.setdefault("VAULT_ALLOW_REMOTE_INFERENCE", "false")
     return env
-
-
-_ADMIN_READY_SCRIPT = (
-    "from backend.core.config import get_settings;from backend.storage.db import connect;"
-    "c=connect(get_settings().db_path).__enter__();"
-    "print('yes' if c.execute('SELECT 1 FROM users WHERE password_hash IS NOT NULL').fetchone() else 'no')"
-)
 
 
 def spawn(cmd: list[str], **kw) -> subprocess.Popen:
@@ -314,7 +300,11 @@ def main(argv: list[str] | None = None) -> int:
             say("VAULT did not start within a minute; see the messages above.")
         url = f"http://localhost:{args.ui_port}"
         say(f"VAULT is running at {url}")
-        say("Sign in with the Demo buttons." if not args.real else "Sign in as admin with the password you set.")
+        say(
+            "Sign in with the Demo buttons."
+            if not args.real
+            else "Follow the setup wizard the first time, then sign in."
+        )
         if app:
             window = open_window(url, args.smoke_test)
             say("Close the VAULT window (or press Ctrl+C here) to stop VAULT.")

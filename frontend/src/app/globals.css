@@ -204,7 +204,7 @@ body {
   }
 }
 .drawer-in {
-  animation: drawer-in 0.2s var(--ease-out-soft) both;
+  animation: drawer-in 0.38s cubic-bezier(0.32, 0.72, 0, 1) both;
 }
 
 /* Live dot for running work. */
@@ -310,6 +310,82 @@ a:hover .vault-dial,
 }
 .vault-dial-intro .vault-dial {
   animation: dial-open 1.1s var(--ease-out-soft) both;
+}
+
+/* The motion language: quick to start, gentle to settle, like a well-damped door. */
+:root {
+  --ease-settle: cubic-bezier(0.32, 0.72, 0, 1);
+}
+.nav-pill {
+  transition: transform 0.42s var(--ease-settle), height 0.42s var(--ease-settle), opacity 0.2s;
+}
+.reveal {
+  animation: rise 0.4s var(--ease-settle) both;
+}
+
+/* First-run setup: the door is the one memorable thing, so everything around it stays still. */
+.wizard-backdrop {
+  background: radial-gradient(60rem 40rem at 20% 50%, var(--glow), transparent 70%), var(--paper);
+}
+.vault-door-frame {
+  perspective: 1200px;
+  width: min(62vw, 300px);
+}
+.vault-door {
+  width: 100%;
+  display: block;
+  transform-origin: left center;
+  transition: transform 1s var(--ease-settle), opacity 1s ease;
+  animation: door-arrive 0.9s var(--ease-settle) both;
+}
+.vault-door-open {
+  transform: rotateY(-82deg);
+  opacity: 0.25;
+}
+.vault-door-dial {
+  transform-origin: 100px 100px;
+  transition: transform 0.9s var(--ease-settle);
+}
+@keyframes door-arrive {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.wizard-pane {
+  animation: pane-in 0.55s var(--ease-settle) both;
+}
+@keyframes pane-in {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+.scan-line {
+  animation: pane-in 0.5s var(--ease-settle) both;
+}
+@keyframes scan-sweep {
+  from {
+    background-position: 0 -160px;
+  }
+  to {
+    background-position: 0 200px;
+  }
+}
+.scan-sweep {
+  background: linear-gradient(transparent, var(--glow), transparent) no-repeat;
+  background-size: 100% 120px;
+  animation: scan-sweep 1.4s linear infinite;
 }
 
 /* A trend line draws itself once, left to right. */
