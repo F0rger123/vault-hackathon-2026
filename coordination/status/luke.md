@@ -10,6 +10,7 @@ Last updated: 2026-10-29
 
 ## Waiting on
 
+- **Luke, approval:** PR #80 (the security gate holds files with active content, plus a live checklist; this changes upload handling) and PR #82 (passkeys for face, fingerprint or a hardware key; an auth change with migration 7).
 - **Luke, decision: OCR for scanned pages (F02.6).** Suggestion: skip it for the hackathon.
 - **Luke, blockers:**
   - B1: verify the hackathon rules.
@@ -22,6 +23,18 @@ Last updated: 2026-10-29
 - **Luke, Nov 3:** record the video from `docs/DEMO_SCRIPT.md`.
 
 ## Updates
+
+### 2026-10-30 · Luke's UI and security feedback · mostly merged
+- **Merged:**
+  - #75: read only new documents.
+  - #76: collection switcher with New collection.
+  - #77: desktop window (F12.12).
+  - #78: run summary and a chat with the coordinator.
+  - #79: brain in 3D (F07.10).
+  - #81: narrowing search step by step.
+  - #83: Training steps, Quiz VAULT, grouped rail and Ctrl+K.
+- **Waiting for Luke:** #80 (security gate) and #82 (passkeys).
+- **Not built (models needed):** searching inside photos, video and audio needs a vision model (B7) and a speech model. Explained in the roadmap, section 5a.
 
 ### 2026-10-29 night · F02.8, F07.7, F07.8 · merged; transfer and share packs · review
 - **Merged with Luke's approval:** #66 (Office files) and #70 (the collection brain and its map).
