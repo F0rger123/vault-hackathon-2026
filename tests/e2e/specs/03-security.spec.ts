@@ -5,7 +5,7 @@ import { API, signedIn, token } from "./helpers";
 test("viewer sees remote inference off and cannot change it", async ({ page }) => {
   await signedIn(page, "viewer", "/security");
   const main = page.getByRole("main");
-  await expect(page.getByRole("heading", { name: "Security" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Security", exact: true })).toBeVisible();
   await expect(main).toContainText(/Remote inference\s*Off/);
   await expect(main).toContainText("Administrators only");
   await expect(page.getByRole("button", { name: "Allow remote inference" })).toHaveCount(0);

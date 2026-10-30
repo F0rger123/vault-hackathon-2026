@@ -22,11 +22,11 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 | F06 Search & Investigation | 7 | 6 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F07 Teaching & Corrections | 10 | 9 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F08 Actions & Organization | 6 | 6 | 0 | 0 | 0 | 0 | 0 | 0 |
-| F09 Security | 11 | 10 | 0 | 0 | 0 | 1 | 0 | 0 |
+| F09 Security | 12 | 10 | 1 | 0 | 0 | 1 | 0 | 0 |
 | F10 User Interface | 13 | 13 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F11 Synthetic Data & Evaluation | 7 | 6 | 0 | 1 | 0 | 0 | 0 | 0 |
 | F12 Deployment & Submission | 12 | 9 | 0 | 0 | 0 | 2 | 1 | 0 |
-| **Total** | **112** | **98** | **1** | **1** | **1** | **8** | **3** | **0** |
+| **Total** | **113** | **98** | **2** | **1** | **1** | **8** | **3** | **0** |
 
 **Recorded evidence used below**
 
@@ -1082,6 +1082,23 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 - **Priority:** FUTURE · **Owner:** luke · **Status:** BACKLOG · **Dependencies:** F09.1
 - **Description:** Limit which collections and documents each user can see: in search, previews, original downloads and every API route. Today roles limit actions, not visibility. Found by the 2026-10-29 audit.
 - **Blockers:** This is an auth design change, so it needs Luke's approval. Planned for after the hackathon.
+
+#### F09.13 — Security gate that blocks active content, and a live security checklist
+
+- **Priority:** P1 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F09.3, F02.8
+- **Description:** Luke said (2026-10-30) the security gate should give real security, and the app shows no sign of how secure it is.
+  - **What is held at upload:** files with active content.
+    - PDF: JavaScript, actions that run on open, Launch actions, embedded files, rich media and XFA. These are checked in the raw bytes and in the parsed structure.
+    - Office: outside links, ActiveX and embedded OLE objects.
+  - **While held:** no model reads the file, it is left out of runs, and its original cannot be downloaded (423) until an admin releases it. Every hold and release is audited.
+  - **`GET /security/posture`:** a live checklist of 11 controls, each saying how to fix it when it fails, shown on Security and as a badge in the side rail.
+- **Verification evidence (2026-10-30):** `tests/security/test_security_gate.py`:
+  - JavaScript and attached files in a PDF, and an outside link in a DOCX, are detected; clean files are not;
+  - a held file is skipped by runs, its download is refused with 423, and an analyst cannot release it (403);
+  - admin release returns 200, a second release returns 409, and the download then works; both actions are in the audit log;
+  - the checklist reflects real settings (the response cache flips its check);
+  - without sign-in: 401.
+- **Blockers:** this changes how uploads are handled, so Luke approves the merge.
 
 ## F10 — User Interface
 

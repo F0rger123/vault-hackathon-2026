@@ -17,6 +17,7 @@ from pypdf import PdfReader
 
 from backend.core.config import Settings
 from backend.ingest.office import office_pages
+from backend.security.active_content import detect as detect_active_content
 from backend.security.files import FileRejected, validate_upload
 from backend.storage.db import now, transaction
 
@@ -95,11 +96,14 @@ def ingest_bytes(
         )
 
     pages = extract_pages(data, media_type, settings.max_pages_per_document)
+    # F09.13: files that could run something when a person opens them are held until an admin releases them.
+    active = detect_active_content(data, media_type)
+    status, held = ("quarantined", "Held by the security gate: " + "; ".join(active)) if active else ("ingested", None)
     stored = store_original(settings, sha, data)
     with transaction(conn):
         cur = conn.execute(
             """INSERT INTO documents (collection_id, filename, sha256, size_bytes, media_type, page_count,
-                   stored_path, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, 'ingested', ?)""",
+                   stored_path, status, error, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 collection_id,
                 safe_name,
@@ -108,6 +112,8 @@ def ingest_bytes(
                 media_type,
                 len(pages),
                 str(stored.relative_to(settings.data_dir)),
+                status,
+                held,
                 now(),
             ),
         )

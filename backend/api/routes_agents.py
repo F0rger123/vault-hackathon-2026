@@ -14,6 +14,7 @@ from backend.providers import get_provider
 from backend.providers.base import ProviderError
 from backend.security import audit
 from backend.security.auth import Principal
+from backend.security.posture import posture
 from backend.storage.db import dumps, loads, now
 from backend.workers.processing import load_pages
 
@@ -191,6 +192,41 @@ def document_screening(
         "injection": loads(r["injection"], []),
         "pii": loads(r["pii"], []),
     }
+
+
+@router.get("/security/posture")
+def security_posture(
+    conn=Depends(get_conn), settings: Settings = Depends(get_settings), _: Principal = Depends(require("system:read"))
+) -> dict:
+    """F09.13: live checklist of VAULT's protections, with how to fix each one that fails."""
+    return posture(conn, effective_settings(conn, settings))
+
+
+@router.get("/security/quarantine")
+def quarantine_list(conn=Depends(get_conn), _: Principal = Depends(require("system:read"))) -> list[dict]:
+    """Files the security gate is holding, and why. No document content."""
+    rows = conn.execute(
+        "SELECT id, collection_id, filename, media_type, error AS reason, created_at FROM documents "
+        "WHERE status = 'quarantined' ORDER BY id DESC LIMIT 200"
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
+@router.post("/documents/{document_id}/release")
+def release_document(
+    document_id: int, conn=Depends(get_conn), p: Principal = Depends(require("proposals:approve"))
+) -> dict:
+    """An administrator has checked a held file and releases it, so it can be read and downloaded."""
+    row = conn.execute("SELECT status, error FROM documents WHERE id = ?", (document_id,)).fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="not found")
+    if row["status"] != "quarantined":
+        raise HTTPException(status_code=409, detail="this document is not held")
+    conn.execute("UPDATE documents SET status = 'ingested', error = NULL WHERE id = ?", (document_id,))
+    audit.record(
+        conn, p.username, "document.release", "allowed", target=f"document:{document_id}", detail={"was": row["error"]}
+    )
+    return {"document_id": document_id, "status": "ingested"}
 
 
 @router.get("/security/summary")
