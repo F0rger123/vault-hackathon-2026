@@ -31,6 +31,12 @@ test("upload five files, start a rule-based run and watch it complete", async ({
   const status = page.getByRole("region", { name: "Run status" });
   await expect(status).toContainText(/Completed/, { timeout: 45_000 });
   await expect(status).toContainText("155 of 155");
+
+  // F10.13: the summary comes from the agents' records, and the coordinator answers questions from it.
+  await expect(page.getByRole("heading", { name: "Run summary" })).toBeVisible();
+  await page.getByRole("button", { name: "Did anything fail?" }).click();
+  await expect(page.getByText("Nothing failed in this run.")).toBeVisible();
+  await expect(page.getByText("Rule-based answer, not AI")).toBeVisible();
 });
 
 test("an administrator measures this machine with real stored documents", async ({ page }) => {
