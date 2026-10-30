@@ -66,8 +66,8 @@ All data below is fictional, made by the project's own synthetic dataset generat
   </tr>
   <tr>
     <td width="50%" valign="top">
-      <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/security-dark.jpg"><img src="docs/screenshots/security-light.jpg" alt="Security: remote inference switched off, screening summary and audit log with denied requests"></picture>
-      <br><sub><b>Security.</b> Remote models are off by default. Restricted files stay on local lanes, and denied requests are logged.</sub>
+      <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/security-dark.jpg"><img src="docs/screenshots/security-light.jpg" alt="Security: a live checklist of protections, 8 of 11 passing in demo mode, with how to fix each one"></picture>
+      <br><sub><b>Security.</b> A live checklist of VAULT's protections, each with how to fix it. Files with active content are held, and passkeys (face, fingerprint or a security key) can be required.</sub>
     </td>
     <td width="50%" valign="top">
       <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/setup-dark.jpg"><img src="docs/screenshots/setup-light.jpg" alt="Set up a run: teach by example, check this machine, choose model lanes"></picture>
@@ -97,7 +97,7 @@ All data below is fictional, made by the project's own synthetic dataset generat
   <tr>
     <td width="50%" valign="top">
       <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/brain-dark.jpg"><img src="docs/screenshots/brain-light.jpg" alt="Brain: what VAULT knows about the collection, and a map of documents linked to projects, parts and markings, with conflicting parts in red"></picture>
-      <br><sub><b>Brain.</b> What VAULT knows, what people taught it, and the questions it still has. The map links documents to their projects, parts and markings; red parts disagree across documents.</sub>
+      <br><sub><b>Brain.</b> What VAULT knows, what people taught it, and the questions it still has. Fly through the 3D map of documents, projects, parts and markings; red parts disagree across documents.</sub>
     </td>
     <td width="50%" valign="top">
       <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/models-dark.jpg"><img src="docs/screenshots/models-light.jpg" alt="Meta models for this computer: which models fit on the graphics card, which run partly on the processor, and one-click installs"></picture>
