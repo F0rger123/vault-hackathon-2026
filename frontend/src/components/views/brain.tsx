@@ -1,7 +1,8 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
 import { atLeast, errorText, vault, type Brain, type BrainQuestion, type ProviderName } from "@/lib/api";
 import { humanize } from "@/lib/format";
 import { useLoad } from "@/lib/use-load";
@@ -11,10 +12,30 @@ import { useSession } from "../session";
 import { TitleBlock } from "../title-block";
 import { Button, cx, Empty, Field, inputClass, LoadError, Notice, Panel, Skeleton, Tag } from "../ui";
 
+// The 3D space pulls in three.js, so it loads only on this page and only in the browser.
+const BrainSpace = dynamic(() => import("../brain-space"), {
+  ssr: false,
+  loading: () => <Skeleton className="h-[560px] w-full" />,
+});
+
+let webgl: boolean | undefined;
+function hasWebGL(): boolean {
+  if (webgl === undefined) {
+    try {
+      const c = document.createElement("canvas");
+      webgl = !!(c.getContext("webgl2") || c.getContext("webgl"));
+    } catch {
+      webgl = false;
+    }
+  }
+  return webgl;
+}
+const noSubscribe = () => () => {};
+
 const DESCRIPTION =
   "What VAULT knows about this collection, what your people taught it, and the questions it still has. Each collection has its own brain; nothing taught here is used anywhere else.";
 
-/** F07.7 and F07.8: the collection brain, its questions, teaching, and the map. */
+/** F07.7 and F07.8: the collection brain, its questions, teaching, and the map (a 3D space, or the 2D map). */
 export function BrainView() {
   const { collection, me } = useSession();
   const canTeach = atLeast(me, "analyst");
@@ -23,6 +44,13 @@ export function BrainView() {
   const [openDoc, setOpenDoc] = useState<number | null>(null);
   const close = useCallback(() => setOpenDoc(null), []);
   const [learned, setLearned] = useState(0);
+  // null on the server; then whether this browser can draw WebGL.
+  const canWebGL = useSyncExternalStore(noSubscribe, hasWebGL, () => null);
+  const [chosen, setChosen] = useState<"3d" | "2d" | null>(null);
+  const [failed3d, setFailed3d] = useState(false);
+  const fallback = useCallback(() => setFailed3d(true), []);
+  const can3d = canWebGL === true && !failed3d;
+  const mapView = !can3d ? "2d" : (chosen ?? "3d");
 
   if (!collection)
     return (
@@ -51,9 +79,36 @@ export function BrainView() {
         aside={graph.data ? `${graph.data.nodes.length} items · ${graph.data.edges.length} links` : undefined}
       >
         <LoadError error={graph.error} status={graph.status} what="the map" />
-        {graph.data && graph.data.nodes.length > 0 && <BrainMap graph={graph.data} onOpenDocument={setOpenDoc} />}
+        {graph.data && graph.data.nodes.length > 0 && canWebGL !== null && (
+          <div role="group" aria-label="Map view" className="mb-3 flex flex-wrap items-center gap-1">
+            {(["3d", "2d"] as const).map((v) => (
+              <button
+                key={v}
+                type="button"
+                aria-pressed={mapView === v}
+                disabled={v === "3d" && !can3d}
+                onClick={() => setChosen(v)}
+                className={cx(
+                  "rounded-control border px-2.5 py-1 text-sm disabled:cursor-not-allowed disabled:opacity-50",
+                  mapView === v ? "border-ink bg-ink text-panel" : "border-line bg-panel text-muted hover:text-ink",
+                )}
+              >
+                {v === "3d" ? "3D space" : "2D map"}
+              </button>
+            ))}
+            {!can3d && <span className="ml-2 text-xs text-muted">This browser cannot draw 3D, so the 2D map is shown.</span>}
+          </div>
+        )}
+        {graph.data && graph.data.nodes.length > 0 && canWebGL !== null && mapView === "3d" && (
+          <BrainSpace graph={graph.data} onOpenDocument={setOpenDoc} onUnsupported={fallback} />
+        )}
+        {graph.data && graph.data.nodes.length > 0 && canWebGL !== null && mapView === "2d" && (
+          <BrainMap graph={graph.data} onOpenDocument={setOpenDoc} />
+        )}
         {graph.data && graph.data.nodes.length === 0 && <Empty>Read the documents first; the map fills in as VAULT reads.</Empty>}
-        {!graph.data && !graph.error && <Skeleton className="h-[520px] w-full" />}
+        {((!graph.data && !graph.error) || (graph.data && graph.data.nodes.length > 0 && canWebGL === null)) && (
+          <Skeleton className="h-[520px] w-full" />
+        )}
       </Panel>
       <div className="grid gap-6 xl:grid-cols-2">
         {brain.data && (
