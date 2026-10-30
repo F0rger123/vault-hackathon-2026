@@ -359,6 +359,15 @@ Really processes a random sample with the chosen provider (results are saved as 
 - **Permission:** `jobs:read`
 - **Response 200:** the 50 most recent Jobs, newest first.
 
+### `GET /jobs/{job_id}/summary` · `POST /jobs/{job_id}/ask` (F10.13)
+- **Permission:** `jobs:read`
+- **Summary:** `{status, total, done, failed, skipped_already_read, lanes: [{lane, documents, avg_seconds}], parallel_slots, seconds, docs_per_minute, doc_types, security, kept_local, escalated, for_a_person, failures, findings}`. It is computed from the agents' recorded events.
+- **Ask:**
+  - Body: `{"question": "..."}`.
+  - Response: `{"answer", "by", "facts"}`. `by` is the local model's name, or `rules`.
+  - Only a local model is used, and it sees only the summary facts. Audited as `run.ask`.
+- **Errors:** 401, 403, 404, 422
+
 ### `GET /jobs/{job_id}`
 - **Permission:** `jobs:read`
 - **Response 200:** Job. **Errors:** 401, 403, 404
