@@ -76,7 +76,7 @@ export function TrainingView() {
       />
       <TrainingSteps step={step} />
       <p className="mb-6 max-w-3xl text-sm text-muted">
-        How this works, plainly: VAULT does not retrain the model. Your answers become labelled examples and rules that the
+        How this works, plainly: VAULT does not change the model&apos;s weights. Your answers become labelled examples and rules that the
         model is given each time it reads. Scores are measured on documents nobody corrected (the held-out set), so a
         higher number means better reading, not memorised answers.
       </p>

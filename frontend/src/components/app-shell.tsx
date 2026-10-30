@@ -233,7 +233,7 @@ function Chrome({ children }: { children: ReactNode }) {
       {ready && (
         <nav
           aria-label="Main"
-          className="rail-scope sticky top-0 hidden h-dvh flex-col gap-7 border-r border-line bg-paper px-3 py-5 lg:flex"
+          className="rail-scope sticky top-0 hidden h-dvh flex-col gap-5 overflow-y-auto border-r border-line bg-paper px-3 py-5 lg:flex"
         >
           <div className="px-2">
             <Wordmark />
