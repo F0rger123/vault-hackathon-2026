@@ -38,6 +38,7 @@ Engineering firms, manufacturers and public agencies sit on thousands of documen
 | **Keeps a brain per project** | Teach it in plain words: "QA-7 means approved by quality". It looks for its own gaps and asks you, such as an abbreviation used in 58 documents that nobody explained. Each collection's brain is kept apart, so two divisions never mix. A map shows how documents, projects, parts and markings connect. | Isolation tested: teaching one collection never changes another |
 | **Sets itself up** | Checks the computer, says which Meta models fit on the graphics card, recommends a set, and installs it with one click. | Llama 3.2 1B up to Llama 4 Scout, sized to the machine |
 | **Exports a table** | Every part, rating, quantity and material as CSV or JSON, each row with its file, page and quote. | Formula-safe for spreadsheets |
+| **Guards the door** | A security gate holds files that could run something when opened (PDF JavaScript, launch actions, embedded files, Office links and ActiveX) until an admin releases them. Sign in with Windows Hello face or fingerprint, Touch ID or a YubiKey, and optionally require it. A live checklist on Security shows which protections are on. | Each control has its own security test |
 | **Never acts alone** | Reorganizing the archive is only ever a proposal. An administrator previews it as a folder tree, and approving it exports copies; originals never move. | Every action, allowed or refused, is in the audit log |
 
 ## See it
@@ -151,7 +152,7 @@ The rules baseline is kept for comparison and offline tests and is labelled "not
 
 | Working and tested | Written, not yet run | Next |
 |---|---|---|
-| One-command start · One-click Meta model installs sized to the machine · Demo and Real modes · Password and one-click demo sign-in · Local Meta Llama extraction · PDF, Word, Excel, PowerPoint, text and CSV · Parallel lanes with retries, cancel and resume · Rating, quantity and material conflicts with verified quotes · Plain-English questions with checked citations · A brain per collection that asks about its gaps, with a map · Training: graded test, suggested rules, re-test · Approvals with copy-only export · Table export (CSV, JSON) · Encrypted move to a new computer · Redacted share packs for outside parties · Security tests, Semgrep, Trivy and ZAP in CI · 150+ automated tests and 21 browser tests | Meta Model API (Muse Spark) lane, waiting for an API key · Reading photos and scans, waiting for the Llama 3.2 Vision download | Final evaluation on frozen code (Nov 1) · Demo video (3 minutes) |
+| One-command start · One-click Meta model installs sized to the machine · Demo and Real modes · Password and one-click demo sign-in · Local Meta Llama extraction · PDF, Word, Excel, PowerPoint, text and CSV · Parallel lanes with retries, cancel and resume · Rating, quantity and material conflicts with verified quotes · Plain-English questions with checked citations · A brain per collection that asks about its gaps, with a 3D map you can fly through · Desktop window on Windows · Security gate that holds active content · Passkey sign-in (face, fingerprint, security key) · Run summary and a chat with the coordinator · Reads only new documents · Training: graded test, suggested rules, re-test · Approvals with copy-only export · Table export (CSV, JSON) · Encrypted move to a new computer · Redacted share packs for outside parties · Security tests, Semgrep, Trivy and ZAP in CI · 150+ automated tests and 21 browser tests | Meta Model API (Muse Spark) lane, waiting for an API key · Reading photos and scans, waiting for the Llama 3.2 Vision download | Final evaluation on frozen code (Nov 1) · Demo video (3 minutes) |
 
 Plans in detail: [docs/MASTER_BLUEPRINT.md](docs/MASTER_BLUEPRINT.md) and [coordination/TASKS.md](coordination/TASKS.md).
 
@@ -159,7 +160,7 @@ Plans in detail: [docs/MASTER_BLUEPRINT.md](docs/MASTER_BLUEPRINT.md) and [coord
 
 You need Python 3.11+ and Node 20+. For the real AI you also need [Ollama](https://ollama.com/download), the open-source program that runs Meta's models on your own computer. Without it, VAULT still runs, using the rules baseline, which is labelled "not AI".
 
-1. **Start VAULT** with the one command below. It installs what is missing and opens http://localhost:3000.
+1. **Start VAULT** with the one command below. It installs what is missing and opens VAULT. Add `-App` (Windows) or `--app` (Linux) to open it in its own window instead of a browser tab.
 2. **Choose Demo or Real.** Demo opens a fictional engineering archive at once; Real starts empty, with password sign-in.
 3. **Let it check your computer.** The Overview shows your graphics card and memory, which Meta models fit, and an **Install the recommended set** button. Models download once; after that VAULT works with the network unplugged.
 4. **Add documents** on Set up a run: drop files, or point it at a folder. PDF, Word, Excel, PowerPoint, text, CSV and images are accepted.
@@ -235,7 +236,7 @@ Pen-testing it yourself with open-source tools: [docs/PENTEST_GUIDE.md](docs/PEN
 |---|---|
 | `backend/` | FastAPI service: ingestion, model providers, agents, workers, search, security, storage |
 | `cli/` | The `vault` command-line tool |
-| `frontend/` | Next.js interface (eight screens) |
+| `frontend/` | Next.js interface (eight screens), with a Ctrl+K quick-jump |
 | `generator/` | Deterministic fictional dataset generator |
 | `data/synthetic/v1/` | 150 generated files and the ground-truth manifest |
 | `evaluation/` | Scoring against ground truth, plus every result |
