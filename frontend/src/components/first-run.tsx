@@ -233,7 +233,7 @@ export function QuickStart({ collectionId, documents }: { collectionId: number; 
     <Panel title="Quick start" className="mb-6 animate-rise">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm">
-          Read all <span className="font-semibold tabular-nums">{documents}</span> documents with{" "}
+          Read the <span className="font-semibold tabular-nums">{documents}</span> documents with{" "}
           {llama ? (
             <span className="font-medium">Meta Llama 3 on this computer</span>
           ) : (
@@ -241,7 +241,7 @@ export function QuickStart({ collectionId, documents }: { collectionId: number; 
               the <span className="font-medium">rules baseline</span> (not AI; install Ollama for AI reading)
             </>
           )}
-          . Nothing leaves this machine.
+          . Documents it already read are skipped unless something you taught changes the answer. Nothing leaves this machine.
         </p>
         <Button
           variant="primary"
@@ -255,6 +255,7 @@ export function QuickStart({ collectionId, documents }: { collectionId: number; 
                 collection_id: collectionId,
                 lanes: [{ provider, concurrency: slots }],
                 confirm_remote: false,
+                only_new: true,
               });
               router.push(`/run?job=${job.id}`);
             } catch (e) {
@@ -263,7 +264,7 @@ export function QuickStart({ collectionId, documents }: { collectionId: number; 
             }
           }}
         >
-          {llama ? "Read everything with Llama 3" : "Read everything"}
+          {llama ? "Read new documents with Llama 3" : "Read new documents"}
         </Button>
       </div>
       {!llama && models.data && (

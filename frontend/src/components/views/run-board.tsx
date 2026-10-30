@@ -278,6 +278,8 @@ function StatusStrip({
             {job.failed > 0 && <span className="text-amber">, {formatNumber(job.failed)} failed</span>}.{" "}
             {formatDuration(elapsed)} {running ? "so far" : "in total"}
             {eta !== null && `, about ${formatDuration(eta)} left at this pace`}.
+            {(job.params.skipped_already_read ?? 0) > 0 &&
+              ` ${formatNumber(job.params.skipped_already_read ?? 0)} documents were skipped because this model already read them.`}
           </p>
           {job.estimate_check && <EstimateCheckLine check={job.estimate_check} />}
         </div>

@@ -14,6 +14,40 @@ from backend.workers.importer import run_import
 __all__ = ["TERMINAL", "JobRunner", "create_process_job"]
 
 
+def documents_to_read(conn, collection_id: int, readers: set[tuple[str, str]]) -> tuple[list[int], int]:
+    """Documents that need reading, and how many can be skipped (F05.10).
+
+    A document is skipped only when its latest reading came from one of the chosen models and is newer than
+    anything that would change the result: a new rule version, or a meaning, instruction or labelled example
+    taught in this collection. Anything else (new files, failed readings, a different model) is read again.
+    """
+    changed = (
+        conn.execute(
+            """SELECT MAX(t) FROM (
+             SELECT MAX(created_at) AS t FROM policies
+             UNION ALL SELECT MAX(COALESCE(retired_at, created_at)) FROM knowledge WHERE collection_id = ?
+             UNION ALL SELECT MAX(e.created_at) FROM examples e JOIN documents d ON d.id = e.document_id
+                       WHERE d.collection_id = ?)""",
+            (collection_id, collection_id),
+        ).fetchone()[0]
+        or 0
+    )
+    rows = conn.execute(
+        """SELECT d.id, d.status, x.provider, x.model, x.created_at
+           FROM documents d LEFT JOIN extractions x ON x.id = (SELECT MAX(id) FROM extractions WHERE document_id = d.id)
+           WHERE d.collection_id = ? ORDER BY d.id""",
+        (collection_id,),
+    ).fetchall()
+    todo = [
+        r["id"]
+        for r in rows
+        if not (
+            r["status"] == "processed" and (r["provider"], r["model"]) in readers and (r["created_at"] or 0) > changed
+        )
+    ]
+    return todo, len(rows) - len(todo)
+
+
 def create_process_job(
     conn,
     collection_id: int,
@@ -23,12 +57,18 @@ def create_process_job(
     document_ids: list[int] | None = None,
     lanes: list[dict] | None = None,
     escalate_provider: str | None = None,
+    skipped: int = 0,
 ) -> int:
     if document_ids is None:
         rows = conn.execute("SELECT id FROM documents WHERE collection_id = ? ORDER BY id", (collection_id,)).fetchall()
         document_ids = [r["id"] for r in rows]
     lanes = lanes or [{"provider": provider, "concurrency": workers}]
-    params = {"provider": provider, "lanes": lanes, "escalate_provider": escalate_provider}
+    params = {
+        "provider": provider,
+        "lanes": lanes,
+        "escalate_provider": escalate_provider,
+        "skipped_already_read": skipped,
+    }
     cur = conn.execute(
         """INSERT INTO jobs (kind, status, collection_id, params, total, workers, created_by, created_at)
            VALUES ('process', 'queued', ?, ?, ?, ?, ?, ?)""",
