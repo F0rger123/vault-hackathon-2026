@@ -30,7 +30,9 @@ test("upload five files, start a rule-based run and watch it complete", async ({
   await expect(page.getByRole("heading", { name: "Live run board" })).toBeVisible();
   const status = page.getByRole("region", { name: "Run status" });
   await expect(status).toContainText(/Completed/, { timeout: 45_000 });
-  await expect(status).toContainText("155 of 155");
+  // F05.10: the 150 seeded documents were already read by the rules baseline, so only the 5 new ones are read.
+  await expect(status).toContainText("5 of 5");
+  await expect(status).toContainText("150 documents were skipped because this model already read them");
 });
 
 test("an administrator measures this machine with real stored documents", async ({ page }) => {
