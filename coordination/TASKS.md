@@ -23,10 +23,10 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 | F07 Teaching & Corrections | 10 | 9 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F08 Actions & Organization | 6 | 6 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F09 Security | 15 | 12 | 0 | 0 | 0 | 3 | 0 | 0 |
-| F10 User Interface | 15 | 13 | 2 | 0 | 0 | 0 | 0 | 0 |
+| F10 User Interface | 15 | 15 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F11 Synthetic Data & Evaluation | 7 | 6 | 0 | 1 | 0 | 0 | 0 | 0 |
 | F12 Deployment & Submission | 12 | 9 | 0 | 0 | 0 | 2 | 1 | 0 |
-| **Total** | **119** | **101** | **2** | **1** | **1** | **11** | **3** | **0** |
+| **Total** | **119** | **103** | **0** | **1** | **1** | **11** | **3** | **0** |
 
 **Recorded evidence used below**
 
@@ -1289,7 +1289,7 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 
 #### F10.14 — First-run setup wizard, and a design pass
 
-- **Priority:** P1 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F03.7, F09.14
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F03.7, F09.14
 - **Description:** Luke asked (2026-10-30) for a real setup process with better animation, and for a design audit. The audit scored about 62 of 100: every Overview block looked the same, nothing drew the eye first, and the model list swamped the page.
   - **Wizard:** on a real install with no account, VAULT opens a full-screen wizard instead of sign-in, in this order: welcome, owner account and password, face, fingerprint or USB key, a live check of this computer, the Meta models that fit, then the first collection. A vault door's dial turns with each step and the door swings open at the end. It reopens at `/welcome` without the account step.
   - **Owner route:** `POST /setup/owner` works only while no account can sign in, only from this computer, through VAULT's own origin, and never in demo mode. It is atomic and single-use.
@@ -1303,11 +1303,11 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 - **Verification evidence (2026-10-30):**
   - `tests/security/test_setup_owner.py`, 3 tests: created once; a second attempt gets 409 and the first password keeps working; remote address, foreign origin and demo mode get 403; a short password gets 422.
   - **Live walkthrough** on a clean data folder in Chromium with a virtual USB authenticator: all steps, no page errors. The checklist then showed 10 of 11.
-- **Blockers:** this is an authentication route, so Luke approves the merge.
+- **Merge:** Luke gave standing approval on 2026-10-30; merged as PR #84.
 
 #### F10.15 — New look, and the agent tree in setup
 
-- **Priority:** P1 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F10.14, F03.7
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F10.14, F03.7
 - **Description:** Luke said (2026-10-30) the font, the yellow and the gradients look bad, and asked for setup to show how the agents would divide the work. The look is now graphite with one blue accent, Inter and JetBrains Mono, with larger radii and consistent transitions. The hardware step draws a tree from the real capacity plan: the coordinator delegates to the security gate, one lane per model copy with its readers, and the reviewer.
 - **Verification evidence (2026-10-30):** `test_agent_plan_follows_the_hardware`: an 8 GB laptop gets 1 copy, 8 readers and 11 agents. Screenshots were reviewed on this laptop.
 
