@@ -27,3 +27,17 @@ test("graded test, suggested rules and a re-test improve the held-out score", as
   await expect(history).toHaveCount(2);
   await expect(history.first()).toContainText(/\(\+\d+\.\d\)/); // held-out document type went up
 });
+
+test("the quiz shows a document and VAULT's reading, and Ctrl+K finds places", async ({ page }) => {
+  // F07.9: quiz VAULT one document at a time; the command palette jumps anywhere.
+  await signedIn(page, "analyst", "/training");
+  await expect(page.getByRole("list", { name: "Training steps" })).toBeVisible();
+  const quiz = page.locator("section", { has: page.getByRole("heading", { name: "Quiz VAULT" }) });
+  await expect(quiz).toContainText("VAULT says this is a");
+  await quiz.getByRole("button", { name: "Skip" }).click();
+  await expect(quiz).toContainText("VAULT says this is a");
+  await page.keyboard.press("Control+k");
+  await page.getByLabel("Search VAULT").fill("passkey");
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/security/);
+});

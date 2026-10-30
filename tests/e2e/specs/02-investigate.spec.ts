@@ -78,3 +78,17 @@ test("exports the extracted records as a CSV table", async ({ page }) => {
   expect(text.split("\n")[0]).toContain("evidence_quote");
   await expect(page.getByRole("status").filter({ hasText: "Downloaded the CSV file." })).toBeVisible();
 });
+
+test("narrows results step by step with chips and plain words", async ({ page }) => {
+  // F06.7: search, then narrow by a chip, then in plain words, then remove a step.
+  await page.getByLabel("Words or phrases").fill("test");
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  const filters = page.getByLabel("Active filters");
+  await page.getByRole("button", { name: /^Inspection report \d+/ }).click();
+  await expect(filters).toContainText("Inspection report");
+  await page.getByLabel("Narrow the results in plain words").fill("without FAIL");
+  await page.getByRole("button", { name: "Narrow", exact: true }).click();
+  await expect(filters).toContainText("without “fail”");
+  await page.getByRole("button", { name: "Remove without “fail”" }).click();
+  await expect(filters).not.toContainText("without");
+});

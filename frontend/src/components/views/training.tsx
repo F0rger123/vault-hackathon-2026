@@ -13,6 +13,7 @@ import {
 import { dateTime, humanize } from "@/lib/format";
 import { useLoad } from "@/lib/use-load";
 import { useSession } from "../session";
+import { QuizCard, ScoreTrend, TrainingSteps } from "../training-extras";
 import { TitleBlock } from "../title-block";
 import { Button, cx, Empty, LoadError, Notice, Panel, Tag } from "../ui";
 
@@ -64,6 +65,7 @@ export function TrainingView() {
 
   const report = data.data?.report;
   const history = data.data?.history ?? [];
+  const step: 1 | 2 | 3 | 4 = !history.length ? 1 : lastJob ? 4 : report?.mistakes.length ? 2 : 3;
 
   return (
     <>
@@ -72,10 +74,11 @@ export function TrainingView() {
         title="Training"
         description="Grade how well VAULT reads this collection, teach it where it is wrong, and re-test on documents nobody corrected. When the scores are good enough, move on to real documents."
       />
+      <TrainingSteps step={step} />
       <p className="mb-6 max-w-3xl text-sm text-muted">
-        VAULT does not change the model&apos;s weights. It improves through your corrections, which become versioned rules, and
-        through labelled examples, which guide the model. Every change is measured on a held-out set you never touch, so a
-        better score means better reading, not memorised answers.
+        How this works, plainly: VAULT does not change the model&apos;s weights. Your answers become labelled examples and rules that the
+        model is given each time it reads. Scores are measured on documents nobody corrected (the held-out set), so a
+        higher number means better reading, not memorised answers.
       </p>
       <LoadError error={data.error} status={data.status} what="the training report" />
       {error && <Notice className="mb-4">{error}</Notice>}
@@ -87,7 +90,7 @@ export function TrainingView() {
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
         <Panel
-          title="1. Graded test"
+          title="1. Graded test: how well does it read?"
           aside={
             canTeach && (
               <Button
@@ -110,8 +113,13 @@ export function TrainingView() {
 
         <Panel title="Ready for real documents?">
           {report && <Readiness report={report} mode={mode} onSwitch={() => setMode("real")} />}
+          <ScoreTrend history={history} />
           <History history={history} />
         </Panel>
+      </div>
+
+      <div className="mt-6">
+        <QuizCard collectionId={collection.id} canTeach={canTeach} onAnswered={() => data.reload()} />
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-2">

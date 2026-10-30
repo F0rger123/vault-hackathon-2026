@@ -19,14 +19,14 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 | F03 Hardware & Collection Analysis | 7 | 7 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F04 AI Model System | 11 | 7 | 0 | 0 | 1 | 2 | 1 | 0 |
 | F05 Parallel Processing | 10 | 9 | 0 | 0 | 0 | 0 | 1 | 0 |
-| F06 Search & Investigation | 6 | 5 | 0 | 0 | 0 | 1 | 0 | 0 |
-| F07 Teaching & Corrections | 8 | 7 | 0 | 0 | 0 | 1 | 0 | 0 |
+| F06 Search & Investigation | 7 | 6 | 0 | 0 | 0 | 1 | 0 | 0 |
+| F07 Teaching & Corrections | 9 | 8 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F08 Actions & Organization | 6 | 6 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F09 Security | 12 | 10 | 1 | 0 | 0 | 1 | 0 | 0 |
 | F10 User Interface | 13 | 13 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F11 Synthetic Data & Evaluation | 7 | 6 | 0 | 1 | 0 | 0 | 0 | 0 |
 | F12 Deployment & Submission | 11 | 8 | 0 | 0 | 0 | 2 | 1 | 0 |
-| **Total** | **109** | **94** | **2** | **1** | **1** | **8** | **3** | **0** |
+| **Total** | **111** | **96** | **2** | **1** | **1** | **8** | **3** | **0** |
 
 **Recorded evidence used below**
 
@@ -710,6 +710,17 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
   - **Tests:** `tests/integration/test_more_conflicts.py` (extraction, plus an Alpha v2 end-to-end check with verified quotes). Full suite 66 passed.
   - **UI:** Investigate has new filters and value labels (units, materials).
 
+#### F06.7 — Narrow search results step by step
+
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F06.1, F06.2
+- **Description:** Luke said (2026-10-30) Investigate had no way to narrow results down.
+  - **Search:** `GET /search` now takes `year`, `media` (`image` or `document`) and `exclude` (words a result must not contain; quoted terms, so typed operators are only words).
+  - **Investigate:** after a search, chips show the types, projects and years in the results, plus "Pictures only". Plain words such as "only inspection reports from 2023 without FAIL" are parsed in the browser into filters. Each step shows as a removable chip.
+  - **Pictures:** "Show the pictures in this archive" lists them. Searching inside photos and videos needs the vision model (B7), and the screen says so.
+- **Verification evidence (2026-10-30):**
+  - `tests/integration/test_narrow_search.py` covers exclude (no result page contains the excluded word), year, pictures only, documents only, a bad year or media (422), and operators in exclude treated as words.
+  - Playwright: chip, then plain words, then removing a step.
+
 #### F06.6 — Semantic (embedding) retrieval
 - **Description:** Local embeddings for fuzzy queries alongside FTS5.
 - **Priority:** P2 · **Owner:** luke · **Status:** BACKLOG · **Dependencies:** F06.1
@@ -814,6 +825,17 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 - **Description:** A map of the collection on the Brain screen. Documents cluster around their projects, document types, parts and markings. A person can drag and zoom, filter by kind, and search. Clicking a hub lists its documents, and clicking a document opens it. Parts with conflicting values are red. It is drawn on a canvas with no new dependency. A 3D version would need a 3D library, so it is left for Luke to decide.
 - **Verification evidence (2026-10-29):** `test_brain_graph_links_documents_to_what_they_mention`. Every edge joins existing nodes, and every planted rating conflict is flagged red. On v1 there are 222 items and 737 links.
 
+
+#### F07.9 — Training made clear: steps, trend, and Quiz VAULT; easier navigation
+
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F07.6
+- **Description:** Luke said (2026-10-30) Training was confusing and felt fake, and that it was hard to find things.
+  - **Training:** a four-step guide shows where you are (test, mistakes, teach, re-test), plus a trend line of the held-out score.
+  - **Quiz VAULT:** shows one real document, its first page and what VAULT read, and the person confirms or corrects it. Each answer becomes a labelled example, which guides the next reading and is what grades real collections.
+  - **Navigation:** the rail is grouped into Work, Teach and Control, and **Ctrl+K** opens a palette that finds any place by plain words ("passkey", "upload", "quiz").
+- **Verification evidence (2026-10-30):**
+  - Playwright `055-training.spec.ts`: the steps show, the quiz shows a reading, Skip moves on, and Ctrl+K "passkey" opens Security.
+  - Screenshots checked on the Llama-read demo: held-out type 97.7%.
 
 ## F08 — Actions & Organization
 
