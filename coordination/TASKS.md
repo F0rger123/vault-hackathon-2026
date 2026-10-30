@@ -1491,7 +1491,10 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 - **Verification evidence (2026-10-30, PR #77):**
   - **Live run:** a smoke test on this Windows laptop loaded the sign-in page inside the window, then shut down with no processes left, three runs in a row.
   - **Tests:** `tests/unit/test_desktop_launcher.py`.
-  - **Not tested:** Linux on real hardware. Installers (PyInstaller) are a later step.
+  - **Not tested:** Linux on real hardware.
+- **Portable build (PR #85, 2026-10-30):** `packaging/build_windows.ps1` builds a standalone Windows app with no Python or Node needed, 38.7 MB zipped, with a SHA-256.
+  - **Tested on this laptop:** the built `VAULT.exe` on a clean data folder ran the whole setup wizard (owner, simulated USB key, models, first collection) with no page or console errors, driven from a browser at its local address. It listens on 127.0.0.1 only.
+  - **Not tested:** the Inno Setup installer (not installed here), `release.yml`, a computer without Python or Node, real Windows Hello inside the window. Not code-signed, so SmartScreen warns.
 
 #### F12.1 — Command-line interface
 - **Description:** `vault init`, `token`, `ingest`, `hardware`, `providers`, `estimate`, `process`, `search`, `findings`, `serve`.

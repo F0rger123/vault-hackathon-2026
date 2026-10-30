@@ -23,6 +23,10 @@ Last updated: 2026-10-29
 
 ## Updates
 
+### 2026-10-30 · F12.12 · portable app merged
+- **Merged:** #85. Standalone Windows build, tested through the setup wizard on the built exe.
+- **Not done:** the installer needs Inno Setup. Publishing a GitHub release, and code signing (paid), are Luke's calls.
+
 ### 2026-10-30 · merge rule; F10.14, F10.15 · merged
 - **Standing approval from Luke:** "always push the main... You don't need to ask." Finished work merges to `main` once CI is green, including auth, file-handling and migration PRs. Spending money, large downloads, remote inference and destructive actions still need asking.
 - **Merged:** #84 (setup wizard, agent tree, new look).
