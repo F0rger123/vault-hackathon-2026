@@ -398,6 +398,8 @@ Really processes a random sample with the chosen provider (results are saved as 
 Matches in `snippet` are wrapped in `[[` and `]]`; render them as highlights and escape the rest. With empty `q`, `page` and `snippet` are `null`.
 - **Errors:** 401, 403, 422
 
+**F06.7 narrowing parameters on `GET /search`:** `year` (YYYY), `media` (`image` or `document`), and `exclude`. A document containing any word in `exclude` is left out. The words are quoted, so typed operators are treated as words.
+
 ### `GET /collections/{collection_id}/findings`
 - **Permission:** `findings:read`
 - **Response 200:**

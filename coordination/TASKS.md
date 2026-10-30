@@ -19,14 +19,14 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 | F03 Hardware & Collection Analysis | 7 | 7 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F04 AI Model System | 11 | 7 | 0 | 0 | 1 | 2 | 1 | 0 |
 | F05 Parallel Processing | 10 | 9 | 0 | 0 | 0 | 0 | 1 | 0 |
-| F06 Search & Investigation | 6 | 5 | 0 | 0 | 0 | 1 | 0 | 0 |
+| F06 Search & Investigation | 7 | 6 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F07 Teaching & Corrections | 8 | 7 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F08 Actions & Organization | 6 | 6 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F09 Security | 11 | 10 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F10 User Interface | 13 | 13 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F11 Synthetic Data & Evaluation | 7 | 6 | 0 | 1 | 0 | 0 | 0 | 0 |
 | F12 Deployment & Submission | 11 | 8 | 0 | 0 | 0 | 2 | 1 | 0 |
-| **Total** | **108** | **94** | **1** | **1** | **1** | **8** | **3** | **0** |
+| **Total** | **109** | **95** | **1** | **1** | **1** | **8** | **3** | **0** |
 
 **Recorded evidence used below**
 
@@ -709,6 +709,17 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
   - **Llama 3:** material 5 of 5, quantity 0 of 5. A prompt tweak fixed quantities but broke ratings (0.82 to 0.10), so it was reverted. Details are in `evaluation/results/SUMMARY.md`.
   - **Tests:** `tests/integration/test_more_conflicts.py` (extraction, plus an Alpha v2 end-to-end check with verified quotes). Full suite 66 passed.
   - **UI:** Investigate has new filters and value labels (units, materials).
+
+#### F06.7 — Narrow search results step by step
+
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F06.1, F06.2
+- **Description:** Luke said (2026-10-30) Investigate had no way to narrow results down.
+  - **Search:** `GET /search` now takes `year`, `media` (`image` or `document`) and `exclude` (words a result must not contain; quoted terms, so typed operators are only words).
+  - **Investigate:** after a search, chips show the types, projects and years in the results, plus "Pictures only". Plain words such as "only inspection reports from 2023 without FAIL" are parsed in the browser into filters. Each step shows as a removable chip.
+  - **Pictures:** "Show the pictures in this archive" lists them. Searching inside photos and videos needs the vision model (B7), and the screen says so.
+- **Verification evidence (2026-10-30):**
+  - `tests/integration/test_narrow_search.py` covers exclude (no result page contains the excluded word), year, pictures only, documents only, a bad year or media (422), and operators in exclude treated as words.
+  - Playwright: chip, then plain words, then removing a step.
 
 #### F06.6 — Semantic (embedding) retrieval
 - **Description:** Local embeddings for fuzzy queries alongside FTS5.
