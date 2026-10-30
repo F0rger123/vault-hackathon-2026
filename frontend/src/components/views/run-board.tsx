@@ -39,7 +39,8 @@ export function RunBoardView() {
   const all = useLoad("jobs", vault.jobs, 5000);
   // Path imports (kind "import") are jobs too, but have no model lanes to show on this board.
   const jobs = { ...all, data: all.data?.filter((j) => j.kind === "process") };
-  const jobId = requested ?? jobs.data?.[0]?.id ?? null;
+  const newest = jobs.data?.find((j) => !TERMINAL.includes(j.status)) ?? jobs.data?.find((j) => j.status === "completed") ?? jobs.data?.[0];
+  const jobId = requested ?? newest?.id ?? null;
 
   return (
     <>

@@ -83,9 +83,11 @@
   --ease-out-soft: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
-html,
-body {
+/* Only html paints the page colour; a background on body would cover the rain, which sits at z-index -1. */
+html {
   background: var(--paper);
+}
+body {
   color: var(--ink);
 }
 
@@ -506,7 +508,7 @@ section.rounded-card:hover {
 }
 /* Granted: the doors close over the scan for a beat, then part on the app. */
 .unlock-door-open {
-  animation: door-part 1.15s var(--ease-settle) 0.75s both;
+  animation: door-part 1.9s var(--ease-settle) both;
 }
 .unlock-door-left.unlock-door-open {
   --door-out: -101%;
@@ -521,13 +523,19 @@ section.rounded-card:hover {
   animation: door-shut-right 0.7s var(--ease-settle) both;
 }
 .unlock-content-out {
-  animation: fade-out 0.25s ease 0.7s both;
+  animation: fade-out 0.1s linear 0.8s both;
 }
 .unlock-fade {
-  animation: fade-out 0.3s ease 0.7s both;
+  animation: fade-out 0.1s linear 0.8s both;
 }
+/* Stay open while the result shows, slam shut, hold a beat, then part. */
 @keyframes door-part {
-  0% {
+  0%,
+  28% {
+    transform: translateX(var(--door-out));
+  }
+  44%,
+  58% {
     transform: none;
   }
   100% {

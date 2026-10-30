@@ -33,7 +33,6 @@ export function createSwarm({
   const geometry = new THREE.OctahedronGeometry(Math.max(2.5, radius * 0.012));
   const white = new THREE.MeshBasicMaterial({ color: 0xffffff });
   const green = new THREE.MeshBasicMaterial({ color: 0x00e676 });
-  const red = new THREE.MeshBasicMaterial({ color: 0xff4d4d });
   const beamMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 });
   const lane = new Map<string, number>();
 
@@ -52,23 +51,23 @@ export function createSwarm({
     return agent;
   };
 
-  const readerKey = (a: Activity) => {
+  const readerKey = (a: Activity, slots: number) => {
     const name = a.lane ?? "";
     const turn = lane.get(name) ?? 0;
     lane.set(name, turn + 1);
-    return { key: `reader:${name}:${turn % 8}`, label: `Reader ${(turn % 8) + 1}` };
+    return { key: `reader:${name}:${turn % slots}`, label: `Reader ${(turn % slots) + 1}` };
   };
 
   const labels = new Map<string, string>();
 
   return {
-    feed(a: Activity) {
+    feed(a: Activity, slots = 1) {
       if (a.document_id == null || !docPosition(a.document_id)) return;
       let key = a.worker as string;
       let label = a.worker === "security" ? "Security gate" : "Reviewer";
-      if (a.worker.startsWith("reader:")) ({ key, label } = readerKey(a));
+      if (a.worker.startsWith("reader:")) ({ key, label } = readerKey(a, slots));
       labels.set(key, label);
-      const agent = agents.get(key) ?? make(key, a.worker === "security" ? green : a.worker === "reviewer" ? red : white);
+      const agent = agents.get(key) ?? make(key, a.worker.startsWith("reader:") ? white : green);
       // During a fast replay a craft keeps only its next jobs, so it never falls behind the record.
       if (agent.queue.length < 3) agent.queue.push(a);
     },
@@ -111,7 +110,6 @@ export function createSwarm({
       geometry.dispose();
       white.dispose();
       green.dispose();
-      red.dispose();
       beamMaterial.dispose();
     },
   };

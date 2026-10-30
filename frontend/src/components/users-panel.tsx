@@ -114,7 +114,7 @@ function Person({
       </span>
       <select
         aria-label={`Role for ${user.username}`}
-        className={`${inputClass} w-auto`}
+        className={`${inputClass} !w-32`}
         value={user.role}
         disabled={busy !== null}
         onChange={(e) => act(`role${user.id}`, () => vault.changeUser(user.id, { role: e.target.value }))}
@@ -140,7 +140,7 @@ function Person({
             type="password"
             aria-label={`New password for ${user.username}`}
             autoComplete="new-password"
-            className={`${inputClass} w-44`}
+            className={`${inputClass} !w-44`}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />

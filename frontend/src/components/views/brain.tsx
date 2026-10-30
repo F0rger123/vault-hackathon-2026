@@ -53,7 +53,9 @@ export function BrainView() {
   const graph = useLoad(collection ? `brain-graph:${collection.id}` : null, () => vault.brainGraph(collection!.id));
   // F10.16: the agents in the 3D space fly from the record of the collection's latest run.
   const jobs = useLoad(collection ? `brain-jobs:${collection.id}` : null, vault.jobs, 5000);
-  const run = jobs.data?.find((j) => j.kind === "process" && j.collection_id === collection?.id);
+  const mine = jobs.data?.filter((j) => j.kind === "process" && j.collection_id === collection?.id);
+  // A live run first; otherwise the last one that really finished, since a cancelled stub has little to show.
+  const run = mine?.find((j) => !TERMINAL.includes(j.status)) ?? mine?.find((j) => j.status === "completed") ?? mine?.[0];
   const running = run && !TERMINAL.includes(run.status);
   const runEvents = useLoad(run ? `brain-events:${run.id}` : null, () => allEvents(run!.id), running ? 2000 : undefined);
   const [openDoc, setOpenDoc] = useState<number | null>(null);

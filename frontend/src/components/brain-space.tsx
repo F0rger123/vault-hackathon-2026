@@ -8,7 +8,7 @@ import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 import { CSS2DObject, CSS2DRenderer } from "three/examples/jsm/renderers/CSS2DRenderer.js";
-import { activityOf, replayDelays, type Activity } from "@/lib/agent-activity";
+import { activityOf, laneSlots, replayDelays, type Activity } from "@/lib/agent-activity";
 import type { AgentEvent, BrainGraph, BrainNode } from "@/lib/api";
 import { humanize } from "@/lib/format";
 import { createSwarm } from "./brain-agents";
@@ -156,7 +156,7 @@ export default function BrainSpace({
   });
   const [selected, setSelected] = useState<string | null>(null);
   const [find, setFind] = useState("");
-  const api = useRef<{ paint: () => void; reset: () => void; focus: (id: string) => void; play: (a: Activity) => void } | null>(null);
+  const api = useRef<{ paint: () => void; reset: () => void; focus: (id: string) => void; play: (a: Activity, slots?: number) => void } | null>(null);
   const feedRef = useRef<HTMLOListElement>(null);
   const [replaying, setReplaying] = useState(false);
   // The scene reads these on its own schedule, so it keeps the latest values in a ref.
@@ -227,7 +227,7 @@ export default function BrainSpace({
 
     const composer = new EffectComposer(renderer);
     composer.addPass(new RenderPass(scene, camera));
-    const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.85, 0.55, 0.32);
+    const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.55, 0.4, 0.5);
     composer.addPass(bloom);
     composer.addPass(new OutputPass());
     const sun = new THREE.DirectionalLight(0xffffff, 1.1);
@@ -394,7 +394,7 @@ export default function BrainSpace({
         }
       },
     });
-    api.current = { paint, reset, focus, play: (a) => swarm.feed(a) };
+    api.current = { paint, reset, focus, play: (a, slots) => swarm.feed(a, slots) };
 
     // Picking: a ray against the spheres first, then the nearest dot on screen so small documents stay easy to hit.
     const ray = new THREE.Raycaster();
@@ -628,8 +628,9 @@ export default function BrainSpace({
     timers.current.forEach((t) => window.clearTimeout(t));
     const items = (events ?? []).map(activityOf).filter((a): a is Activity => a !== null && a.document_id != null);
     const delays = replayDelays(items, REPLAY_SECONDS);
+    const slots = laneSlots(events ?? []);
     setReplaying(true);
-    timers.current = items.map((a, i) => window.setTimeout(() => api.current?.play(a), delays[i]));
+    timers.current = items.map((a, i) => window.setTimeout(() => api.current?.play(a, slots.get(a.lane ?? "")), delays[i]));
     timers.current.push(window.setTimeout(() => setReplaying(false), REPLAY_SECONDS * 1000 + 800));
   };
   const replayRef = useRef(startReplay);
@@ -645,7 +646,7 @@ export default function BrainSpace({
         playedTo.current = e.id;
         // Only what happens from now on flies; earlier work in this run is already done.
         const a = startedRun.current === runId ? activityOf(e) : null;
-        if (a) api.current?.play(a);
+        if (a) api.current?.play(a, laneSlots(events ?? []).get(a.lane ?? ""));
       }
       startedRun.current = runId ?? null;
     } else if (startedRun.current !== runId) {

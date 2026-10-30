@@ -325,7 +325,7 @@ function SignIn({ onSignedIn, message }: { onSignedIn: () => void; message?: str
   const [token, setTokenValue] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
-  const [unlock, setUnlock] = useState<{ phase: UnlockPhase; who?: string } | null>(null);
+  const [unlock, setUnlock] = useState<{ phase: UnlockPhase; who?: string; face?: boolean } | null>(null);
 
   useEffect(() => {
     vault.authOptions().then(setOptions, () => setOptions({ demo_login: false, password_login: false, passkey_login: false }));
@@ -336,13 +336,13 @@ function SignIn({ onSignedIn, message }: { onSignedIn: () => void; message?: str
   const finish = async (label: string, attempt: () => Promise<SignedIn>) => {
     setBusy(label);
     setError(null);
-    if (label === "passkey") setUnlock({ phase: "scanning" });
+    if (label === "passkey") setUnlock({ phase: "scanning", face: true });
     try {
       const session = await attempt();
       setToken(session.token);
-      setUnlock({ phase: "granted", who: session.username });
+      setUnlock({ phase: "granted", who: session.username, face: label === "passkey" });
     } catch (e) {
-      if (label === "passkey") setUnlock({ phase: "denied" });
+      if (label === "passkey") setUnlock({ phase: "denied", face: true });
       setError(e instanceof DOMException ? "The passkey was cancelled or not allowed on this device." : errorText(e));
     } finally {
       setBusy(null);
@@ -355,6 +355,7 @@ function SignIn({ onSignedIn, message }: { onSignedIn: () => void; message?: str
         <UnlockSequence
           phase={unlock.phase}
           who={unlock.who}
+          face={unlock.face}
           detail={unlock.phase === "scanning" ? "Look at your camera or touch your key when your device asks. Your device checks you; VAULT never sees the camera." : undefined}
           onDone={unlock.phase === "granted" ? onSignedIn : () => setUnlock(null)}
         />

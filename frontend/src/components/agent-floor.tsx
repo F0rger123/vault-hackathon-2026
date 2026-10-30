@@ -97,8 +97,8 @@ export function AgentFloor({
       width = rect.width;
       const narrow = width < 640;
       const list = allReaders();
-      const rowH = narrow ? 34 : 46;
-      height = Math.max(narrow ? 300 : 340, 64 + Math.ceil(list.length / (narrow ? 1 : 2)) * rowH);
+      const rowH = narrow ? 48 : 62;
+      height = Math.max(narrow ? 280 : 230, 24 + Math.ceil(list.length / (narrow ? 1 : 2)) * rowH);
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       el.width = width * dpr;
       el.height = height * dpr;
@@ -173,11 +173,19 @@ export function AgentFloor({
       },
     };
 
-    let colors = { ink: "#fff", muted: "#888", line: "#333", panel: "#111", green: "#0f6", red: "#f44" };
+    let colors = { ink: "#fff", muted: "#888", line: "#333", panel: "#111", green: "#0f6", red: "#f44", mono: "monospace" };
     const readColors = () => {
       const css = getComputedStyle(host);
       const v = (n: string) => css.getPropertyValue(n).trim();
-      colors = { ink: v("--ink"), muted: v("--muted"), line: v("--line-strong"), panel: v("--panel"), green: v("--green"), red: v("--redline") };
+      colors = {
+        ink: v("--ink"),
+        muted: v("--muted"),
+        line: v("--line-strong"),
+        panel: v("--panel"),
+        green: v("--green"),
+        red: v("--redline"),
+        mono: `${getComputedStyle(document.body).getPropertyValue("--font-data")}, monospace`,
+      };
     };
     const links = (): [Box, Box][] => {
       const list = allReaders();
@@ -213,10 +221,10 @@ export function AgentFloor({
       }
       const pad = 8;
       ctx.textBaseline = "top";
-      ctx.font = "600 12px var(--font-data), monospace";
+      ctx.font = `600 13px ${colors.mono}`;
       ctx.fillStyle = colors.ink;
       ctx.fillText(clip(b.title, b.w - pad * 2), b.x + pad, b.y + 6);
-      ctx.font = "11px var(--font-data), monospace";
+      ctx.font = `12px ${colors.mono}`;
       ctx.fillStyle = busy ? colors.green : colors.muted;
       const text = busy ? b.status : b.count ? `${b.count} done` : "Idle";
       if (b.h >= 34) ctx.fillText(clip(text, b.w - pad * 2), b.x + pad, b.y + b.h - 18);

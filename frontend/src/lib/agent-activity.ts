@@ -35,3 +35,10 @@ export function replayDelays(items: Activity[], seconds: number): number[] {
   const span = Math.max(items[items.length - 1].ts - first, 0.001);
   return items.map((a) => ((a.ts - first) / span) * seconds * 1000);
 }
+
+/** Readers per lane, from the coordinator's plan, so an agent is never named beyond what really ran. */
+export function laneSlots(events: AgentEvent[]): Map<string, number> {
+  const plan = events.find((e) => e.agent === "coordinator" && e.action === "plan");
+  const lanes = (plan?.detail.lanes as { lane: string; slots: number }[] | undefined) ?? [];
+  return new Map(lanes.map((l) => [l.lane, Math.max(1, l.slots)]));
+}
