@@ -167,6 +167,8 @@ You need Python 3.11+ and Node 20+. For the real AI you also need [Ollama](https
 5. **Read them** with one button, and watch the live run board.
 6. **Check the quality** on Training before trusting it, then **teach it** on Brain.
 
+**Windows app without Python or Node:** `packaging/build_windows.ps1` builds a portable folder and zip (about 39 MB) with a guided first-run setup. Unzip it and run `VAULT.exe`. It is not code-signed, so Windows SmartScreen shows a warning the first time. No download is published yet, and so far it has been tested only on the machine that built it. Ollama is still a separate install for the real AI.
+
 **One command:**
 
 ```bash

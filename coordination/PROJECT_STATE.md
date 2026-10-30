@@ -52,7 +52,9 @@ The two-minute snapshot. Read this first in a new session. Detail lives in the l
 - **Also merged:**
   - reading only new documents (F05.10);
   - the collection switcher (F10.12);
-  - the desktop window (F12.12);
+  - the desktop window and portable Windows app, built locally and not yet published (F12.12);
+  - the guided first-run setup (F10.14);
+  - the graphite and blue look, and the agent tree in setup (F10.15);
   - the run summary and coordinator chat (F10.13);
   - the 3D brain (F07.10);
   - step-by-step narrowing (F06.7);
