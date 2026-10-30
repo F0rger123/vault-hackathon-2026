@@ -349,6 +349,7 @@ Really processes a random sample with the chosen provider (results are saved as 
 ## Jobs
 
 ### `POST /jobs` → 202
+- **`only_new`** (F05.10, default false): skip documents the chosen models already read since the last rule, knowledge or example change in this collection. The job's `params.skipped_already_read` says how many were skipped.
 - **Permission:** `jobs:create`
 - **Body:** `{"collection_id": 1, "provider": "heuristic" | "ollama" | "meta_api" | null, "workers": 4 | null, "confirm_remote": false}`. `workers` 1–32; when null the server uses `VAULT_MAX_WORKERS` or the hardware recommendation.
 - **Response 202:** Job (processing starts in the background; poll `GET /jobs/{id}`).

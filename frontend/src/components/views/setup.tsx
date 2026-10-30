@@ -619,6 +619,7 @@ function LaneAndStart({
   const [escalate, setEscalate] = useState<ProviderName | "">("");
   const [confirmed, setConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [onlyNew, setOnlyNew] = useState(true);
   const [error, setError] = useState<{ text: string; status: number } | null>(null);
   const nextKey = useRef(2);
 
@@ -781,6 +782,7 @@ function LaneAndStart({
                     lanes: lanes.map(({ provider, concurrency }) => ({ provider, concurrency })),
                     escalate_provider: escalate || null,
                     confirm_remote: usesRemote && confirmed,
+                    only_new: onlyNew,
                   });
                   router.push(`/run?job=${job.id}`);
                 } catch (e) {
@@ -791,6 +793,10 @@ function LaneAndStart({
             >
               Start run
             </Button>
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={onlyNew} onChange={(e) => setOnlyNew(e.target.checked)} />
+              Skip documents already read by these models
+            </label>
             {blockedReason && <span className="text-sm text-muted">{blockedReason}</span>}
           </div>
           {error && (

@@ -8,7 +8,7 @@ test("upload five files, start a rule-based run and watch it complete", async ({
   // F12.9 and F03.6: the one-button start and the local-models card are the first things on the page.
   await expect(page.getByRole("heading", { name: "Quick start" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "This computer" })).toBeVisible();
-  await expect(page.getByRole("button", { name: /^Read everything/ })).toBeEnabled();
+  await expect(page.getByRole("button", { name: /^Read new documents/ })).toBeEnabled();
 
   const files = Array.from({ length: 5 }, (_, i) => ({
     name: `e2e-note-${i + 1}.txt`,
