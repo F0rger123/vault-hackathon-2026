@@ -23,6 +23,10 @@ Last updated: 2026-10-29
 
 ## Updates
 
+### 2026-10-30 · merge rule; F10.14, F10.15 · merged
+- **Standing approval from Luke:** "always push the main... You don't need to ask." Finished work merges to `main` once CI is green, including auth, file-handling and migration PRs. Spending money, large downloads, remote inference and destructive actions still need asking.
+- **Merged:** #84 (setup wizard, agent tree, new look).
+
 ### 2026-10-30 · Luke's UI and security feedback · mostly merged
 - **Merged:**
   - #75: read only new documents.

@@ -20,8 +20,8 @@ import sqlite3
 import threading
 import time
 
-from backend.security.auth import hash_token, issue_token
-from backend.storage.db import now
+from backend.security.auth import create_user, hash_token, issue_token
+from backend.storage.db import now, transaction
 
 MIN_PASSWORD = 10
 _N, _R, _P = 2**14, 8, 1
@@ -135,6 +135,25 @@ def password_login(conn: sqlite3.Connection, username: str, password: str, ttl_h
     if row["require_passkey"]:
         raise PasskeyRequired()
     return _session(conn, row, "password-login", ttl_hours)
+
+
+def needs_owner(conn: sqlite3.Connection) -> bool:
+    """True until any account can sign in with a password or a passkey (F10.14)."""
+    return not has_password_users(conn) and conn.execute("SELECT 1 FROM passkeys LIMIT 1").fetchone() is None
+
+
+def create_owner(conn: sqlite3.Connection, username: str, password: str, ttl_hours: float) -> dict | None:
+    """Create the first administrator. Atomic and single-use: None once any account can sign in."""
+    if len(password) < MIN_PASSWORD:
+        raise ValueError(f"use a password of at least {MIN_PASSWORD} characters")
+    digest = hash_password(password)
+    with transaction(conn):
+        if not needs_owner(conn):
+            return None
+        uid = create_user(conn, username, "admin")
+        conn.execute("UPDATE users SET role = 'admin', password_hash = ? WHERE id = ?", (digest, uid))
+        row = conn.execute("SELECT id, username, role FROM users WHERE id = ?", (uid,)).fetchone()
+        return _session(conn, row, "password-login", ttl_hours)
 
 
 def known_user(conn: sqlite3.Connection, username: str) -> bool:

@@ -161,12 +161,17 @@ export function GettingStarted() {
     },
   ];
   const next = items.find((i) => !i.done);
-  if (hidden) return null;
+  // Once everything is done, this panel has said all it can.
+  if (hidden || !next) return null;
   return (
     <Panel
       title="Getting started"
       className="mb-8 animate-rise"
       aside={
+        <span className="flex items-center gap-3">
+        <Link href="/welcome" className="text-xs text-blue underline-offset-4 hover:underline">
+          Open the setup guide
+        </Link>
         <button
           type="button"
           className="text-xs text-muted hover:text-ink"
@@ -181,6 +186,7 @@ export function GettingStarted() {
         >
           Hide
         </button>
+        </span>
       }
     >
       <ol className="grid gap-2 sm:grid-cols-5" aria-label="Getting started steps">

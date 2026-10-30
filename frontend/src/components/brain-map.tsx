@@ -151,7 +151,7 @@ export function BrainMap({ graph, onOpenDocument }: { graph: BrainGraph; onOpenD
       }
       if (n.kind !== "document" || n.id === selected || found) {
         ctx.fillStyle = color.ink;
-        ctx.font = `${n.kind === "document" ? 10 : 12}px var(--font-geist-sans), system-ui, sans-serif`;
+        ctx.font = `${n.kind === "document" ? 10 : 12}px Inter, system-ui, sans-serif`;
         ctx.fillText(n.kind === "doc_type" ? humanize(n.label) : n.label, n.x + r + 3, n.y + 4);
       }
     }

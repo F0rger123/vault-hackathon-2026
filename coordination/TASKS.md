@@ -23,10 +23,10 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 | F07 Teaching & Corrections | 10 | 9 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F08 Actions & Organization | 6 | 6 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F09 Security | 15 | 12 | 0 | 0 | 0 | 3 | 0 | 0 |
-| F10 User Interface | 13 | 13 | 0 | 0 | 0 | 0 | 0 | 0 |
+| F10 User Interface | 15 | 15 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F11 Synthetic Data & Evaluation | 7 | 6 | 0 | 1 | 0 | 0 | 0 | 0 |
 | F12 Deployment & Submission | 12 | 9 | 0 | 0 | 0 | 2 | 1 | 0 |
-| **Total** | **117** | **101** | **0** | **1** | **1** | **11** | **3** | **0** |
+| **Total** | **119** | **103** | **0** | **1** | **1** | **11** | **3** | **0** |
 
 **Recorded evidence used below**
 
@@ -1286,6 +1286,30 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
     - unknown runs give 404, and missing sign-in gives 401.
   - **Playwright** (`04-setup-run.spec.ts`): the summary appears, and "Did anything fail?" is answered and labelled.
   - **On this laptop:** with Ollama running, the same question was answered by `llama3:latest`.
+
+#### F10.14 — First-run setup wizard, and a design pass
+
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F03.7, F09.14
+- **Description:** Luke asked (2026-10-30) for a real setup process with better animation, and for a design audit. The audit scored about 62 of 100: every Overview block looked the same, nothing drew the eye first, and the model list swamped the page.
+  - **Wizard:** on a real install with no account, VAULT opens a full-screen wizard instead of sign-in, in this order: welcome, owner account and password, face, fingerprint or USB key, a live check of this computer, the Meta models that fit, then the first collection. A vault door's dial turns with each step and the door swings open at the end. It reopens at `/welcome` without the account step.
+  - **Owner route:** `POST /setup/owner` works only while no account can sign in, only from this computer, through VAULT's own origin, and never in demo mode. It is atomic and single-use.
+  - **Design:**
+    - the Overview figures became one strip;
+    - findings come first, and models are tucked into a section that opens;
+    - Getting started disappears once complete;
+    - a highlight glides between sidebar items;
+    - the drawer and popovers settle with one shared easing.
+  - **Not built:** a plain USB stick used as a key file (a FIDO2 security key is the physical key, and it cannot be copied), and encryption at rest (F09.15).
+- **Verification evidence (2026-10-30):**
+  - `tests/security/test_setup_owner.py`, 3 tests: created once; a second attempt gets 409 and the first password keeps working; remote address, foreign origin and demo mode get 403; a short password gets 422.
+  - **Live walkthrough** on a clean data folder in Chromium with a virtual USB authenticator: all steps, no page errors. The checklist then showed 10 of 11.
+- **Merge:** Luke gave standing approval on 2026-10-30; merged as PR #84.
+
+#### F10.15 — New look, and the agent tree in setup
+
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F10.14, F03.7
+- **Description:** Luke said (2026-10-30) the font, the yellow and the gradients look bad, and asked for setup to show how the agents would divide the work. The look is now graphite with one blue accent, Inter and JetBrains Mono, with larger radii and consistent transitions. The hardware step draws a tree from the real capacity plan: the coordinator delegates to the security gate, one lane per model copy with its readers, and the reviewer.
+- **Verification evidence (2026-10-30):** `test_agent_plan_follows_the_hardware`: an 8 GB laptop gets 1 copy, 8 readers and 11 agents. Screenshots were reviewed on this laptop.
 
 ## F11 — Synthetic Data & Evaluation
 - **Verification evidence (E-E2E-2, 2026-10-28):** covered by the Playwright suite in `tests/e2e/` (`02-investigate`); 13 of 13 tests passed in 5 consecutive fresh runs on Windows 11 (Chromium, desktop and Pixel 7 profiles).
