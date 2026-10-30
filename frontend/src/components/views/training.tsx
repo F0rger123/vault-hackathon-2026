@@ -197,6 +197,7 @@ export function TrainingView() {
                       collection_id: collection.id,
                       lanes: [{ provider: reader, concurrency: reader === "heuristic" ? 4 : 2 }],
                       confirm_remote: false,
+                      only_new: true,
                     });
                     setLastJob(job.id);
                   })

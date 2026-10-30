@@ -200,7 +200,7 @@ export interface Job {
   kind: string;
   status: JobStatus;
   collection_id: number;
-  params: { provider?: string; lanes?: LaneSpec[]; escalate_provider?: string | null };
+  params: { provider?: string; lanes?: LaneSpec[]; escalate_provider?: string | null; skipped_already_read?: number };
   total: number;
   done: number;
   failed: number;
@@ -688,6 +688,7 @@ export const vault = {
     lanes: LaneSpec[];
     escalate_provider?: ProviderName | null;
     confirm_remote: boolean;
+    only_new?: boolean;
   }) => post<Job>("/jobs", body),
   jobs: () => api<Job[]>("/jobs"),
   job: (id: number) => api<Job>(`/jobs/${id}`),

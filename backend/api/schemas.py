@@ -53,6 +53,8 @@ class JobCreate(BaseModel):
     lanes: list[LaneSpec] | None = Field(default=None, max_length=8, description="Run several model lanes at once")
     escalate_provider: ProviderName | None = None
     confirm_remote: bool = False
+    # F05.10: skip documents this model already read since the last thing that could change the result.
+    only_new: bool = False
 
 
 class CalibrateRequest(BaseModel):

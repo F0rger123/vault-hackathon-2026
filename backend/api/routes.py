@@ -44,7 +44,7 @@ from backend.storage.db import dumps, loads, now
 from backend.workers import training
 from backend.workers.corrections import record_correction
 from backend.workers.importer import candidate_files, create_import_job, import_one
-from backend.workers.jobs import create_process_job
+from backend.workers.jobs import create_process_job, documents_to_read
 from backend.workers.layout_request import interpret as interpret_layout
 from backend.workers.processing import process_document
 from backend.workers.proposals import create_proposal, execute_proposal
@@ -710,14 +710,21 @@ def create_job(
         lanes = [{"provider": info.name, "concurrency": workers, "model": info.model, "locality": info.locality}]
     if body.escalate_provider:
         _provider(conn, settings, body.escalate_provider, body.confirm_remote, p.username)
+    document_ids, skipped = None, 0
+    if body.only_new:
+        document_ids, skipped = documents_to_read(
+            conn, body.collection_id, {(ln["provider"], ln["model"]) for ln in lanes}
+        )
     job_id = create_process_job(
         conn,
         body.collection_id,
         lanes[0]["provider"],
         lanes[0]["concurrency"],
         p.user_id,
+        document_ids=document_ids,
         lanes=[{"provider": ln["provider"], "concurrency": ln["concurrency"]} for ln in lanes],
         escalate_provider=body.escalate_provider,
+        skipped=skipped,
     )
     audit.record(
         conn,
@@ -725,7 +732,7 @@ def create_job(
         "job.create",
         "allowed",
         target=f"job:{job_id}",
-        detail={"lanes": lanes, "escalate_provider": body.escalate_provider},
+        detail={"lanes": lanes, "escalate_provider": body.escalate_provider, "skipped_already_read": skipped},
     )
     request.app.state.runner.start(job_id)
     return _job(conn, job_id)

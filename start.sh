@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-# Start VAULT (F12.9). Usage: ./start.sh   or   ./start.sh --real
+# Start VAULT (F12.9). Usage: ./start.sh   or   ./start.sh --real   or   ./start.sh --app (own window)
 set -e
 cd "$(dirname "$0")"
 PY=.venv/bin/python
