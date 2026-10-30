@@ -1331,6 +1331,11 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 - **Description:** Luke asked (2026-10-30) for agents shown handing work to each other, agents visibly touching files in the brain, stronger 3D, a striking face unlock, and a futuristic look, black and white with a couple of accents. The run board now has an agent floor, the 3D brain has craft that fly to documents with bloom, sparks and stars, sign-in and sign-out have a full-screen sequence, and tokens are black, white, green and red with falling type behind the work. Agents only move because of recorded events, live or replayed and labelled as such. The face animation is theatre: the device does the check, and VAULT never touches the camera. Checked in a browser with a faked authenticator; real Windows Hello and a real YubiKey are untested.
 - **Merged:** PR #88, CI green.
 
+#### F10.17 — Coil animation and face unlock screens
+
+- **Priority:** P2 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F10.16
+- **Description:** Luke asked (2026-10-30) for a coil animation and interface for face unlock. A coil winds round the head during the scan and tightens when verified. Sign-in has its own face unlock button, and adding a passkey plays the same scan. It remains theatre around the device's own check.
+
 ## F11 — Synthetic Data & Evaluation
 - **Verification evidence (E-E2E-2, 2026-10-28):** covered by the Playwright suite in `tests/e2e/` (`02-investigate`); 13 of 13 tests passed in 5 consecutive fresh runs on Windows 11 (Chromium, desktop and Pixel 7 profiles).
 

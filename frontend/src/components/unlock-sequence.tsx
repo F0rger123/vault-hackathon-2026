@@ -9,6 +9,8 @@ export type UnlockPhase = "scanning" | "granted" | "denied" | "locking";
 
 const DONE_MS: Partial<Record<UnlockPhase, number>> = { granted: 1900, denied: 1500, locking: 1100 };
 
+const COIL_TURNS = 9;
+
 const TITLE: Record<UnlockPhase, string> = {
   scanning: "Verifying identity",
   granted: "Identity verified",
@@ -72,6 +74,36 @@ function FaceScan({ phase }: { phase: UnlockPhase }) {
     ctx.scale(dpr, dpr);
     const start = performance.now();
     let frame = 0;
+    let grip = 0; // 0 is the loose coil while waiting, 1 is wound tight on success
+
+    const drawCoil = (t: number, side: "back" | "front", color: string, cx: number, cy: number, scale: number) => {
+      const spin = reduced ? 0.6 : t * 2.4;
+      const height = 1.28 * (1 - grip * 0.72);
+      const wide = (1.22 - grip * 0.08) * scale;
+      const steps = 420;
+      let drawing = false;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      for (let i = 0; i <= steps; i++) {
+        const k = i / steps;
+        const a = k * Math.PI * 2 * COIL_TURNS + spin;
+        const front = Math.cos(a) > 0;
+        if (front !== (side === "front")) {
+          drawing = false;
+          continue;
+        }
+        // A thin ellipse for each turn is what makes the flat drawing read as a coil seen slightly from above.
+        const x = cx + Math.sin(a) * wide;
+        const y = cy + (k - 0.5) * 2 * height * scale + Math.cos(a) * scale * 0.13;
+        if (drawing) ctx.lineTo(x, y);
+        else ctx.moveTo(x, y);
+        drawing = true;
+      }
+      ctx.globalAlpha = side === "front" ? 0.95 : 0.3;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    };
 
     const draw = (now: number) => {
       const t = (now - start) / 1000;
@@ -80,10 +112,13 @@ function FaceScan({ phase }: { phase: UnlockPhase }) {
       const yaw = reduced ? 0.2 : settled ? 0 : Math.sin(t * 0.9) * 0.55;
       const cosY = Math.cos(yaw);
       const sinY = Math.sin(yaw);
-      const scale = size * 0.42;
+      const scale = size * 0.33;
       const sweep = reduced ? 0 : Math.sin(t * 1.7);
       const color = current === "denied" ? red : settled ? green : ink;
       ctx.clearRect(0, 0, size, size);
+      grip += ((settled ? 1 : 0) - grip) * 0.09;
+      const coilColor = current === "denied" ? red : grip > 0.05 ? green : ink;
+      drawCoil(t, "back", coilColor, size / 2, size / 2, scale);
       for (let r = 0; r < head.length; r++) {
         for (let c = 0; c < head[r].length; c++) {
           const [x, y, z, relief] = head[r][c];
@@ -110,6 +145,7 @@ function FaceScan({ phase }: { phase: UnlockPhase }) {
         ctx.fillRect(size * 0.14, y, size * 0.72, 1);
       }
       ctx.globalAlpha = 1;
+      drawCoil(t, "front", coilColor, size / 2, size / 2, scale);
       if (!reduced) frame = requestAnimationFrame(draw);
     };
     frame = requestAnimationFrame(draw);
@@ -136,6 +172,7 @@ export function UnlockSequence({
   who,
   detail,
   face = false,
+  title,
   onDone,
 }: {
   phase: UnlockPhase;
@@ -143,6 +180,8 @@ export function UnlockSequence({
   detail?: string;
   /** Show the face scan. Only for a passkey sign-in, so a password sign-in never looks like face recognition. */
   face?: boolean;
+  /** Replaces the standard wording, for example while adding a passkey rather than signing in. */
+  title?: string;
   onDone?: () => void;
 }) {
   const [typed, setTyped] = useState(0);
@@ -171,7 +210,7 @@ export function UnlockSequence({
       <div className={cx("absolute inset-0 flex flex-col items-center justify-center gap-5 px-6 text-center", open && "unlock-content-out")}>
         {face && <FaceScan phase={phase} />}
         <p className={cx("font-mono text-xl font-medium", phase === "denied" ? "text-redline" : phase === "granted" ? "text-green" : "text-ink")}>
-          {TITLE[phase]}
+          {title ?? TITLE[phase]}
         </p>
         {phase === "granted" && target && <p className="font-mono text-sm text-ink">{target.slice(0, typed)}</p>}
         {detail && <p className="max-w-md text-sm text-muted">{detail}</p>}

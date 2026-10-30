@@ -5,6 +5,7 @@ import { del, errorText, put, api } from "@/lib/api";
 import { dateTime } from "@/lib/format";
 import { addPasskey, passkeysSupported } from "@/lib/passkeys";
 import { useLoad } from "@/lib/use-load";
+import { UnlockSequence, type UnlockPhase } from "./unlock-sequence";
 import { Button, Field, inputClass, Notice, Panel } from "./ui";
 
 interface Mine {
@@ -18,7 +19,24 @@ export function PasskeysPanel() {
   const [name, setName] = useState("This computer");
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [scan, setScan] = useState<UnlockPhase | null>(null);
   const supported = passkeysSupported();
+
+  const enrol = async () => {
+    setScan("scanning");
+    setBusy("add");
+    setError(null);
+    try {
+      await addPasskey(name.trim());
+      mine.reload();
+      setScan("granted");
+    } catch (e) {
+      setScan("denied");
+      setError(e instanceof DOMException ? "The passkey was cancelled or not allowed on this device." : errorText(e));
+    } finally {
+      setBusy(null);
+    }
+  };
 
   const act = async (label: string, fn: () => Promise<unknown>) => {
     setBusy(label);
@@ -40,6 +58,15 @@ export function PasskeysPanel() {
         fingerprint or PIN never leaves your device; VAULT only keeps a public key, so a stolen database cannot be used
         to sign in. A hardware key works on servers without a camera.
       </p>
+      {scan && (
+        <UnlockSequence
+          phase={scan}
+          face
+          title={scan === "granted" ? "Unlock is ready" : scan === "scanning" ? "Registering this device" : "Not registered"}
+          detail={scan === "scanning" ? "Follow your device's prompt: your face, fingerprint, PIN or a touch of your key. Your device checks you; VAULT never sees the camera." : undefined}
+          onDone={() => setScan(null)}
+        />
+      )}
       {!supported && <Notice tone="warning">This browser or window cannot use passkeys.</Notice>}
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-end gap-2">
@@ -48,7 +75,7 @@ export function PasskeysPanel() {
               <input id="passkey-name" className={inputClass} value={name} maxLength={60} onChange={(e) => setName(e.target.value)} />
             </Field>
           </div>
-          <Button variant="primary" disabled={!supported || !name.trim()} busy={busy === "add"} onClick={() => act("add", () => addPasskey(name.trim()))}>
+          <Button variant="primary" disabled={!supported || !name.trim()} busy={busy === "add"} onClick={enrol}>
             Add a passkey
           </Button>
         </div>

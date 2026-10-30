@@ -318,6 +318,16 @@ function Chrome({ children }: { children: ReactNode }) {
   );
 }
 
+function CoilIcon() {
+  return (
+    <svg aria-hidden viewBox="0 0 32 32" className="face-coil h-8 w-8 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <circle cx="16" cy="13" r="4.5" />
+      <path d="M8.5 25.5c1.4-4 4.2-6 7.5-6s6.100 2 7.500 6" strokeLinecap="round" />
+      <ellipse className="face-coil-ring" cx="16" cy="16" rx="14" ry="4" />
+    </svg>
+  );
+}
+
 function SignIn({ onSignedIn, message }: { onSignedIn: () => void; message?: string }) {
   const [options, setOptions] = useState<AuthOptions | null>(null);
   const [username, setUsername] = useState("");
@@ -436,14 +446,18 @@ function SignIn({ onSignedIn, message }: { onSignedIn: () => void; message?: str
               Sign in
             </Button>
             {options?.passkey_login && passkeysSupported() && (
-              <Button
+              <button
                 type="button"
-                busy={busy === "passkey"}
                 disabled={!username.trim() || !!busy}
                 onClick={() => finish("passkey", () => signInWithPasskey(username.trim()))}
+                className="press face-unlock group flex items-center gap-3 rounded-control border border-line-strong bg-raised px-3 py-2.5 text-left hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Sign in with face, fingerprint or security key
-              </Button>
+                <CoilIcon />
+                <span>
+                  <span className="block text-sm font-semibold">Sign in with face, fingerprint or security key</span>
+                  <span className="block text-xs text-muted">{username.trim() ? "Your device checks it's you" : "Type your username first"}</span>
+                </span>
+              </button>
             )}
             {options && !options.password_login && (
               <p className="text-xs text-muted">
