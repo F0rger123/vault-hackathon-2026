@@ -95,6 +95,11 @@ Every response carries `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY
 - **Errors:** 401 `wrong username or password`, the same message for an unknown user; 429 after 5 failures in a minute; 422.
 - **Audit:** `auth.login`, allowed or denied.
 
+### `POST /setup/owner` → 201 (F10.14, public until used)
+- **Body:** `{"username", "password"}` (10 characters or more). Creates the first administrator and returns a session like `/auth/login`.
+- **Limits:** only from this computer, through VAULT's own origin, never in demo mode (403). Returns 409 once any account can sign in, and 422 for a short password. Audited as `setup.owner`.
+- `GET /auth/options` adds `needs_owner`.
+
 ### `POST /auth/demo-login` (F10.11, public)
 - **Body:** `{"role": "admin" | "analyst" | "viewer"}`.
 - **Response 200:** the same shape as `/auth/login`, for the demo user of that role.

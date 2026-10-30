@@ -106,7 +106,12 @@ def auth_options(conn=Depends(get_conn), settings: Settings = Depends(get_settin
         "demo_login": settings.demo_login,
         "password_login": signin.has_password_users(conn),
         "passkey_login": has_passkeys,
+        # F10.14: a real install with no account yet shows the setup wizard instead of sign-in.
+        "needs_owner": not settings.demo_login and signin.needs_owner(conn),
     }
+
+
+LOOPBACK = {"127.0.0.1", "::1", "localhost"}
 
 
 def _browser_origin_ok(request: Request, settings: Settings) -> bool:
@@ -137,6 +142,26 @@ def login(
         audit.record(conn, who, "auth.login", "denied", detail={"reason": "wrong credentials"})
         raise HTTPException(status_code=401, detail="wrong username or password")
     audit.record(conn, session["username"], "auth.login", "allowed")
+    return session
+
+
+@router.post("/setup/owner", status_code=201)
+def setup_owner(
+    body: PasswordLogin, request: Request, conn=Depends(get_conn), settings: Settings = Depends(get_settings)
+) -> dict:
+    """Public only until the first account exists, and only from this computer through VAULT's own interface."""
+    host = request.client.host if request.client else ""
+    if settings.demo_login or host not in LOOPBACK or not _browser_origin_ok(request, settings):
+        audit.record(conn, "unknown-user", "setup.owner", "denied", detail={"reason": "not allowed here"})
+        raise HTTPException(status_code=403, detail="the first account can only be created on this computer")
+    try:
+        session = signin.create_owner(conn, body.username.strip(), body.password, settings.session_ttl_hours)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    if session is None:
+        audit.record(conn, "unknown-user", "setup.owner", "denied", detail={"reason": "already set up"})
+        raise HTTPException(status_code=409, detail="VAULT already has an owner")
+    audit.record(conn, session["username"], "setup.owner", "allowed")
     return session
 
 

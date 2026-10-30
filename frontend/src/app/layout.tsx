@@ -1,17 +1,17 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import { AppShell } from "@/components/app-shell";
 import "./globals.css";
 
-// Geist for the interface: neutral, precise and quiet at small sizes.
-const geist = Geist({
-  variable: "--font-geist",
+// Inter for the interface: clear at small sizes and calm at large ones.
+const ui = Inter({
+  variable: "--font-ui",
   subsets: ["latin"],
 });
 
 // Mono is reserved for literal data: verbatim document quotes and part numbers.
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const data = JetBrains_Mono({
+  variable: "--font-data",
   subsets: ["latin"],
 });
 
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#050505",
+  themeColor: "#101216",
 };
 
 // Applies the saved theme before first paint so the page never flashes the wrong colours.
@@ -29,7 +29,7 @@ const THEME_SCRIPT = `try{var t=localStorage.getItem("vault-theme");if(t==="ligh
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${geist.variable} ${geistMono.variable} h-full antialiased`}>
+    <html lang="en" suppressHydrationWarning className={`${ui.variable} ${data.variable} h-full antialiased`}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>

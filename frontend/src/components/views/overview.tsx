@@ -33,8 +33,8 @@ export function OverviewView() {
 
       <GettingStarted />
 
-      <section aria-label="Collection figures" className="mb-8">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">
+      <section aria-label="Collection figures" className="mb-8 overflow-hidden rounded-card border border-line bg-panel shadow-panel">
+        <div className="grid grid-cols-2 divide-line sm:grid-cols-4 xl:grid-cols-7 xl:divide-x">
           {([
             ["Documents", stats ? formatNumber(stats.documents) : undefined],
             ["Processed", stats ? formatNumber(stats.processed) : undefined],
@@ -43,26 +43,13 @@ export function OverviewView() {
             ["Findings", stats ? formatNumber(stats.findings) : undefined],
             ["Active runs", stats ? formatNumber(stats.jobs_active) : undefined],
             ["Waiting for approval", stats ? formatNumber(stats.proposals_pending) : undefined],
-          ] as [string, string | undefined][]).map(([label, value], i, all) => (
-            <div
-              key={label}
-              className={cx(
-                "rounded-card border border-line bg-panel px-4 py-4 shadow-panel",
-                i === all.length - 1 && "col-span-2 sm:col-span-1",
-                label === "Findings" && "border-redline/30",
-                label === "Active runs" && "border-accent/40",
-              )}
-            >
+          ] as [string, string | undefined][]).map(([label, value]) => (
+            <div key={label} className={cx("px-5 py-4", label === "Findings" && stats?.findings ? "text-redline" : "")}>
               <Figure label={label} value={value} />
             </div>
           ))}
         </div>
       </section>
-
-      <Panel title="This computer" className="mb-8">
-        <LocalModelsCard data={localModels.data} compact />
-        {localModels.data?.reachable && <ModelInstaller />}
-      </Panel>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
         <div className="flex min-w-0 flex-col gap-6">
@@ -128,6 +115,19 @@ export function OverviewView() {
 
         <PrivacyPosture data={providers.data} error={providers.error} status={providers.status} />
       </div>
+
+      <details className="group mt-8 overflow-hidden rounded-card border border-line bg-panel shadow-panel">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-[15px] font-semibold">
+          This computer and its AI models
+          <svg aria-hidden viewBox="0 0 16 16" className="h-4 w-4 text-muted transition-transform duration-300 group-open:rotate-180">
+            <path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.5" />
+          </svg>
+        </summary>
+        <div className="reveal border-t border-line p-5">
+          <LocalModelsCard data={localModels.data} compact />
+          {localModels.data?.reachable && <ModelInstaller />}
+        </div>
+      </details>
     </>
   );
 }

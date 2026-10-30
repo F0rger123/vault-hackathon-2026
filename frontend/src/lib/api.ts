@@ -102,6 +102,7 @@ export interface AuthOptions {
   demo_login: boolean;
   password_login: boolean;
   passkey_login?: boolean;
+  needs_owner?: boolean;
 }
 
 export interface SignedIn {
@@ -324,9 +325,19 @@ export interface ModelInstall {
   detail?: string;
 }
 
+export interface AgentPlan {
+  model: string;
+  copies: number;
+  readers: number;
+  agents: number;
+  lanes: { name: string; slots: number }[];
+  summary: string;
+}
+
 export interface ModelCatalog {
   models: CatalogModel[];
   recommended: string[];
+  plan: AgentPlan | null;
   vram_gb: number;
   ram_gb: number;
   installs: ModelInstall[];
@@ -703,6 +714,7 @@ export const vault = {
   authOptions: () => api<AuthOptions>("/auth/options"),
   login: (username: string, password: string) => post<SignedIn>("/auth/login", { username, password }),
   demoLogin: (role: Role) => post<SignedIn>("/auth/demo-login", { role }),
+  setupOwner: (username: string, password: string) => post<SignedIn>("/setup/owner", { username, password }),
   logout: () => post<{ signed_out: boolean }>("/auth/logout", {}),
   apiKeyStatus: () => api<ApiKeyStatus>("/settings/meta-api-key"),
   setApiKey: (key: string) => put<ApiKeyStatus>("/settings/meta-api-key", { key }),

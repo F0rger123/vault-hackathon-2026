@@ -14,6 +14,7 @@ const ENTRIES: { href: string; label: string; hint: string; words: string }[] = 
   { href: "/training", label: "Training", hint: "Test how well it reads, quiz it, teach it, re-test", words: "quiz grade teach accuracy score test" },
   { href: "/brain", label: "Brain", hint: "What VAULT knows, its questions, the 3D map", words: "knowledge map graph learn meaning questions 3d" },
   { href: "/approvals", label: "Approvals", hint: "Organize folders and share packs, approved by an admin", words: "organize folders share redact buyer export" },
+  { href: "/welcome", label: "Setup guide", hint: "Unlock with face or a USB key, check this computer, install models", words: "welcome first run install wizard face fingerprint key" },
   { href: "/security", label: "Security", hint: "Protection checklist, held files, passkeys, audit log", words: "passkey face fingerprint yubikey audit quarantine remote key" },
 ];
 

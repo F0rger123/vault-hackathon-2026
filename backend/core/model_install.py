@@ -21,7 +21,7 @@ import httpx
 
 from backend.core.config import Settings
 from backend.core.hardware import HardwareProfile
-from backend.core.local_models import LOCAL_HOSTS, OVERHEAD_FRACTION, OVERHEAD_GB, cache_clear
+from backend.core.local_models import LOCAL_HOSTS, OVERHEAD_FRACTION, OVERHEAD_GB, REQUESTS_PER_COPY, cache_clear
 
 
 @dataclass(frozen=True)
@@ -80,8 +80,37 @@ def catalog_for(hw: HardwareProfile, installed: set[str]) -> dict:
     return {
         "models": rows,
         "recommended": picks,
+        "plan": agent_plan(hw, BY_NAME[reader]) if reader else None,
         "vram_gb": round(vram / 0.95, 1),
         "ram_gb": round(hw.ram_total_mb / 1024, 1),
+    }
+
+
+def agent_plan(hw: HardwareProfile, model: CatalogModel) -> dict:
+    """The most agents this machine should run with one model: copies that fit, each serving several readers.
+
+    Copies on a graphics card serve up to REQUESTS_PER_COPY readers each. Without a card, each copy in memory serves
+    one, because the processor is slow. An estimate from memory sizes; the capacity check measures the real figure.
+    """
+    need = memory_gb(model.size_gb)
+    vram = sum(g.memory_mb or 0 for g in hw.gpus) / 1024 * 0.95
+    if vram >= need:
+        copies, slots = int(vram // need), REQUESTS_PER_COPY
+    else:
+        copies, slots = max(1, int(hw.ram_total_mb / 1024 * 0.6 // need)), 1
+    readers = copies * slots
+    agents = readers + 3  # plus the coordinator, the security gate and the reviewer
+    return {
+        "model": model.title,
+        "copies": copies,
+        "readers": readers,
+        "agents": agents,
+        "lanes": [{"name": f"{model.title} copy {i + 1}", "slots": slots} for i in range(copies)],
+        "summary": (
+            f"Up to {agents} agents on this computer: a coordinator delegates to a security gate, "
+            f"{readers} reader{'s' if readers != 1 else ''} on {copies} cop{'ies' if copies != 1 else 'y'} of "
+            f"{model.title}, and a reviewer."
+        ),
     }
 
 

@@ -1,3 +1,5 @@
+> **Updated 2026-10-30 (F10.15):** the look is now graphite with one blue accent, Inter and JetBrains Mono, larger radii and one shared easing. There is no yellow and no decorative gradient. Where this file says otherwise, the tokens in `src/app/globals.css` win.
+
 # Design: VAULT
 
 Read: private document-intelligence console for engineers and compliance staff who watch agents read sensitive archives. Mode: Operate. Dials: variance 3 / motion 2 / density 7.

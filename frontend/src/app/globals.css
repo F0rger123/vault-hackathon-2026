@@ -1,70 +1,60 @@
 @import "tailwindcss";
 
 /*
-  VAULT design tokens: monochrome console (see frontend/DESIGN.md).
-  Components use these tokens only (bg-panel, text-ink, border-line, text-redline ...); never hard-coded hex.
-  The accent is plain ink (white on black, black on white) and marks primary actions, focus and the active state. Redline red is reserved for conflicts and denials.
-  Dark is the default; light is opt-in through html[data-theme="light"].
+  VAULT design tokens: graphite and one blue (see frontend/DESIGN.md).
+  Components use these tokens only; never hard-coded hex.
+  Blue marks primary actions, focus and the current place. Red is reserved for conflicts and denials. Green means
+  verified or passing. "--amber" is a quiet slate for notices: VAULT has no yellow and no decorative gradients.
 */
 :root {
-  --paper: #050505;
-  --rail: #000000;
-  --panel: #0c0c0c;
-  --raised: #141414;
-  --ink: #f5f5f5;
-  --muted: #8c8c8c;
-  --line: #1f1f1f;
-  --line-strong: #2e2e2e;
-  --accent: #f5f5f5;
-  --on-accent: #050505;
-  --blue: #c4d0e0;
-  --on-blue: #050505;
-  --redline: #f0525f;
-  --amber: #d9a25c;
-  --green: #6cc497;
-  --grid: rgb(255 255 255 / 0.035);
-  --glow: rgb(255 255 255 / 0.045);
-  --highlight: inset 0 1px 0 rgb(255 255 255 / 0.035);
-  --lift: 0 0 0 1px rgb(255 255 255 / 0.06), 0 24px 48px -16px rgb(0 0 0 / 0.8);
+  --paper: #101216;
+  --rail: #0c0e11;
+  --panel: #171a1f;
+  --raised: #1f2329;
+  --ink: #f2f3f5;
+  --muted: #9aa1ac;
+  --line: #262a31;
+  --line-strong: #363b44;
+  --accent: #0a84ff;
+  --on-accent: #ffffff;
+  --blue: #64aeff;
+  --on-blue: #ffffff;
+  --redline: #ff5c54;
+  --amber: #aab4c3;
+  --green: #40c98a;
+  --grid: transparent;
+  --glow: transparent;
+  --highlight: 0 1px 2px rgb(0 0 0 / 0.25);
+  --lift: 0 0 0 1px rgb(255 255 255 / 0.06), 0 24px 48px -16px rgb(0 0 0 / 0.6);
   color-scheme: dark;
 }
 
 :root[data-theme="light"] {
-  --paper: #fafafa;
-  --rail: #000000;
+  --paper: #f5f5f7;
+  --rail: #eceef1;
   --panel: #ffffff;
-  --raised: #f4f4f4;
-  --ink: #0a0a0a;
-  --muted: #6b6b6b;
-  --line: #e6e6e6;
-  --line-strong: #d0d0d0;
-  --accent: #0a0a0a;
+  --raised: #f0f1f4;
+  --ink: #1d1d1f;
+  --muted: #6e7380;
+  --line: #e3e5ea;
+  --line-strong: #cfd2d9;
+  --accent: #0071e3;
   --on-accent: #ffffff;
-  --blue: #2a3b55;
+  --blue: #0066cc;
   --on-blue: #ffffff;
-  --redline: #c8102e;
-  --amber: #a35a00;
-  --green: #1f7a4a;
-  --grid: rgb(0 0 0 / 0.035);
-  --glow: rgb(0 0 0 / 0.03);
-  --highlight: 0 1px 2px rgb(0 0 0 / 0.04);
-  --lift: 0 1px 2px rgb(0 0 0 / 0.06), 0 24px 48px -20px rgb(0 0 0 / 0.25);
+  --redline: #d70015;
+  --amber: #5c6675;
+  --green: #17803d;
+  --grid: transparent;
+  --glow: transparent;
+  --highlight: 0 1px 2px rgb(0 0 0 / 0.05);
+  --lift: 0 1px 2px rgb(0 0 0 / 0.06), 0 24px 48px -20px rgb(0 0 0 / 0.2);
   color-scheme: light;
 }
 
-/* The side rail stays black in both themes. */
+/* The side rail follows the theme, one step quieter than the page. */
 .rail-scope {
-  --paper: #000000;
-  --panel: #0a0a0a;
-  --raised: #141414;
-  --ink: #f5f5f5;
-  --muted: #858585;
-  --line: #1c1c1c;
-  --line-strong: #2a2a2a;
-  --accent: #f5f5f5;
-  --on-accent: #000000;
-  --blue: #c4d0e0;
-  color-scheme: dark;
+  --paper: var(--rail);
   color: var(--ink);
 }
 
@@ -84,10 +74,10 @@
   --color-redline: var(--redline);
   --color-amber: var(--amber);
   --color-green: var(--green);
-  --font-sans: var(--font-geist), system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
-  --radius-control: 6px;
-  --radius-card: 10px;
+  --font-sans: var(--font-ui), system-ui, sans-serif;
+  --font-mono: var(--font-data), ui-monospace, monospace;
+  --radius-control: 9px;
+  --radius-card: 14px;
   --shadow-panel: var(--highlight);
   --shadow-lift: var(--lift);
   --ease-out-soft: cubic-bezier(0.23, 1, 0.32, 1);
@@ -100,7 +90,7 @@ body {
 }
 
 body {
-  font-family: var(--font-geist), system-ui, sans-serif;
+  font-family: var(--font-ui), system-ui, sans-serif;
   font-size: 14px;
   letter-spacing: -0.006em;
   line-height: 1.5;
@@ -110,13 +100,11 @@ body {
 /* Titles and big figures: tight, semi-bold Geist. */
 .display {
   font-weight: 600;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.022em;
 }
 
 /* A faint light from above the work area: the only atmosphere on the page. */
 .vault-glow {
-  background-image: radial-gradient(900px 360px at 55% -120px, var(--glow), transparent 70%);
-  background-repeat: no-repeat;
 }
 
 /* Visible keyboard focus everywhere. */
@@ -204,7 +192,7 @@ body {
   }
 }
 .drawer-in {
-  animation: drawer-in 0.2s var(--ease-out-soft) both;
+  animation: drawer-in 0.38s cubic-bezier(0.32, 0.72, 0, 1) both;
 }
 
 /* Live dot for running work. */
@@ -310,6 +298,139 @@ a:hover .vault-dial,
 }
 .vault-dial-intro .vault-dial {
   animation: dial-open 1.1s var(--ease-out-soft) both;
+}
+
+/* The motion language: quick to start, gentle to settle, like a well-damped door. */
+:root {
+  --ease-settle: cubic-bezier(0.32, 0.72, 0, 1);
+}
+.nav-pill {
+  transition: transform 0.42s var(--ease-settle), height 0.42s var(--ease-settle), opacity 0.2s;
+}
+.reveal {
+  animation: rise 0.4s var(--ease-settle) both;
+}
+
+/* First-run setup: the door is the one memorable thing, so everything around it stays still. */
+.wizard-backdrop {
+  background: var(--paper);
+}
+.vault-door-frame {
+  perspective: 1200px;
+  width: min(62vw, 300px);
+}
+.vault-door {
+  width: 100%;
+  display: block;
+  transform-origin: left center;
+  transition: transform 1s var(--ease-settle), opacity 1s ease;
+  animation: door-arrive 0.9s var(--ease-settle) both;
+}
+.vault-door-open {
+  transform: rotateY(-82deg);
+  opacity: 0.25;
+}
+.vault-door-dial {
+  transform-origin: 100px 100px;
+  transition: transform 0.9s var(--ease-settle);
+}
+@keyframes door-arrive {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.wizard-pane {
+  animation: pane-in 0.55s var(--ease-settle) both;
+}
+@keyframes pane-in {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+.scan-line {
+  animation: pane-in 0.5s var(--ease-settle) both;
+}
+@keyframes scan-sweep {
+  from {
+    background-position: 0 -160px;
+  }
+  to {
+    background-position: 0 200px;
+  }
+}
+.scan-sweep {
+  background: linear-gradient(transparent, color-mix(in srgb, var(--accent) 22%, transparent), transparent) no-repeat;
+  background-size: 100% 120px;
+  animation: scan-sweep 1.4s linear infinite;
+}
+
+/* The agent tree builds itself from the top down. */
+.tree-in {
+  animation: pane-in 0.5s var(--ease-settle) both;
+}
+.tree-stem {
+  transform-origin: top;
+  animation: grow-down 0.3s var(--ease-settle) both;
+}
+.tree-branch {
+  animation: fade-in 0.5s ease both;
+}
+.slot-pop {
+  animation: slot-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes grow-down {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes slot-pop {
+  from {
+    opacity: 0;
+    transform: scale(0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Answers to a person's action, everywhere. */
+a,
+button,
+summary,
+input,
+select,
+textarea {
+  transition: color 0.18s ease, background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+html {
+  transition: background-color 0.3s ease;
+}
+details[open] > :not(summary) {
+  animation: rise 0.35s var(--ease-settle) both;
 }
 
 /* A trend line draws itself once, left to right. */
