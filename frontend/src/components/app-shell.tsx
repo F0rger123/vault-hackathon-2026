@@ -7,6 +7,7 @@ import { errorText, setToken, vault, type AuthOptions, type SignedIn } from "@/l
 import { signInWithPasskey, passkeysSupported } from "@/lib/passkeys";
 import { CollectionSwitcher } from "./collection-switcher";
 import { CommandPalette } from "./command-palette";
+import { PostureBadge } from "./security-posture";
 import { VaultMark } from "./vault-mark";
 import { SessionGate, SessionProvider, useMaybeSession, useSession } from "./session";
 import { Button, cx, inputClass } from "./ui";
@@ -242,6 +243,7 @@ function Chrome({ children }: { children: ReactNode }) {
               <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-green" />
               Private. Runs on this machine.
             </p>
+            <PostureBadge />
           </div>
           <NavLinks />
           <button

@@ -139,7 +139,7 @@ class Orchestrator:
                 (now(), self.job_id),
             )
             items = conn.execute(
-                "SELECT ji.id, ji.document_id, d.media_type, d.filename FROM job_items ji "
+                "SELECT ji.id, ji.document_id, d.media_type, d.filename, d.status AS doc_status FROM job_items ji "
                 "JOIN documents d ON d.id = ji.document_id "
                 "WHERE ji.job_id = ? AND ji.status = 'pending' ORDER BY ji.id",
                 (self.job_id,),
@@ -151,8 +151,16 @@ class Orchestrator:
             local_q: queue.Queue = queue.Queue()
             any_q: queue.Queue = queue.Queue()
             has_local = any(not ln.remote for ln in lanes)
-            counts = {"restricted": 0, "internal": 0, "injection": 0}
+            counts = {"restricted": 0, "internal": 0, "injection": 0, "quarantined": 0}
             for it in items:
+                if it["doc_status"] == "quarantined":
+                    # F09.13: held by the security gate at upload; no model reads it until an admin releases it.
+                    counts["quarantined"] += 1
+                    self._fail_item(conn, it["id"], it["document_id"], "held by the security gate", it["filename"])
+                    self.event(
+                        conn, "security", "quarantine.hold", "denied", it["document_id"], filename=it["filename"]
+                    )
+                    continue
                 s = security_agent.screen(it["document_id"], load_pages(conn, it["document_id"]))
                 security_agent.save(conn, s)
                 if s.sensitivity != "none":

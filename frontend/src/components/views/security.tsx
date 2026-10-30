@@ -5,6 +5,7 @@ import { atLeast, errorText, vault, type AuditEntry } from "@/lib/api";
 import { dateTime, formatNumber, humanize, providerLabel } from "@/lib/format";
 import { useLoad } from "@/lib/use-load";
 import { PasskeysPanel } from "../passkeys-panel";
+import { Quarantine, SecurityPosture } from "../security-posture";
 import { useSession } from "../session";
 import { TitleBlock } from "../title-block";
 import { Button, cx, Empty, Figure, inputClass, LoadError, Notice, Panel, Tag } from "../ui";
@@ -19,6 +20,12 @@ export function SecurityView() {
         title="Security"
         description="Where document text may go, what the security agent caught, and every action recorded in the audit log."
       />
+      <div className="mb-6">
+        <SecurityPosture />
+      </div>
+      <div className="mb-6">
+        <Quarantine isAdmin={isAdmin} />
+      </div>
       <div className="mb-6">
         <PasskeysPanel />
       </div>

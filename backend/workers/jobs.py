@@ -35,7 +35,7 @@ def documents_to_read(conn, collection_id: int, readers: set[tuple[str, str]]) -
     rows = conn.execute(
         """SELECT d.id, d.status, x.provider, x.model, x.created_at
            FROM documents d LEFT JOIN extractions x ON x.id = (SELECT MAX(id) FROM extractions WHERE document_id = d.id)
-           WHERE d.collection_id = ? ORDER BY d.id""",
+           WHERE d.collection_id = ? AND d.status != 'quarantined' ORDER BY d.id""",
         (collection_id,),
     ).fetchall()
     todo = [
@@ -60,7 +60,9 @@ def create_process_job(
     skipped: int = 0,
 ) -> int:
     if document_ids is None:
-        rows = conn.execute("SELECT id FROM documents WHERE collection_id = ? ORDER BY id", (collection_id,)).fetchall()
+        rows = conn.execute(
+            "SELECT id FROM documents WHERE collection_id = ? AND status != 'quarantined' ORDER BY id", (collection_id,)
+        ).fetchall()
         document_ids = [r["id"] for r in rows]
     lanes = lanes or [{"provider": provider, "concurrency": workers}]
     params = {

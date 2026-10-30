@@ -22,11 +22,11 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 | F06 Search & Investigation | 7 | 6 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F07 Teaching & Corrections | 10 | 9 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F08 Actions & Organization | 6 | 6 | 0 | 0 | 0 | 0 | 0 | 0 |
-| F09 Security | 12 | 10 | 1 | 0 | 0 | 1 | 0 | 0 |
+| F09 Security | 13 | 12 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F10 User Interface | 13 | 13 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F11 Synthetic Data & Evaluation | 7 | 6 | 0 | 1 | 0 | 0 | 0 | 0 |
 | F12 Deployment & Submission | 12 | 9 | 0 | 0 | 0 | 2 | 1 | 0 |
-| **Total** | **113** | **98** | **2** | **1** | **1** | **8** | **3** | **0** |
+| **Total** | **114** | **100** | **1** | **1** | **1** | **8** | **3** | **0** |
 
 **Recorded evidence used below**
 
@@ -1083,9 +1083,26 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 - **Description:** Limit which collections and documents each user can see: in search, previews, original downloads and every API route. Today roles limit actions, not visibility. Found by the 2026-10-29 audit.
 - **Blockers:** This is an auth design change, so it needs Luke's approval. Planned for after the hackathon.
 
+#### F09.13 — Security gate that blocks active content, and a live security checklist
+
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F09.3, F02.8
+- **Description:** Luke said (2026-10-30) the security gate should give real security, and the app shows no sign of how secure it is.
+  - **What is held at upload:** files with active content.
+    - PDF: JavaScript, actions that run on open, Launch actions, embedded files, rich media and XFA. These are checked in the raw bytes and in the parsed structure.
+    - Office: outside links, ActiveX and embedded OLE objects.
+  - **While held:** no model reads the file, it is left out of runs, and its original cannot be downloaded (423) until an admin releases it. Every hold and release is audited.
+  - **`GET /security/posture`:** a live checklist of 11 controls, each saying how to fix it when it fails, shown on Security and as a badge in the side rail.
+- **Verification evidence (2026-10-30):** `tests/security/test_security_gate.py`:
+  - JavaScript and attached files in a PDF, and an outside link in a DOCX, are detected; clean files are not;
+  - a held file is skipped by runs, its download is refused with 423, and an analyst cannot release it (403);
+  - admin release returns 200, a second release returns 409, and the download then works; both actions are in the audit log;
+  - the checklist reflects real settings (the response cache flips its check);
+  - without sign-in: 401.
+- **Merge:** Luke approved on 2026-10-30; merged as PR #80.
+
 #### F09.14 — Passkeys: sign in with face, fingerprint or a hardware security key
 
-- **Priority:** P1 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F09.1, F10.11
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F09.1, F10.11
 - **Description:** Luke asked (2026-10-30) for face unlock and a hardware dongle.
   - **Standard:** WebAuthn passkeys, which work with Windows Hello face or fingerprint, Touch ID, or a YubiKey.
   - **What VAULT keeps:** only the public key. The biometric never leaves the device, and user verification is required.
@@ -1100,7 +1117,7 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
     - a foreign origin gets 403;
     - with "require passkey" on, a wrong password still gives 401, a right password gives 403, and removing the last passkey lifts the requirement.
   - **`tests/e2e/specs/059-passkeys.spec.ts`:** a real WebAuthn ceremony in Chromium with a virtual authenticator registers a passkey, then signs in with it and no password. It passed locally.
-- **Blockers:** this is an authentication change with a migration, so Luke approves the merge.
+- **Merge:** Luke approved on 2026-10-30; merged as PR #82.
 
 ## F10 — User Interface
 

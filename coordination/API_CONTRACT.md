@@ -355,6 +355,12 @@ Really processes a random sample with the chosen provider (results are saved as 
   - Check questions are confirmed, or kept as an instruction.
 - **Response 200:** `{"question", "saved_as": "meaning"|"example"|"instruction"|"confirmed", ...}`. Audited as `brain.answer`.
 
+### `GET /security/posture` · `GET /security/quarantine` · `POST /documents/{id}/release` (F09.13)
+- **Posture:** `system:read`. Response: `{"passed", "total", "quarantined", "checks": [{"id", "label", "ok", "detail"}]}`, checked live.
+- **Quarantine:** `system:read`. Lists held files with `reason` (no content).
+- **Release:** admin (`proposals:approve`). Returns 409 if the document is not held. Audited as `document.release`.
+- **Effect of a hold:** `GET /documents/{id}/original` returns **423** for a held document. Runs skip held documents.
+
 ### `GET /policies`
 - **Permission:** `documents:read`
 - **Response 200:** `[{"version": 2, "rules": [{"when_contains", "field", "value"}], "created_at": …}]`
