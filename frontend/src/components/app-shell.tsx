@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { errorText, setToken, vault, type AuthOptions, type SignedIn } from "@/lib/api";
+import { signInWithPasskey, passkeysSupported } from "@/lib/passkeys";
 import { CollectionSwitcher } from "./collection-switcher";
 import { VaultMark } from "./vault-mark";
 import { SessionGate, SessionProvider, useMaybeSession, useSession } from "./session";
@@ -288,7 +289,7 @@ function SignIn({ onSignedIn, message }: { onSignedIn: () => void; message?: str
   const [busy, setBusy] = useState<string | null>(null);
 
   useEffect(() => {
-    vault.authOptions().then(setOptions, () => setOptions({ demo_login: false, password_login: false }));
+    vault.authOptions().then(setOptions, () => setOptions({ demo_login: false, password_login: false, passkey_login: false }));
   }, []);
 
   const finish = async (label: string, attempt: () => Promise<SignedIn>) => {
@@ -382,6 +383,16 @@ function SignIn({ onSignedIn, message }: { onSignedIn: () => void; message?: str
             <Button variant={options?.demo_login ? "secondary" : "primary"} type="submit" busy={busy === "password"}>
               Sign in
             </Button>
+            {options?.passkey_login && passkeysSupported() && (
+              <Button
+                type="button"
+                busy={busy === "passkey"}
+                disabled={!username.trim() || !!busy}
+                onClick={() => finish("passkey", () => signInWithPasskey(username.trim()))}
+              >
+                Sign in with face, fingerprint or security key
+              </Button>
+            )}
             {options && !options.password_login && (
               <p className="text-xs text-muted">
                 No passwords are set yet. An administrator sets one with <code className="font-mono">vault set-password NAME</code>.

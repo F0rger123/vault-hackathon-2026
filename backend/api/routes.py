@@ -101,7 +101,12 @@ def health() -> dict:
 @router.get("/auth/options")
 def auth_options(conn=Depends(get_conn), settings: Settings = Depends(get_settings)) -> dict:
     """Public: which sign-in methods this server offers, so the sign-in screen can show them."""
-    return {"demo_login": settings.demo_login, "password_login": signin.has_password_users(conn)}
+    has_passkeys = conn.execute("SELECT 1 FROM passkeys LIMIT 1").fetchone() is not None
+    return {
+        "demo_login": settings.demo_login,
+        "password_login": signin.has_password_users(conn),
+        "passkey_login": has_passkeys,
+    }
 
 
 def _browser_origin_ok(request: Request, settings: Settings) -> bool:
@@ -125,6 +130,9 @@ def login(
         raise HTTPException(status_code=429, detail=f"too many attempts; try again in {int(exc.wait) + 1} s") from exc
     except signin.LoginBusy as exc:
         raise HTTPException(status_code=503, detail="too many sign-ins at once; try again") from exc
+    except signin.PasskeyRequired as exc:
+        audit.record(conn, who, "auth.login", "denied", detail={"reason": "passkey required"})
+        raise HTTPException(status_code=403, detail="this account signs in with its passkey") from exc
     if session is None:
         audit.record(conn, who, "auth.login", "denied", detail={"reason": "wrong credentials"})
         raise HTTPException(status_code=401, detail="wrong username or password")

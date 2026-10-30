@@ -129,6 +129,20 @@ Every response carries `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY
 - **Errors:** 401, 403, 404
 - **Audit:** `token.revoke`
 
+### Passkeys (F09.14)
+- **Signed in** (`system:read`, own account only):
+  - `POST /auth/passkeys/register/options` returns `{handle, options}`.
+  - `POST /auth/passkeys/register` takes `{handle, credential, name}` and returns 201.
+  - `GET /auth/passkeys` returns `{passkeys, required}`.
+  - `DELETE /auth/passkeys/{id}`.
+  - `PUT /auth/passkeys/required` takes `{required}`. It returns 409 if there is no passkey.
+- **Public** (VAULT's own origin only; rate-limited like password sign-in):
+  - `POST /auth/passkey-login/options` takes `{username}` and returns `{handle, options}`.
+  - `POST /auth/passkey-login` takes `{handle, credential}` and returns a session like `/auth/login`.
+- **Effects elsewhere:**
+  - `/auth/login` returns **403** when the account requires its passkey; this is only reported after a correct password.
+  - `/auth/options` adds `passkey_login`.
+
 ### `GET /me`
 - **Permission:** `system:read`
 - **Response 200:** `{"username": "analyst", "role": "analyst"}`

@@ -22,11 +22,11 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 | F06 Search & Investigation | 6 | 5 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F07 Teaching & Corrections | 8 | 7 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F08 Actions & Organization | 6 | 6 | 0 | 0 | 0 | 0 | 0 | 0 |
-| F09 Security | 11 | 10 | 0 | 0 | 0 | 1 | 0 | 0 |
+| F09 Security | 12 | 10 | 1 | 0 | 0 | 1 | 0 | 0 |
 | F10 User Interface | 13 | 13 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F11 Synthetic Data & Evaluation | 7 | 6 | 0 | 1 | 0 | 0 | 0 | 0 |
 | F12 Deployment & Submission | 11 | 8 | 0 | 0 | 0 | 2 | 1 | 0 |
-| **Total** | **108** | **94** | **1** | **1** | **1** | **8** | **3** | **0** |
+| **Total** | **109** | **94** | **2** | **1** | **1** | **8** | **3** | **0** |
 
 **Recorded evidence used below**
 
@@ -1046,6 +1046,25 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 - **Priority:** FUTURE · **Owner:** luke · **Status:** BACKLOG · **Dependencies:** F09.1
 - **Description:** Limit which collections and documents each user can see: in search, previews, original downloads and every API route. Today roles limit actions, not visibility. Found by the 2026-10-29 audit.
 - **Blockers:** This is an auth design change, so it needs Luke's approval. Planned for after the hackathon.
+
+#### F09.14 — Passkeys: sign in with face, fingerprint or a hardware security key
+
+- **Priority:** P1 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F09.1, F10.11
+- **Description:** Luke asked (2026-10-30) for face unlock and a hardware dongle.
+  - **Standard:** WebAuthn passkeys, which work with Windows Hello face or fingerprint, Touch ID, or a YubiKey.
+  - **What VAULT keeps:** only the public key. The biometric never leaves the device, and user verification is required.
+  - **Managing them:** a person registers passkeys on Security, signs in with one from the sign-in screen, and can tick "Require my passkey", after which password-only sign-in is refused.
+  - **Safeguards:** removing the last passkey turns the requirement off, so nobody is locked out. Challenges are single-use, tied to their purpose and person, and expire after two minutes. Sign-in options never reveal which accounts exist, and only VAULT's own origin is accepted.
+  - **Storage and dependency:** migration 7 (additive); the `webauthn` library (py_webauthn).
+- **Verification evidence (2026-10-30):**
+  - **`tests/security/test_passkeys.py`, 4 tests:**
+    - the options name the relying party and require user verification;
+    - a garbage answer is refused, a reused challenge is refused, and another person's challenge is refused;
+    - unknown users get the same-shaped options;
+    - a foreign origin gets 403;
+    - with "require passkey" on, a wrong password still gives 401, a right password gives 403, and removing the last passkey lifts the requirement.
+  - **`tests/e2e/specs/059-passkeys.spec.ts`:** a real WebAuthn ceremony in Chromium with a virtual authenticator registers a passkey, then signs in with it and no password. It passed locally.
+- **Blockers:** this is an authentication change with a migration, so Luke approves the merge.
 
 ## F10 — User Interface
 

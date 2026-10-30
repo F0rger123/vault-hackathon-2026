@@ -21,7 +21,11 @@ def _clear_lockouts():
 def test_password_login_issues_an_expiring_session(client, tokens, settings):
     with connect(settings.db_path) as conn:
         signin.set_password(conn, "analyst", "correct horse battery")
-    assert client.get(f"{API}/auth/options").json() == {"demo_login": False, "password_login": True}
+    assert client.get(f"{API}/auth/options").json() == {
+        "demo_login": False,
+        "password_login": True,
+        "passkey_login": False,
+    }
     r = client.post(f"{API}/auth/login", json={"username": "analyst", "password": "correct horse battery"})
     assert r.status_code == 200 and r.json()["role"] == "analyst" and r.json()["expires_at"]
     session = auth(r.json()["token"])

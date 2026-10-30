@@ -10,6 +10,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from backend.api.routes import VERSION, router
 from backend.api.routes_agents import router as agents_router
 from backend.api.routes_brain import router as brain_router
+from backend.api.routes_passkeys import router as passkey_router
 from backend.api.routes_share import router as share_router
 from backend.core.config import Settings, get_settings
 from backend.storage.db import migrate
@@ -58,6 +59,7 @@ def create_app(settings: Settings | None = None, resume_jobs: bool = True) -> Fa
     app.include_router(agents_router)
     app.include_router(brain_router)
     app.include_router(share_router)
+    app.include_router(passkey_router)
     if resume_jobs:
         app.state.runner.resume_unfinished()
     return app
