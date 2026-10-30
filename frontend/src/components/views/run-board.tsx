@@ -26,6 +26,7 @@ import {
   type RunModel,
 } from "@/lib/run-model";
 import { useLoad } from "@/lib/use-load";
+import { AgentFloor } from "../agent-floor";
 import { RunSummaryPanel } from "../run-summary";
 import { useSession } from "../session";
 import { TitleBlock } from "../title-block";
@@ -177,6 +178,8 @@ function Board({ jobId }: { jobId: number }) {
     <div className="flex flex-col gap-5">
       <StatusStrip job={job.data} rate={overall} now={now} canCancel={atLeast(me, "analyst")} onChanged={job.reload} />
       {evError && <Notice>Live updates paused: {evError}. Retrying every second.</Notice>}
+
+      <AgentFloor events={events} model={model} file={file} liveFrom={liveFrom} finished={terminal} />
 
       <section
         aria-label="Pipeline"

@@ -1,54 +1,54 @@
 @import "tailwindcss";
 
 /*
-  VAULT design tokens: graphite and one blue (see frontend/DESIGN.md).
+  VAULT design tokens: black, white and two signals (see frontend/DESIGN.md).
   Components use these tokens only; never hard-coded hex.
-  Blue marks primary actions, focus and the current place. Red is reserved for conflicts and denials. Green means
-  verified or passing. "--amber" is a quiet slate for notices: VAULT has no yellow and no decorative gradients.
+  White (black in light mode) marks primary actions, focus and the current place. Green means live or verified. Red is
+  reserved for conflicts and denials. "--blue" and "--amber" are kept as names, but both are greys now.
 */
 :root {
-  --paper: #101216;
-  --rail: #0c0e11;
-  --panel: #171a1f;
-  --raised: #1f2329;
-  --ink: #f2f3f5;
-  --muted: #9aa1ac;
-  --line: #262a31;
-  --line-strong: #363b44;
-  --accent: #0a84ff;
-  --on-accent: #ffffff;
-  --blue: #64aeff;
-  --on-blue: #ffffff;
-  --redline: #ff5c54;
-  --amber: #aab4c3;
-  --green: #40c98a;
+  --paper: #000000;
+  --rail: #000000;
+  --panel: #0a0a0a;
+  --raised: #141414;
+  --ink: #f4f4f4;
+  --muted: #8f8f8f;
+  --line: #1f1f1f;
+  --line-strong: #353535;
+  --accent: #ffffff;
+  --on-accent: #000000;
+  --blue: #e6e6e6;
+  --on-blue: #000000;
+  --redline: #ff4d4d;
+  --amber: #b4b4b4;
+  --green: #00e676;
   --grid: transparent;
   --glow: transparent;
-  --highlight: 0 1px 2px rgb(0 0 0 / 0.25);
-  --lift: 0 0 0 1px rgb(255 255 255 / 0.06), 0 24px 48px -16px rgb(0 0 0 / 0.6);
+  --highlight: 0 0 0 0 transparent;
+  --lift: 0 0 0 1px rgb(255 255 255 / 0.1), 0 24px 48px -16px rgb(0 0 0 / 0.8);
   color-scheme: dark;
 }
 
 :root[data-theme="light"] {
-  --paper: #f5f5f7;
-  --rail: #eceef1;
+  --paper: #ffffff;
+  --rail: #f6f6f6;
   --panel: #ffffff;
-  --raised: #f0f1f4;
-  --ink: #1d1d1f;
-  --muted: #6e7380;
-  --line: #e3e5ea;
-  --line-strong: #cfd2d9;
-  --accent: #0071e3;
+  --raised: #f1f1f1;
+  --ink: #000000;
+  --muted: #5e5e5e;
+  --line: #e2e2e2;
+  --line-strong: #bdbdbd;
+  --accent: #000000;
   --on-accent: #ffffff;
-  --blue: #0066cc;
+  --blue: #111111;
   --on-blue: #ffffff;
-  --redline: #d70015;
-  --amber: #5c6675;
-  --green: #17803d;
+  --redline: #c8102e;
+  --amber: #4f4f4f;
+  --green: #007a3d;
   --grid: transparent;
   --glow: transparent;
-  --highlight: 0 1px 2px rgb(0 0 0 / 0.05);
-  --lift: 0 1px 2px rgb(0 0 0 / 0.06), 0 24px 48px -20px rgb(0 0 0 / 0.2);
+  --highlight: 0 0 0 0 transparent;
+  --lift: 0 1px 2px rgb(0 0 0 / 0.08), 0 24px 48px -20px rgb(0 0 0 / 0.25);
   color-scheme: light;
 }
 
@@ -76,8 +76,8 @@
   --color-green: var(--green);
   --font-sans: var(--font-ui), system-ui, sans-serif;
   --font-mono: var(--font-data), ui-monospace, monospace;
-  --radius-control: 9px;
-  --radius-card: 14px;
+  --radius-control: 4px;
+  --radius-card: 6px;
   --shadow-panel: var(--highlight);
   --shadow-lift: var(--lift);
   --ease-out-soft: cubic-bezier(0.23, 1, 0.32, 1);
@@ -97,10 +97,11 @@ body {
   font-feature-settings: "tnum" 1;
 }
 
-/* Titles and big figures: tight, semi-bold Geist. */
+/* Titles and big figures read like a terminal: mono, medium, tight. */
 .display {
-  font-weight: 600;
-  letter-spacing: -0.022em;
+  font-family: var(--font-data), ui-monospace, monospace;
+  font-weight: 500;
+  letter-spacing: -0.03em;
 }
 
 /* A faint light from above the work area: the only atmosphere on the page. */
@@ -313,7 +314,7 @@ a:hover .vault-dial,
 
 /* First-run setup: the door is the one memorable thing, so everything around it stays still. */
 .wizard-backdrop {
-  background: var(--paper);
+  isolation: isolate;
 }
 .vault-door-frame {
   perspective: 1200px;
@@ -431,6 +432,148 @@ html {
 }
 details[open] > :not(summary) {
   animation: rise 0.35s var(--ease-settle) both;
+}
+
+/* ---------- F10.16 ---------- */
+/* The rain sits behind everything; panels are opaque, so it only shows in the gaps. */
+.rain-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  opacity: 0.16;
+}
+/* Panels answer the pointer with a white edge. */
+section.rounded-card:hover {
+  border-color: var(--line-strong);
+}
+/* The 3D brain is a black room in both themes. */
+.space-scope {
+  --raised: #000000;
+  --ink: #f4f4f4;
+  --muted: #7d7d7d;
+  --line-strong: #3a3a3a;
+  --blue: #d0d0d0;
+  --amber: #a6a6a6;
+  --green: #00e676;
+  --redline: #ff4d4d;
+}
+
+.unlock-stage {
+  background: var(--paper);
+  animation: fade-in 0.25s ease both;
+}
+.unlock-reticle {
+  padding: 10px;
+  animation: reticle-in 0.5s var(--ease-settle) both;
+}
+.unlock-corner {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border-color: var(--ink);
+  transition: transform 0.45s var(--ease-settle), border-color 0.2s;
+}
+.unlock-reticle-granted .unlock-corner {
+  border-color: var(--green);
+  transform: scale(0.8);
+}
+.unlock-reticle-denied {
+  animation: reticle-shake 0.4s linear both;
+}
+.unlock-reticle-denied .unlock-corner {
+  border-color: var(--redline);
+}
+.unlock-door {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  bottom: 0;
+  width: 50.5%;
+  background: var(--paper);
+  transform: translateX(-101%);
+  pointer-events: none;
+}
+.unlock-door-left {
+  left: 0;
+  border-right: 1px solid var(--green);
+}
+.unlock-door-right {
+  right: 0;
+  border-left: 1px solid var(--green);
+  transform: translateX(101%);
+}
+/* Granted: the doors close over the scan for a beat, then part on the app. */
+.unlock-door-open {
+  animation: door-part 1.15s var(--ease-settle) 0.75s both;
+}
+.unlock-door-left.unlock-door-open {
+  --door-out: -101%;
+}
+.unlock-door-right.unlock-door-open {
+  --door-out: 101%;
+}
+.unlock-door-left.unlock-door-closing {
+  animation: door-shut-left 0.7s var(--ease-settle) both;
+}
+.unlock-door-right.unlock-door-closing {
+  animation: door-shut-right 0.7s var(--ease-settle) both;
+}
+.unlock-content-out {
+  animation: fade-out 0.25s ease 0.7s both;
+}
+.unlock-fade {
+  animation: fade-out 0.3s ease 0.7s both;
+}
+@keyframes door-part {
+  0% {
+    transform: none;
+  }
+  100% {
+    transform: translateX(var(--door-out));
+  }
+}
+@keyframes door-shut-left {
+  from {
+    transform: translateX(-101%);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes door-shut-right {
+  from {
+    transform: translateX(101%);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes reticle-in {
+  from {
+    opacity: 0;
+    transform: scale(1.12);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes reticle-shake {
+  20%,
+  60% {
+    transform: translateX(-7px);
+  }
+  40%,
+  80% {
+    transform: translateX(7px);
+  }
 }
 
 /* A trend line draws itself once, left to right. */

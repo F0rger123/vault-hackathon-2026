@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
-import { atLeast, errorText, vault, type Brain, type BrainQuestion, type ProviderName } from "@/lib/api";
+import { atLeast, errorText, vault, type Brain, type BrainQuestion, type ProviderName, TERMINAL, type AgentEvent } from "@/lib/api";
 import { humanize } from "@/lib/format";
 import { useLoad } from "@/lib/use-load";
 import { BrainMap } from "../brain-map";
@@ -36,11 +36,26 @@ const DESCRIPTION =
   "What VAULT knows about this collection, what your people taught it, and the questions it still has. Each collection has its own brain; nothing taught here is used anywhere else.";
 
 /** F07.7 and F07.8: the collection brain, its questions, teaching, and the map (a 3D space, or the 2D map). */
+
+async function allEvents(jobId: number) {
+  const out: AgentEvent[] = [];
+  for (;;) {
+    const batch = await vault.events(jobId, out.length ? out[out.length - 1].id : 0, 1000);
+    out.push(...batch);
+    if (batch.length < 1000) return out;
+  }
+}
+
 export function BrainView() {
   const { collection, me } = useSession();
   const canTeach = atLeast(me, "analyst");
   const brain = useLoad(collection ? `brain:${collection.id}` : null, () => vault.brain(collection!.id));
   const graph = useLoad(collection ? `brain-graph:${collection.id}` : null, () => vault.brainGraph(collection!.id));
+  // F10.16: the agents in the 3D space fly from the record of the collection's latest run.
+  const jobs = useLoad(collection ? `brain-jobs:${collection.id}` : null, vault.jobs, 5000);
+  const run = jobs.data?.find((j) => j.kind === "process" && j.collection_id === collection?.id);
+  const running = run && !TERMINAL.includes(run.status);
+  const runEvents = useLoad(run ? `brain-events:${run.id}` : null, () => allEvents(run!.id), running ? 2000 : undefined);
   const [openDoc, setOpenDoc] = useState<number | null>(null);
   const close = useCallback(() => setOpenDoc(null), []);
   const [learned, setLearned] = useState(0);
@@ -100,7 +115,7 @@ export function BrainView() {
           </div>
         )}
         {graph.data && graph.data.nodes.length > 0 && canWebGL !== null && mapView === "3d" && (
-          <BrainSpace graph={graph.data} onOpenDocument={setOpenDoc} onUnsupported={fallback} />
+          <BrainSpace graph={graph.data} onOpenDocument={setOpenDoc} onUnsupported={fallback} events={runEvents.data} runId={run?.id ?? null} running={!!running} />
         )}
         {graph.data && graph.data.nodes.length > 0 && canWebGL !== null && mapView === "2d" && (
           <BrainMap graph={graph.data} onOpenDocument={setOpenDoc} />

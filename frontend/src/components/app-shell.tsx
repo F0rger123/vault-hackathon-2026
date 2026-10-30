@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { errorText, setToken, vault, type AuthOptions, type SignedIn } from "@/lib/api";
 import { signInWithPasskey, passkeysSupported } from "@/lib/passkeys";
+import { MatrixRain } from "./matrix-rain";
+import { UnlockSequence, type UnlockPhase } from "./unlock-sequence";
 import { CollectionSwitcher } from "./collection-switcher";
 import { CommandPalette } from "./command-palette";
 import { SetupWizard } from "./setup-wizard";
@@ -205,6 +207,7 @@ function ThemeToggle() {
 
 function UserBox() {
   const { me, signOut } = useSession();
+  const [locking, setLocking] = useState(false);
   return (
     <div className="flex items-center gap-3 text-sm">
       <span
@@ -217,9 +220,10 @@ function UserBox() {
         <div className="truncate font-medium">{me.username}</div>
         <div className="text-xs capitalize text-muted">{me.role}</div>
       </div>
-      <Button variant="quiet" onClick={signOut}>
+      <Button variant="quiet" onClick={() => setLocking(true)}>
         Sign out
       </Button>
+      {locking && <UnlockSequence phase="locking" onDone={signOut} />}
     </div>
   );
 }
@@ -305,6 +309,7 @@ function Chrome({ children }: { children: ReactNode }) {
         </header>
       )}
 
+      <MatrixRain className="rain-backdrop" />
       <main id="main" className={cx("page-enter min-w-0", ready && "vault-glow mx-auto w-full max-w-[1480px] px-4 pb-16 pt-6 sm:px-6 lg:px-10 lg:pt-9")}>
         {ready && <DemoBanner />}
         {children}
@@ -320,6 +325,7 @@ function SignIn({ onSignedIn, message }: { onSignedIn: () => void; message?: str
   const [token, setTokenValue] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [unlock, setUnlock] = useState<{ phase: UnlockPhase; who?: string } | null>(null);
 
   useEffect(() => {
     vault.authOptions().then(setOptions, () => setOptions({ demo_login: false, password_login: false, passkey_login: false }));
@@ -330,12 +336,14 @@ function SignIn({ onSignedIn, message }: { onSignedIn: () => void; message?: str
   const finish = async (label: string, attempt: () => Promise<SignedIn>) => {
     setBusy(label);
     setError(null);
+    if (label === "passkey") setUnlock({ phase: "scanning" });
     try {
       const session = await attempt();
       setToken(session.token);
-      onSignedIn();
+      setUnlock({ phase: "granted", who: session.username });
     } catch (e) {
-      setError(errorText(e));
+      if (label === "passkey") setUnlock({ phase: "denied" });
+      setError(e instanceof DOMException ? "The passkey was cancelled or not allowed on this device." : errorText(e));
     } finally {
       setBusy(null);
     }
@@ -343,6 +351,14 @@ function SignIn({ onSignedIn, message }: { onSignedIn: () => void; message?: str
 
   return (
     <div className="grid min-h-dvh place-items-center px-4 py-10">
+      {unlock && (
+        <UnlockSequence
+          phase={unlock.phase}
+          who={unlock.who}
+          detail={unlock.phase === "scanning" ? "Look at your camera or touch your key when your device asks. Your device checks you; VAULT never sees the camera." : undefined}
+          onDone={unlock.phase === "granted" ? onSignedIn : () => setUnlock(null)}
+        />
+      )}
       <div className="animate-rise w-full max-w-sm rounded-card border border-line bg-panel shadow-lift">
         <div className="vault-dial-intro border-b border-line px-5 py-4">
           <Wordmark />
