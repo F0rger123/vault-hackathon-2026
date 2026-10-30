@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { errorText, setToken, vault, type AuthOptions, type SignedIn } from "@/lib/api";
 import { CollectionSwitcher } from "./collection-switcher";
+import { PostureBadge } from "./security-posture";
 import { VaultMark } from "./vault-mark";
 import { SessionGate, SessionProvider, useMaybeSession, useSession } from "./session";
 import { Button, cx, inputClass } from "./ui";
@@ -232,6 +233,7 @@ function Chrome({ children }: { children: ReactNode }) {
               <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-green" />
               Private. Runs on this machine.
             </p>
+            <PostureBadge />
           </div>
           <NavLinks />
           <div className="mt-auto flex flex-col gap-4 border-t border-line px-2 pt-4">

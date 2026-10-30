@@ -391,6 +391,22 @@ export interface BrainGraph {
   documents_shown: number;
 }
 
+export interface SecurityPostureReport {
+  passed: number;
+  total: number;
+  quarantined: number;
+  checks: { id: string; label: string; ok: boolean; detail: string }[];
+}
+
+export interface HeldDocument {
+  id: number;
+  collection_id: number;
+  filename: string;
+  media_type: string;
+  reason: string;
+  created_at: number;
+}
+
 export const TERMINAL: JobStatus[] = ["completed", "completed_with_errors", "failed", "cancelled"];
 
 export interface AgentEvent {
@@ -630,6 +646,9 @@ export const vault = {
   hardware: () => api<Hardware>("/system/hardware"),
   localModels: () => api<LocalModels>("/system/local-models"),
   modelCatalog: () => api<ModelCatalog>("/system/model-catalog"),
+  securityPosture: () => api<SecurityPostureReport>("/security/posture"),
+  quarantine: () => api<HeldDocument[]>("/security/quarantine"),
+  releaseDocument: (id: number) => post<{ document_id: number; status: string }>(`/documents/${id}/release`, {}),
   planShare: (body: { collection_id: number; recipient: string; instruction: string; criteria: ShareCriteria }) =>
     post<Proposal>("/share-packs", body),
   interpretShare: (collectionId: number, instruction: string, provider: ProviderName) =>

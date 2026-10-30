@@ -35,7 +35,7 @@ def documents_to_read(conn, collection_id: int, readers: set[tuple[str, str]]) -
     rows = conn.execute(
         """SELECT d.id, d.status, x.provider, x.model, x.created_at
            FROM documents d LEFT JOIN extractions x ON x.id = (SELECT MAX(id) FROM extractions WHERE document_id = d.id)
-           WHERE d.collection_id = ? ORDER BY d.id""",
+           WHERE d.collection_id = ? AND d.status != 'quarantined' ORDER BY d.id""",
         (collection_id,),
     ).fetchall()
     todo = [
