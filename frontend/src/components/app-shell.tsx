@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { errorText, setToken, vault, type AuthOptions, type SignedIn } from "@/lib/api";
+import { CollectionSwitcher } from "./collection-switcher";
 import { VaultMark } from "./vault-mark";
 import { SessionGate, SessionProvider, useMaybeSession, useSession } from "./session";
 import { Button, cx, inputClass } from "./ui";
@@ -141,38 +142,6 @@ function DemoBanner() {
   );
 }
 
-function CollectionPicker({ id }: { id: string }) {
-  const { collections, collection, setCollectionId, mode } = useSession();
-  if (!collections.length)
-    return (
-      <p className="text-xs text-muted">
-        No {mode} collections yet.{" "}
-        <Link href="/setup" className="underline underline-offset-4">
-          Create one
-        </Link>
-      </p>
-    );
-  return (
-    <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-xs text-muted">
-        Collection
-      </label>
-      <select
-        id={id}
-        className={inputClass}
-        value={collection?.id ?? ""}
-        onChange={(e) => setCollectionId(Number(e.target.value))}
-      >
-        {collections.map((c) => (
-          <option key={c.id} value={c.id}>
-            {c.name}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
-
 const THEME_EVENT = "vault-theme-change";
 
 function subscribeTheme(onChange: () => void) {
@@ -267,7 +236,7 @@ function Chrome({ children }: { children: ReactNode }) {
           <NavLinks />
           <div className="mt-auto flex flex-col gap-4 border-t border-line px-2 pt-4">
             <ModeSwitch />
-            <CollectionPicker id="collection-rail" />
+            <CollectionSwitcher id="collection-rail" />
             <UserBox />
             <ThemeToggle />
           </div>
@@ -293,7 +262,7 @@ function Chrome({ children }: { children: ReactNode }) {
               <NavLinks onNavigate={() => setOpen(false)} />
               <div className="mt-3 flex flex-col gap-3 border-t border-line px-2 pt-3">
                 <ModeSwitch />
-                <CollectionPicker id="collection-menu" />
+                <CollectionSwitcher id="collection-menu" />
                 <UserBox />
                 <ThemeToggle />
               </div>
