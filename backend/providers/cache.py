@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import marshal
 import os
 import tempfile
 from pathlib import Path
@@ -26,7 +27,17 @@ from backend.providers.base import Provider, ProviderInfo
 from backend.providers.schema import Extraction
 from backend.security.files import safe_join
 
-_PROMPT_CODE = hashlib.sha256(Path(prompting.__file__).read_bytes()).hexdigest()
+
+def _prompt_code_hash() -> str:
+    try:
+        return hashlib.sha256(Path(prompting.__file__).read_bytes()).hexdigest()
+    except OSError:
+        # The installed app has no source file on disk (F12.12), so hash the compiled module instead.
+        code = prompting.__spec__.loader.get_code(prompting.__name__)
+        return hashlib.sha256(marshal.dumps(code)).hexdigest()
+
+
+_PROMPT_CODE = _prompt_code_hash()
 
 
 class CachingProvider(Provider):

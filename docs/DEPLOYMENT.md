@@ -91,7 +91,53 @@ If the window cannot open (for example no web view is installed), the launcher s
 
 **Check it works.** `start.ps1 --smoke-test` (or `./start.sh --smoke-test`) opens the window, prints the page title once the sign-in page has loaded, closes the window and stops the servers. If another VAULT already uses ports 8000 and 3000, add `--api-port 8100 --ui-port 3100`. The interface is then built once into its own folder (`frontend/.next-api8100`), so the normal build is left alone.
 
-**Later: one installer.** A single `VAULT-Setup.exe` (and a Linux AppImage) can be made with PyInstaller, bundling Python and the launcher, with Node.js and the built interface shipped alongside. That is not done yet; for now the desktop app runs from a checkout.
+To install VAULT as a normal program, with no Python or Node.js, see the next section.
+
+## Install VAULT
+
+VAULT can be built into a normal Windows program. The computer it is installed on needs no Python and no Node.js: the program brings its own Python, and the interface is plain files served by the same process.
+
+**The installer is not code-signed yet.** Windows SmartScreen will warn "Windows protected your PC" and name an unknown publisher. To continue, choose **More info**, then **Run anyway**, after checking the SHA-256 below. Removing the warning needs a paid code-signing certificate, which is Luke's decision and has not been made.
+
+**Build it** (Windows, needs Python 3.11+ and Node.js 20+ on the build machine only):
+
+```powershell
+.\packaging\build_windows.ps1
+```
+
+| Output in `dist\` (git-ignored) | What it is |
+|---|---|
+| `VAULT\VAULT.exe` | The portable folder. Run it from there; keep the whole folder together. |
+| `VAULT-<version>-windows-portable.zip` and `.sha256` | The same folder, zipped. |
+| `VAULT-Setup-<version>.exe` and `.sha256` | The installer. Made only if [Inno Setup 6](https://jrsoftware.org/isinfo.php) is installed; otherwise the script says so and stops after the zip. |
+
+The script refuses a build containing tokens, `.env` files, databases or demo data (`packaging/check_bundle.py`), then opens the built app once to check it. `.github/workflows/release.yml` makes the same build on GitHub when started by hand or by a `v*` tag; a tag attaches the files to a draft release.
+
+**Verify the download.** Compare the printed hash with the `.sha256` file, or with the hash published next to the download:
+
+```powershell
+Get-FileHash .\VAULT-Setup-0.1.0.exe -Algorithm SHA256
+```
+
+```bash
+sha256sum -c VAULT-Setup-0.1.0.exe.sha256
+```
+
+The hash shows the file arrived intact and matches what was published. Without a signature it does not prove who built it, so only trust a hash from a place you trust.
+
+**What the installer does.** It installs for the current user only, with no administrator rights, into `%LOCALAPPDATA%\Programs\VAULT`, and adds a Start Menu shortcut and an uninstaller. Your database and documents live separately in `%LOCALAPPDATA%\VAULT` (`~/.local/share/vault` on Linux). **Uninstalling keeps them;** delete that folder by hand to remove them too.
+
+**How it runs.** One process serves the API and the interface on a free port of `127.0.0.1`, reachable from this computer only. The window opens at `http://localhost:<port>`, because passkeys accept that name and not the number. Closing the window stops the server. Only one copy runs per data folder. There is no demo sign-in, the API docs page is switched off, and only the app's own address is accepted for sign-in. To change a setting (for example `VAULT_OLLAMA_MODEL`), put a `.env` file in the data folder. Logs are in its `logs` folder.
+
+**First account.** A new install needs the first-run setup that creates the owner account (F10.14). The packaged app has no command line for `vault token` or `vault init`, so until that setup is merged a new install stops at the sign-in screen with no account to use.
+
+**Ollama is a separate install.** The installer does not include it or any model. Get Ollama from [ollama.com](https://ollama.com) and pull a Meta model; without one, documents cannot be read by a model.
+
+**Needs WebView2.** The window uses Microsoft Edge WebView2, part of Windows 11 and most updated Windows 10 computers. Without it, VAULT shows an error and writes the reason to the log.
+
+**Check an installed copy.** `VAULT.exe --smoke-test` opens the window, checks the interface and the server, closes, confirms the port is free and writes the result to `logs\smoke-test.txt` in the data folder.
+
+**Not tested: Linux.** `packaging/vault_app.py` has Linux paths and locking, and its unit tests run on Linux in CI, but no Linux package exists and the packaged app has never been built or run on Linux. Nor is the build recipe (`vault.spec`) known to work there. On Linux, use the checkout route above. macOS has not been tried at all.
 
 ## Demo environment (reset and rehearse)
 

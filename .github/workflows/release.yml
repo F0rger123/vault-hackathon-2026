@@ -1,0 +1,75 @@
+name: Release
+
+# F12.12: builds the Windows app. Separate from CI, and never runs on a pull request or a branch push.
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+      - name: Build
+        shell: pwsh
+        # The smoke test needs a desktop session and WebView2, which a hosted runner may not offer. It gets its own
+        # step below, so a failure there is visible in the run without blocking the build.
+        run: ./packaging/build_windows.ps1 -SkipSmoke -RequireInstaller
+      - name: Smoke test the built app
+        continue-on-error: true
+        shell: pwsh
+        env:
+          VAULT_DATA_DIR: ${{ runner.temp }}\vault-smoke
+        run: |
+          $p = Start-Process dist/VAULT/VAULT.exe -ArgumentList "--smoke-test" -Wait -PassThru
+          Get-Content "$env:VAULT_DATA_DIR/logs/smoke-test.txt"
+          exit $p.ExitCode
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vault-windows
+          if-no-files-found: error
+          path: |
+            dist/VAULT-*-windows-portable.zip
+            dist/VAULT-*-windows-portable.zip.sha256
+            dist/VAULT-Setup-*.exe
+            dist/VAULT-Setup-*.exe.sha256
+
+  # Only this job can write, and it runs no project code: it attaches the finished files to a draft for Luke to review.
+  attach-to-release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build-windows
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: vault-windows
+          path: release
+      - name: Attach to a draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" release/* --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" release/* --draft --verify-tag --title "VAULT $GITHUB_REF_NAME" \
+              --notes "Not code-signed: Windows SmartScreen will warn. Check the SHA-256 files. See docs/DEPLOYMENT.md."
+          fi
