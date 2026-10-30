@@ -47,6 +47,16 @@ The two-minute snapshot. Read this first in a new session. Detail lives in the l
 
 ## Merged 2026-10-30 (Luke approved)
 
+- **Security gate (F09.13):** files with active content (PDF JavaScript, launch actions, embedded files; Office outside links, ActiveX) are held until an admin releases them. A live protection checklist shows on Security.
+- **Passkeys (F09.14):** sign in with Windows Hello face or fingerprint, Touch ID or a YubiKey, with an option to require one.
+- **Also merged:**
+  - reading only new documents (F05.10);
+  - the collection switcher (F10.12);
+  - the desktop window (F12.12);
+  - the run summary and coordinator chat (F10.13);
+  - the 3D brain (F07.10);
+  - step-by-step narrowing (F06.7);
+  - Training with Quiz VAULT, the grouped rail and Ctrl+K (F07.9).
 - **Move to a new computer (F12.11):** `vault transfer export`, `verify` and `import`, in one encrypted file.
 - **Share packs (F08.6):** redacted copies for outside parties, with a report of what was left out and why.
 
@@ -75,7 +85,7 @@ The two-minute snapshot. Read this first in a new session. Detail lives in the l
 
 | | Now | Next | Status file |
 |---|---|---|---|
-| Luke's agent | All PRs merged | F11.4 final evaluation (Nov 1) | [`status/luke.md`](status/luke.md) |
+| Luke's agent | All PRs merged (through #83) | F11.4 final evaluation (Nov 1) | [`status/luke.md`](status/luke.md) |
 
 ## Open blockers
 

@@ -10,7 +10,6 @@ Last updated: 2026-10-29
 
 ## Waiting on
 
-- **Luke, approval:** PR #80 (the security gate holds files with active content, plus a live checklist; this changes upload handling) and PR #82 (passkeys for face, fingerprint or a hardware key; an auth change with migration 7).
 - **Luke, decision: OCR for scanned pages (F02.6).** Suggestion: skip it for the hackathon.
 - **Luke, blockers:**
   - B1: verify the hackathon rules.
