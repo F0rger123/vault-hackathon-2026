@@ -25,7 +25,9 @@ def create_process_job(
     escalate_provider: str | None = None,
 ) -> int:
     if document_ids is None:
-        rows = conn.execute("SELECT id FROM documents WHERE collection_id = ? ORDER BY id", (collection_id,)).fetchall()
+        rows = conn.execute(
+            "SELECT id FROM documents WHERE collection_id = ? AND status != 'quarantined' ORDER BY id", (collection_id,)
+        ).fetchall()
         document_ids = [r["id"] for r in rows]
     lanes = lanes or [{"provider": provider, "concurrency": workers}]
     params = {"provider": provider, "lanes": lanes, "escalate_provider": escalate_provider}

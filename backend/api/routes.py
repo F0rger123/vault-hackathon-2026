@@ -579,8 +579,21 @@ def get_original(
     p: Principal = Depends(require("documents:read")),
 ):
     doc = _row(
-        conn.execute("SELECT filename, media_type, stored_path FROM documents WHERE id = ?", (document_id,)).fetchone()
+        conn.execute(
+            "SELECT filename, media_type, stored_path, status FROM documents WHERE id = ?", (document_id,)
+        ).fetchone()
     )
+    if doc["status"] == "quarantined":
+        # F09.13: the original may run something when opened; nobody downloads it until an admin releases it.
+        audit.record(
+            conn,
+            p.username,
+            "document.download",
+            "denied",
+            target=f"document:{document_id}",
+            detail={"reason": "quarantined"},
+        )
+        raise HTTPException(status_code=423, detail="held by the security gate until an administrator releases it")
     path = safe_join(settings.data_dir, *doc["stored_path"].replace("\\", "/").split("/"))
     audit.record(conn, p.username, "document.download", "allowed", target=f"document:{document_id}")
     return FileResponse(
