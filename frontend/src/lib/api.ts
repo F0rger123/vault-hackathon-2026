@@ -391,6 +391,26 @@ export interface BrainGraph {
   documents_shown: number;
 }
 
+export interface RunSummary {
+  job_id: number;
+  status: string;
+  total: number;
+  done: number;
+  failed: number;
+  skipped_already_read: number;
+  lanes: { lane: string; documents: number; avg_seconds: number | null }[];
+  parallel_slots: number;
+  seconds: number | null;
+  docs_per_minute: number | null;
+  doc_types: Record<string, number>;
+  security: Record<string, number>;
+  kept_local: number;
+  escalated: number;
+  for_a_person: number;
+  failures: { document_id: number; reason: string }[];
+  findings: number | null;
+}
+
 export const TERMINAL: JobStatus[] = ["completed", "completed_with_errors", "failed", "cancelled"];
 
 export interface AgentEvent {
@@ -630,6 +650,9 @@ export const vault = {
   hardware: () => api<Hardware>("/system/hardware"),
   localModels: () => api<LocalModels>("/system/local-models"),
   modelCatalog: () => api<ModelCatalog>("/system/model-catalog"),
+  runSummary: (jobId: number) => api<RunSummary>(`/jobs/${jobId}/summary`),
+  askRun: (jobId: number, question: string) =>
+    post<{ answer: string; by: string }>(`/jobs/${jobId}/ask`, { question }),
   planShare: (body: { collection_id: number; recipient: string; instruction: string; criteria: ShareCriteria }) =>
     post<Proposal>("/share-packs", body),
   interpretShare: (collectionId: number, instruction: string, provider: ProviderName) =>

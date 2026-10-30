@@ -1,7 +1,9 @@
 """HTTP API v1, part 2: agent activity, capacity planning and teach-by-example."""
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
 
+from backend.agents import run_chat
 from backend.api.deps import effective_settings, get_conn, get_settings, require
 from backend.api.routes import _provider, _row
 from backend.api.schemas import CalibrateRequest, ExampleCreate
@@ -42,6 +44,41 @@ def job_agents(job_id: int, conn=Depends(get_conn), _: Principal = Depends(requi
         (job_id,),
     ).fetchall()
     return [dict(r) for r in rows]
+
+
+@router.get("/jobs/{job_id}/summary")
+def job_summary(job_id: int, conn=Depends(get_conn), _: Principal = Depends(require("jobs:read"))) -> dict:
+    """F10.13: what the run did, from what its agents recorded."""
+    try:
+        return run_chat.summary(conn, job_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail="not found") from exc
+
+
+class RunQuestion(BaseModel):
+    question: str = Field(min_length=2, max_length=500)
+
+
+@router.post("/jobs/{job_id}/ask")
+def ask_coordinator(
+    job_id: int,
+    body: RunQuestion,
+    conn=Depends(get_conn),
+    settings: Settings = Depends(get_settings),
+    p: Principal = Depends(require("jobs:read")),
+) -> dict:
+    """F10.13: ask the coordinator about this run. Only a local model answers, and only from the run's facts."""
+    if not conn.execute("SELECT 1 FROM jobs WHERE id = ?", (job_id,)).fetchone():
+        raise HTTPException(status_code=404, detail="not found")
+    eff = effective_settings(conn, settings)
+    try:
+        provider = get_provider("ollama", eff)
+        provider = provider if provider.info().available else None
+    except ProviderError:
+        provider = None
+    result = run_chat.ask(conn, job_id, body.question, provider)
+    audit.record(conn, p.username, "run.ask", "allowed", target=f"job:{job_id}", detail={"by": result["by"]})
+    return result
 
 
 @router.get("/system/capacity")
