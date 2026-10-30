@@ -407,6 +407,26 @@ export interface HeldDocument {
   created_at: number;
 }
 
+export interface RunSummary {
+  job_id: number;
+  status: string;
+  total: number;
+  done: number;
+  failed: number;
+  skipped_already_read: number;
+  lanes: { lane: string; documents: number; avg_seconds: number | null }[];
+  parallel_slots: number;
+  seconds: number | null;
+  docs_per_minute: number | null;
+  doc_types: Record<string, number>;
+  security: Record<string, number>;
+  kept_local: number;
+  escalated: number;
+  for_a_person: number;
+  failures: { document_id: number; reason: string }[];
+  findings: number | null;
+}
+
 export const TERMINAL: JobStatus[] = ["completed", "completed_with_errors", "failed", "cancelled"];
 
 export interface AgentEvent {
@@ -649,6 +669,9 @@ export const vault = {
   securityPosture: () => api<SecurityPostureReport>("/security/posture"),
   quarantine: () => api<HeldDocument[]>("/security/quarantine"),
   releaseDocument: (id: number) => post<{ document_id: number; status: string }>(`/documents/${id}/release`, {}),
+  runSummary: (jobId: number) => api<RunSummary>(`/jobs/${jobId}/summary`),
+  askRun: (jobId: number, question: string) =>
+    post<{ answer: string; by: string }>(`/jobs/${jobId}/ask`, { question }),
   planShare: (body: { collection_id: number; recipient: string; instruction: string; criteria: ShareCriteria }) =>
     post<Proposal>("/share-packs", body),
   interpretShare: (collectionId: number, instruction: string, provider: ProviderName) =>

@@ -7,6 +7,7 @@ import { useLoad } from "@/lib/use-load";
 import { AskPanel } from "../ask-panel";
 import { DocumentDrawer } from "../document-drawer";
 import { FindingRedline } from "../finding-redline";
+import { NarrowBar, type NarrowQuery } from "../narrow-bar";
 import { useSession } from "../session";
 import { TitleBlock } from "../title-block";
 import { Button, cx, Empty, Field, inputClass, LoadError, Panel } from "../ui";
@@ -20,13 +21,8 @@ function Snippet({ text }: { text: string }) {
   );
 }
 
-interface Query {
-  q: string;
-  doc_type: string;
-  project: string;
-  part_number: string;
-}
-const EMPTY: Query = { q: "", doc_type: "", project: "", part_number: "" };
+type Query = NarrowQuery;
+const EMPTY: Query = { q: "", doc_type: "", project: "", part_number: "", exclude: "", year: "", media: "" };
 
 export function InvestigateView() {
   const { collection } = useSession();
@@ -186,11 +182,23 @@ export function InvestigateView() {
             </form>
 
             <div className="mt-4 border-t border-line pt-3">
-              {!query && <p className="text-sm text-muted">Search by words, or narrow by type, project or part number.</p>}
+              {!query && (
+                <div className="flex flex-col gap-2 text-sm text-muted">
+                  <p>Search by words, or narrow by type, project or part number. After searching, keep narrowing step by step.</p>
+                  <Button type="button" onClick={() => searchFor({ ...EMPTY, media: "image" })}>
+                    Show the pictures in this archive
+                  </Button>
+                  <p className="text-xs">
+                    Pictures are listed by name now. Searching inside photos, scans and videos needs the Llama 3.2 Vision
+                    model; install it from the Overview.
+                  </p>
+                </div>
+              )}
               {query && <LoadError error={results.error} status={results.status} what="search results" />}
               {query && results.loading && !results.data && <p className="text-sm text-muted">Searching</p>}
               {query && results.data && (
                 <>
+                  <NarrowBar query={query} results={results.data.results} types={types} projects={projects} onChange={searchFor} />
                   <p className="mb-2 text-sm text-muted" role="status">
                     {results.data.count === 0
                       ? "Nothing matched. Try fewer words or clear a filter."

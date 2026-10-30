@@ -790,10 +790,15 @@ def search(
     date_to: str | None = None,
     part_number: str | None = None,
     limit: int = Query(50, ge=1, le=200),
+    exclude: str = Query("", max_length=300),
+    year: str | None = Query(None, pattern=r"^\d{4}$"),
+    media: str | None = Query(None, pattern="^(image|document)$"),
     conn=Depends(get_conn),
     _: Principal = Depends(require("search")),
 ) -> dict:
-    results = run_search(conn, q, collection_id, doc_type, project, date_from, date_to, part_number, limit)
+    results = run_search(
+        conn, q, collection_id, doc_type, project, date_from, date_to, part_number, limit, exclude, year, media
+    )
     return {"query": q, "count": len(results), "results": results}
 
 

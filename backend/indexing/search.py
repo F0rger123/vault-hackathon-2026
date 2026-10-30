@@ -28,6 +28,9 @@ def search(
     date_to: str | None = None,
     part_number: str | None = None,
     limit: int = 50,
+    exclude: str = "",
+    year: str | None = None,
+    media: str | None = None,
 ) -> list[dict]:
     where, args = [], []
     fts = to_fts_query(q)
@@ -62,6 +65,21 @@ def search(
     if date_to:
         where.append("x.doc_date <= ?")
         args.append(date_to)
+    # F06.7: narrowing step by step: a year, pictures or documents only, and words the result must not contain.
+    if year and re.fullmatch(r"\d{4}", year):
+        where.append("x.doc_date LIKE ?")
+        args.append(f"{year}-%")
+    if media == "image":
+        where.append("d.media_type LIKE 'image/%'")
+    elif media == "document":
+        where.append("d.media_type NOT LIKE 'image/%'")
+    if banned := to_fts_query(exclude):
+        where.append(
+            "NOT EXISTS (SELECT 1 FROM pages xp WHERE xp.document_id = d.id "
+            "AND xp.id IN (SELECT rowid FROM pages_fts WHERE pages_fts MATCH ?))"
+        )
+        # Quoted terms joined with OR: a document containing any of them is left out.
+        args.append(" OR ".join(banned.split(" ")))
     if where:
         sql += " WHERE " + " AND ".join(where)
     sql += " ORDER BY rank, d.id LIMIT ?"

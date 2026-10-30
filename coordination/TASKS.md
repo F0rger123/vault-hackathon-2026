@@ -19,14 +19,14 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 | F03 Hardware & Collection Analysis | 7 | 7 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F04 AI Model System | 11 | 7 | 0 | 0 | 1 | 2 | 1 | 0 |
 | F05 Parallel Processing | 10 | 9 | 0 | 0 | 0 | 0 | 1 | 0 |
-| F06 Search & Investigation | 6 | 5 | 0 | 0 | 0 | 1 | 0 | 0 |
+| F06 Search & Investigation | 7 | 6 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F07 Teaching & Corrections | 8 | 7 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F08 Actions & Organization | 6 | 6 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F09 Security | 12 | 10 | 1 | 0 | 0 | 1 | 0 | 0 |
-| F10 User Interface | 12 | 12 | 0 | 0 | 0 | 0 | 0 | 0 |
+| F10 User Interface | 13 | 13 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F11 Synthetic Data & Evaluation | 7 | 6 | 0 | 1 | 0 | 0 | 0 | 0 |
 | F12 Deployment & Submission | 11 | 8 | 0 | 0 | 0 | 2 | 1 | 0 |
-| **Total** | **108** | **93** | **2** | **1** | **1** | **8** | **3** | **0** |
+| **Total** | **110** | **95** | **2** | **1** | **1** | **8** | **3** | **0** |
 
 **Recorded evidence used below**
 
@@ -710,6 +710,17 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
   - **Tests:** `tests/integration/test_more_conflicts.py` (extraction, plus an Alpha v2 end-to-end check with verified quotes). Full suite 66 passed.
   - **UI:** Investigate has new filters and value labels (units, materials).
 
+#### F06.7 — Narrow search results step by step
+
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F06.1, F06.2
+- **Description:** Luke said (2026-10-30) Investigate had no way to narrow results down.
+  - **Search:** `GET /search` now takes `year`, `media` (`image` or `document`) and `exclude` (words a result must not contain; quoted terms, so typed operators are only words).
+  - **Investigate:** after a search, chips show the types, projects and years in the results, plus "Pictures only". Plain words such as "only inspection reports from 2023 without FAIL" are parsed in the browser into filters. Each step shows as a removable chip.
+  - **Pictures:** "Show the pictures in this archive" lists them. Searching inside photos and videos needs the vision model (B7), and the screen says so.
+- **Verification evidence (2026-10-30):**
+  - `tests/integration/test_narrow_search.py` covers exclude (no result page contains the excluded word), year, pictures only, documents only, a bad year or media (422), and operators in exclude treated as words.
+  - Playwright: chip, then plain words, then removing a step.
+
 #### F06.6 — Semantic (embedding) retrieval
 - **Description:** Local embeddings for fuzzy queries alongside FTS5.
 - **Priority:** P2 · **Owner:** luke · **Status:** BACKLOG · **Dependencies:** F06.1
@@ -1201,6 +1212,21 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 - **Verification evidence:** Lint, tsc and production build pass. Playwright run against the live API with Llama 3: suggestion click, answer and source highlight rendered with no console errors at 1280 px and 390 px (`docs/screenshots/ask-dark.jpg`). Browser e2e test (F11.5) still missing.
 
 ---
+
+#### F10.13 — Run summary and a chat with the coordinator
+
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F05.7, F10.7
+- **Description:** Luke said (2026-10-30) the live run board lacked a summary and a way to talk to the main model while sub-agents run in parallel.
+  - `GET /jobs/{id}/summary` builds the summary from the agents' records: lanes and seconds per document, parallel slots, document types, the security gate's counts, escalations, items sent to a person, failures and findings.
+  - `POST /jobs/{id}/ask` answers questions with the local Meta model, which gets only those facts and no document text. Without a local model, it answers with labelled rule-based sentences.
+  - The run board shows both, live.
+- **Verification evidence (2026-10-30):**
+  - **`tests/integration/test_run_chat.py`:**
+    - the summary of a 30-document run adds up: 30 done, 4 slots, 30 screened;
+    - rule-based answers are given about failures, speed and the security gate;
+    - unknown runs give 404, and missing sign-in gives 401.
+  - **Playwright** (`04-setup-run.spec.ts`): the summary appears, and "Did anything fail?" is answered and labelled.
+  - **On this laptop:** with Ollama running, the same question was answered by `llama3:latest`.
 
 ## F11 — Synthetic Data & Evaluation
 - **Verification evidence (E-E2E-2, 2026-10-28):** covered by the Playwright suite in `tests/e2e/` (`02-investigate`); 13 of 13 tests passed in 5 consecutive fresh runs on Windows 11 (Chromium, desktop and Pixel 7 profiles).

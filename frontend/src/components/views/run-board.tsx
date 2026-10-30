@@ -26,6 +26,7 @@ import {
   type RunModel,
 } from "@/lib/run-model";
 import { useLoad } from "@/lib/use-load";
+import { RunSummaryPanel } from "../run-summary";
 import { useSession } from "../session";
 import { TitleBlock } from "../title-block";
 import { Button, cx, Empty, inputClass, LoadError, Meter, Notice, Tag } from "../ui";
@@ -212,6 +213,7 @@ function Board({ jobId }: { jobId: number }) {
         </div>
       </section>
 
+      <RunSummaryPanel jobId={jobId} finished={terminal} />
       <EventLog events={events} file={file} live={live} loading={liveFrom === null} />
     </div>
   );
