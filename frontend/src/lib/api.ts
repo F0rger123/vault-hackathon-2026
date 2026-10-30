@@ -639,7 +639,7 @@ async function request(path: string, init: RequestInit = {}): Promise<Response> 
   try {
     res = await fetch(`${API_BASE}/api/v1${path}`, { ...init, headers });
   } catch {
-    throw new ApiError(0, `Could not reach the VAULT server at ${API_BASE}. Check that the backend is running.`);
+    throw new ApiError(0, `Could not reach the VAULT server at ${API_BASE || location.origin}. Check that the backend is running.`);
   }
   if (!res.ok) {
     let detail: unknown = res.statusText;

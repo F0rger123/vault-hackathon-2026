@@ -14,6 +14,7 @@ from backend.api.routes_passkeys import router as passkey_router
 from backend.api.routes_share import router as share_router
 from backend.core.config import Settings, get_settings
 from backend.storage.db import migrate
+from backend.ui import API_HEADERS, mount_ui
 from backend.workers.jobs import JobRunner
 
 log = logging.getLogger("vault")
@@ -22,7 +23,9 @@ log = logging.getLogger("vault")
 def create_app(settings: Settings | None = None, resume_jobs: bool = True) -> FastAPI:
     settings = settings or get_settings()
     migrate(settings.db_path)
-    app = FastAPI(title="VAULT API", version=VERSION)
+    # The API docs page loads scripts from a CDN. It must not run on the same origin as the interface and its token.
+    docs_off = {"docs_url": None, "redoc_url": None, "openapi_url": None} if settings.ui_dir else {}
+    app = FastAPI(title="VAULT API", version=VERSION, **docs_off)
     app.state.settings = settings
     app.state.runner = JobRunner(settings)
     # Refuse requests whose Host is not this machine: a hostile page that rebinds its own domain to
@@ -47,6 +50,10 @@ def create_app(settings: Settings | None = None, resume_jobs: bool = True) -> Fa
         response.headers.setdefault("Cache-Control", "no-store")
         # Stops other sites embedding API responses. The UI's CORS fetch() calls are not affected by CORP.
         response.headers.setdefault("Cross-Origin-Resource-Policy", "same-site")
+        if settings.ui_dir:
+            # Interface files have already set their own policy; everything else is API data on the same origin.
+            for name, value in API_HEADERS.items():
+                response.headers.setdefault(name, value)
         return response
 
     @app.exception_handler(Exception)
@@ -60,6 +67,9 @@ def create_app(settings: Settings | None = None, resume_jobs: bool = True) -> Fa
     app.include_router(brain_router)
     app.include_router(share_router)
     app.include_router(passkey_router)
+    # Last on purpose: routes match in order, so the catch-all can never shadow the API.
+    if settings.ui_dir:
+        mount_ui(app, settings.ui_dir)
     if resume_jobs:
         app.state.runner.resume_unfinished()
     return app

@@ -36,6 +36,11 @@ dev = [
 desktop = [
     "pywebview>=5",
 ]
+# F12.12: build the installable app. See packaging/build_windows.ps1.
+installer = [
+    "pywebview>=5",
+    "pyinstaller>=6.10",
+]
 
 [project.scripts]
 vault = "cli.main:app"

@@ -51,6 +51,10 @@ class Settings(BaseSettings):
 
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
 
+    # The exported web interface (F12.12). When set, this server serves it at / as well as the API, on one origin.
+    # Set VAULT_CORS_ORIGINS to the address it is opened at, or sign-in is refused. Unset, the server is API only.
+    ui_dir: Path | None = None
+
     @property
     def db_path(self) -> Path:
         return self.data_dir / "vault.db"
