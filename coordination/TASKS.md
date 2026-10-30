@@ -451,7 +451,7 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 - **Expected behavior:** Either it runs at a usable speed on 8 GB VRAM + 31 GB RAM, or we document that it does not.
 - **Acceptance criteria:** Benchmark numbers recorded in `docs/MODEL_STRATEGY.md`.
 - **Required tests:** `vault estimate --provider ollama --sample 3`.
-- **Blockers:** ~18 GB download needs Luke's approval (`BLOCKERS.md` B5).
+- **Blockers:** Luke approved the download on 2026-10-30, but `ollama pull muse-glimmer:30b` refused: Ollama 0.32.1 is too old for this model. It needs an Ollama update first.
 - **Related PR/commit:** —
 - **Verification evidence:** —
 
@@ -1333,7 +1333,7 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 
 #### F10.17 — Coil animation and face unlock screens
 
-- **Priority:** P2 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F10.16
+- **Priority:** P2 · **Owner:** luke · **Status:** DONE · **Dependencies:** F10.16
 - **Description:** Luke asked (2026-10-30) for a coil animation and interface for face unlock. A coil winds round the head during the scan and tightens when verified. Sign-in has its own face unlock button, and adding a passkey plays the same scan. It remains theatre around the device's own check.
 
 ## F11 — Synthetic Data & Evaluation
