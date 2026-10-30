@@ -53,6 +53,46 @@ The UI is at http://localhost:3000. Sign in by pasting a token from `data/runtim
 
 **Next.js usage data:** Next.js sends anonymous usage data unless it is turned off. The one-command start (`start.ps1`, `start.sh`) and the Docker image turn it off for you. When you run `npm` yourself, turn it off once per machine with `npx next telemetry disable`, or set `NEXT_TELEMETRY_DISABLED=1`.
 
+## Desktop app (Windows and Linux)
+
+VAULT can open in its own window instead of a browser tab:
+
+```powershell
+.\start.ps1 -App              # Windows (also: .\start.ps1 --app --real)
+```
+
+```bash
+./start.sh --app              # Linux
+```
+
+**How it works.** The launcher starts the same two private servers as always (the API on `127.0.0.1:8000`, the interface on `127.0.0.1:3000`) and shows the interface in a native window titled "VAULT" instead of a browser tab. The window comes from [pywebview](https://pywebview.flowrl.com/): Microsoft Edge WebView2 on Windows (already part of Windows 11), GTK + WebKit2 or Qt on Linux. There is no Electron and no bundled browser. Nothing is opened to the network, and sign-in, permissions and the security headers are exactly the same as in a browser. The window keeps nothing on disk (private mode), so you sign in each time you open it, and developer tools are switched off. **Closing the window stops both servers.**
+
+**Install.** The first `--app` start installs pywebview into `.venv` for you. If that cannot happen (no network, or a venv made by `uv`, which has no `pip`), the launcher prints one line with the command and opens your browser instead:
+
+```bash
+uv pip install -e ".[desktop]"        # or: .venv/Scripts/python -m pip install -e ".[desktop]"  (Windows)
+                                      #     .venv/bin/python -m pip install -e ".[desktop]"      (Linux)
+```
+
+**Linux system packages.** pywebview needs a web view from your distribution. Pick one:
+
+- GTK + WebKit2 (GNOME and most desktops). Install the libraries, then the Python bindings into the venv:
+
+  ```bash
+  sudo apt install libgirepository-2.0-dev libcairo2-dev pkg-config python3-dev gir1.2-webkit2-4.1   # Debian/Ubuntu
+  sudo dnf install gobject-introspection-devel cairo-gobject-devel pkg-config python3-devel webkit2gtk4.1   # Fedora
+  .venv/bin/python -m pip install -e ".[desktop]" "pywebview[gtk]"
+  ```
+
+  On older releases use `libgirepository1.0-dev` instead of `libgirepository-2.0-dev`.
+- Qt (KDE, or when GTK is not wanted): `.venv/bin/python -m pip install -e ".[desktop]" "pywebview[qt]"`.
+
+If the window cannot open (for example no web view is installed), the launcher says so and opens your browser instead, so VAULT still starts.
+
+**Check it works.** `start.ps1 --smoke-test` (or `./start.sh --smoke-test`) opens the window, prints the page title once the sign-in page has loaded, closes the window and stops the servers. If another VAULT already uses ports 8000 and 3000, add `--api-port 8100 --ui-port 3100`. The interface is then built once into its own folder (`frontend/.next-api8100`), so the normal build is left alone.
+
+**Later: one installer.** A single `VAULT-Setup.exe` (and a Linux AppImage) can be made with PyInstaller, bundling Python and the launcher, with Node.js and the built interface shipped alongside. That is not done yet; for now the desktop app runs from a checkout.
+
 ## Demo environment (reset and rehearse)
 
 One command rebuilds the demo from nothing: a fresh database in `data/demo/` (git-ignored), the admin, analyst and viewer users, all 150 synthetic files in the "Halvern Engineering Archive" collection, a finished processing run, and one organization proposal waiting for an administrator.

@@ -8,7 +8,7 @@ test("upload five files, start a rule-based run and watch it complete", async ({
   // F12.9 and F03.6: the one-button start and the local-models card are the first things on the page.
   await expect(page.getByRole("heading", { name: "Quick start" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "This computer" })).toBeVisible();
-  await expect(page.getByRole("button", { name: /^Read everything/ })).toBeEnabled();
+  await expect(page.getByRole("button", { name: /^Read new documents/ })).toBeEnabled();
 
   const files = Array.from({ length: 5 }, (_, i) => ({
     name: `e2e-note-${i + 1}.txt`,
@@ -30,7 +30,9 @@ test("upload five files, start a rule-based run and watch it complete", async ({
   await expect(page.getByRole("heading", { name: "Live run board" })).toBeVisible();
   const status = page.getByRole("region", { name: "Run status" });
   await expect(status).toContainText(/Completed/, { timeout: 45_000 });
-  await expect(status).toContainText("155 of 155");
+  // F05.10: the 150 seeded documents were already read by the rules baseline, so only the 5 new ones are read.
+  await expect(status).toContainText("5 of 5");
+  await expect(status).toContainText("150 documents were skipped because this model already read them");
 
   // F10.13: the summary comes from the agents' records, and the coordinator answers questions from it.
   await expect(page.getByRole("heading", { name: "Run summary" })).toBeVisible();

@@ -164,6 +164,7 @@ function Questions(props: {
                   collection_id: collectionId,
                   lanes: [{ provider: reader, concurrency: 2 }],
                   confirm_remote: false,
+                  only_new: true,
                 });
                 setMessage(`Started run ${job.id}. Follow it on the Live run board.`);
               } catch (e) {

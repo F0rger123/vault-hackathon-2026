@@ -18,7 +18,7 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 | F02 File Ingestion | 8 | 7 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F03 Hardware & Collection Analysis | 7 | 7 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F04 AI Model System | 11 | 7 | 0 | 0 | 1 | 2 | 1 | 0 |
-| F05 Parallel Processing | 9 | 8 | 0 | 0 | 0 | 0 | 1 | 0 |
+| F05 Parallel Processing | 10 | 9 | 0 | 0 | 0 | 0 | 1 | 0 |
 | F06 Search & Investigation | 6 | 5 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F07 Teaching & Corrections | 8 | 7 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F08 Actions & Organization | 6 | 6 | 0 | 0 | 0 | 0 | 0 | 0 |
@@ -26,7 +26,7 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 | F10 User Interface | 13 | 13 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F11 Synthetic Data & Evaluation | 7 | 6 | 0 | 1 | 0 | 0 | 0 | 0 |
 | F12 Deployment & Submission | 11 | 8 | 0 | 0 | 0 | 2 | 1 | 0 |
-| **Total** | **107** | **93** | **1** | **1** | **1** | **8** | **3** | **0** |
+| **Total** | **108** | **94** | **1** | **1** | **1** | **8** | **3** | **0** |
 
 **Recorded evidence used below**
 
@@ -577,6 +577,17 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 - **Blockers:** none
 - **Related PR/commit:** `7390fac`
 - **Verification evidence:** `tests/integration/test_workers.py::test_restart_resumes_unfinished_job` (added in F05.6) restarts the app mid-job and checks that it completes.
+
+#### F05.10 — Read only new or changed documents
+
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F05.1, F07.7
+- **Description:** Luke asked (2026-10-30) that "read everything" recognize what was already read. With `only_new`, a run skips documents whose latest reading came from the same model and is newer than any change that could alter it: a new rule version, or brain knowledge or labelled examples taught in that collection. The interface's read buttons use it by default, and Set up a run has a checkbox for it. The run board says how many documents were skipped.
+- **Verification evidence (2026-10-30):** `tests/integration/test_read_only_new.py`:
+  - first run 20 of 20;
+  - a second run reads 0 and skips 20;
+  - a new file reads 1 and skips 20;
+  - teaching the brain re-reads all 21;
+  - without `only_new`, all 21 are read.
 
 #### F05.6 — Worker robustness tests and resource limits
 - **Description:** Tests for retries, resume and failure accounting; per-worker memory guard; progress events.
