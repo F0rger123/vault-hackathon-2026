@@ -12,6 +12,7 @@ from backend.api.routes_agents import router as agents_router
 from backend.api.routes_brain import router as brain_router
 from backend.api.routes_passkeys import router as passkey_router
 from backend.api.routes_share import router as share_router
+from backend.api.routes_users import router as users_router
 from backend.core.config import Settings, get_settings
 from backend.storage.db import migrate
 from backend.ui import API_HEADERS, mount_ui
@@ -67,6 +68,7 @@ def create_app(settings: Settings | None = None, resume_jobs: bool = True) -> Fa
     app.include_router(brain_router)
     app.include_router(share_router)
     app.include_router(passkey_router)
+    app.include_router(users_router)
     # Last on purpose: routes match in order, so the catch-all can never shadow the API.
     if settings.ui_dir:
         mount_ui(app, settings.ui_dir)

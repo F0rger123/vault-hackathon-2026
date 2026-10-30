@@ -36,7 +36,7 @@ from backend.indexing.search import search as run_search
 from backend.ingest.service import ensure_collection, ingest_bytes
 from backend.providers import PROVIDER_NAMES, get_provider
 from backend.providers.base import ProviderError
-from backend.security import audit
+from backend.security import audit, signin_log
 from backend.security import login as signin
 from backend.security.auth import Principal, list_tokens, revoke_token
 from backend.security.files import FileRejected, contained, safe_join
@@ -114,6 +114,11 @@ def auth_options(conn=Depends(get_conn), settings: Settings = Depends(get_settin
 LOOPBACK = {"127.0.0.1", "::1", "localhost"}
 
 
+def _log_signin(conn, request: Request, username: str, method: str, outcome: str, reason: str | None = None) -> None:
+    ip = request.client.host if request.client else None
+    signin_log.record(conn, username, method, outcome, reason, ip, request.headers.get("user-agent"))
+
+
 def _browser_origin_ok(request: Request, settings: Settings) -> bool:
     """Public sign-in routes refuse browser requests from pages that are not VAULT's own interface."""
     origin = request.headers.get("origin")
@@ -132,16 +137,21 @@ def login(
         session = signin.password_login(conn, body.username, body.password, settings.session_ttl_hours)
     except signin.LoginLocked as exc:
         audit.record(conn, who, "auth.login", "denied", detail={"reason": "locked"})
+        ip = request.client.host if request.client else None
+        signin_log.record_locked(conn, who, "password", ip, request.headers.get("user-agent"))
         raise HTTPException(status_code=429, detail=f"too many attempts; try again in {int(exc.wait) + 1} s") from exc
     except signin.LoginBusy as exc:
         raise HTTPException(status_code=503, detail="too many sign-ins at once; try again") from exc
     except signin.PasskeyRequired as exc:
         audit.record(conn, who, "auth.login", "denied", detail={"reason": "passkey required"})
+        _log_signin(conn, request, who, "password", "denied", "passkey required")
         raise HTTPException(status_code=403, detail="this account signs in with its passkey") from exc
     if session is None:
         audit.record(conn, who, "auth.login", "denied", detail={"reason": "wrong credentials"})
+        _log_signin(conn, request, who, "password", "denied", "wrong credentials")
         raise HTTPException(status_code=401, detail="wrong username or password")
     audit.record(conn, session["username"], "auth.login", "allowed")
+    _log_signin(conn, request, session["username"], "password", "allowed")
     return session
 
 
@@ -162,6 +172,7 @@ def setup_owner(
         audit.record(conn, "unknown-user", "setup.owner", "denied", detail={"reason": "already set up"})
         raise HTTPException(status_code=409, detail="VAULT already has an owner")
     audit.record(conn, session["username"], "setup.owner", "allowed")
+    _log_signin(conn, request, session["username"], "first-setup", "allowed")
     return session
 
 
@@ -177,6 +188,7 @@ def demo_login(
     if session is None:
         raise HTTPException(status_code=404, detail="demo users are not set up; run vault init --demo-users")
     audit.record(conn, session["username"], "auth.demo_login", "allowed")
+    _log_signin(conn, request, session["username"], "demo", "allowed")
     return session
 
 
@@ -185,6 +197,7 @@ def logout(request: Request, conn=Depends(get_conn), p: Principal = Depends(requ
     token = request.headers.get("authorization", "").partition(" ")[2].strip()
     revoked = signin.revoke_by_token(conn, token)
     audit.record(conn, p.username, "auth.logout", "allowed")
+    _log_signin(conn, request, p.username, "sign-out", "allowed")
     return {"signed_out": revoked}
 
 

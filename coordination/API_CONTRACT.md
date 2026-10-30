@@ -120,6 +120,14 @@ Every response carries `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY
 - **Errors:** 422 when the key does not start with `LLM_`.
 - **Audit:** `settings.meta_api_key`, which records "set" or "removed", never the value.
 
+### People and the sign-in log (F09.17)
+- `GET /users`, `POST /users` (`{username, role, password}`, 201, 409 if taken), `PATCH /users/{id}` (`{role?, disabled?}`, 409 for the last active admin or disabling yourself), `PUT /users/{id}/password` (`{password}`, ends their sessions). Permission: `users:manage`.
+- There is no route to delete a user or a log row. Triggers refuse those deletes in the database.
+- `POST /auth/password` (`{current, password}`), for your own account. It ends your sessions, so you sign in again.
+- `GET /signin-log?limit=&username=` returns `[{id, ts, username, method, outcome, reason, ip, user_agent}]`, newest first. `method` is `password`, `passkey`, `demo`, `first-setup`, `password-change` or `sign-out`. Bearer API tokens are not logged per request. Permission: `audit:read`.
+- `GET /signin-log/verify` returns `{intact, entries, first_bad_id}`. Permission: `audit:read`.
+- A disabled account answers like a wrong password, and its tokens stop working.
+
 ### `GET /tokens` (F09.8)
 - **Permission:** `users:manage` (admin)
 - **Response 200:** `[{id, username, role, label, created_at, expires_at, revoked, revoked_at, last_used_at, expired}]`.

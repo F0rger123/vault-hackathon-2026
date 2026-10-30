@@ -245,6 +245,32 @@ MIGRATIONS: list[str] = [
     );
     ALTER TABLE users ADD COLUMN require_passkey INTEGER NOT NULL DEFAULT 0;
     """,
+    # 8: F09.17, people with their own logins and a sign-in log nobody can edit or delete.
+    """
+    ALTER TABLE users ADD COLUMN disabled INTEGER NOT NULL DEFAULT 0;
+    CREATE TABLE signin_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ts REAL NOT NULL,
+        username TEXT NOT NULL,
+        method TEXT NOT NULL,
+        outcome TEXT NOT NULL,
+        reason TEXT,
+        ip TEXT,
+        user_agent TEXT,
+        row_hash TEXT NOT NULL
+    );
+    CREATE INDEX signin_log_user ON signin_log(username, id);
+    CREATE TRIGGER signin_log_no_update BEFORE UPDATE ON signin_log
+        BEGIN SELECT RAISE(ABORT, 'the sign-in log cannot be changed'); END;
+    CREATE TRIGGER signin_log_no_delete BEFORE DELETE ON signin_log
+        BEGIN SELECT RAISE(ABORT, 'the sign-in log cannot be deleted'); END;
+    CREATE TRIGGER audit_log_no_update BEFORE UPDATE ON audit_log
+        BEGIN SELECT RAISE(ABORT, 'the audit log cannot be changed'); END;
+    CREATE TRIGGER audit_log_no_delete BEFORE DELETE ON audit_log
+        BEGIN SELECT RAISE(ABORT, 'the audit log cannot be deleted'); END;
+    CREATE TRIGGER users_no_delete BEFORE DELETE ON users
+        BEGIN SELECT RAISE(ABORT, 'users are disabled, never deleted'); END;
+    """,
 ]
 
 
