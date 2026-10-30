@@ -101,6 +101,7 @@ export interface Collection {
 export interface AuthOptions {
   demo_login: boolean;
   password_login: boolean;
+  passkey_login?: boolean;
 }
 
 export interface SignedIn {

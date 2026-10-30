@@ -23,6 +23,9 @@ def posture(conn: sqlite3.Connection, settings: Settings) -> dict:
         "SELECT COUNT(*) FROM users WHERE role = 'admin' AND password_hash IS NOT NULL"
     ).fetchone()[0]
     denials = conn.execute("SELECT COUNT(*) FROM audit_log WHERE outcome = 'denied'").fetchone()[0]
+    admin_keys = conn.execute(
+        "SELECT COUNT(DISTINCT p.user_id) FROM passkeys p JOIN users u ON u.id = p.user_id WHERE u.role = 'admin'"
+    ).fetchone()[0]
     data_dir = str(settings.data_dir.resolve()).casefold()
     checks = [
         _c(
@@ -98,9 +101,9 @@ def posture(conn: sqlite3.Connection, settings: Settings) -> dict:
         _c(
             "strong_unlock",
             "Hardware key or face unlock",
-            False,
-            "",
-            "Not set up yet. Passkeys (Windows Hello face or fingerprint, or a YubiKey) are planned.",
+            admins > 0 and admin_keys == admins,
+            "Every admin has a passkey (Windows Hello, Touch ID or a security key).",
+            "An admin has no passkey. Add one under Security: face, fingerprint or a YubiKey.",
         ),
     ]
     passed = sum(c["ok"] for c in checks)

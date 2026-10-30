@@ -22,11 +22,11 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 | F06 Search & Investigation | 7 | 6 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F07 Teaching & Corrections | 10 | 9 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F08 Actions & Organization | 6 | 6 | 0 | 0 | 0 | 0 | 0 | 0 |
-| F09 Security | 12 | 10 | 1 | 0 | 0 | 1 | 0 | 0 |
+| F09 Security | 13 | 12 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F10 User Interface | 13 | 13 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F11 Synthetic Data & Evaluation | 7 | 6 | 0 | 1 | 0 | 0 | 0 | 0 |
 | F12 Deployment & Submission | 12 | 9 | 0 | 0 | 0 | 2 | 1 | 0 |
-| **Total** | **113** | **98** | **2** | **1** | **1** | **8** | **3** | **0** |
+| **Total** | **114** | **100** | **1** | **1** | **1** | **8** | **3** | **0** |
 
 **Recorded evidence used below**
 
@@ -1085,7 +1085,7 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 
 #### F09.13 — Security gate that blocks active content, and a live security checklist
 
-- **Priority:** P1 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F09.3, F02.8
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F09.3, F02.8
 - **Description:** Luke said (2026-10-30) the security gate should give real security, and the app shows no sign of how secure it is.
   - **What is held at upload:** files with active content.
     - PDF: JavaScript, actions that run on open, Launch actions, embedded files, rich media and XFA. These are checked in the raw bytes and in the parsed structure.
@@ -1098,7 +1098,26 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
   - admin release returns 200, a second release returns 409, and the download then works; both actions are in the audit log;
   - the checklist reflects real settings (the response cache flips its check);
   - without sign-in: 401.
-- **Blockers:** this changes how uploads are handled, so Luke approves the merge.
+- **Merge:** Luke approved on 2026-10-30; merged as PR #80.
+
+#### F09.14 — Passkeys: sign in with face, fingerprint or a hardware security key
+
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F09.1, F10.11
+- **Description:** Luke asked (2026-10-30) for face unlock and a hardware dongle.
+  - **Standard:** WebAuthn passkeys, which work with Windows Hello face or fingerprint, Touch ID, or a YubiKey.
+  - **What VAULT keeps:** only the public key. The biometric never leaves the device, and user verification is required.
+  - **Managing them:** a person registers passkeys on Security, signs in with one from the sign-in screen, and can tick "Require my passkey", after which password-only sign-in is refused.
+  - **Safeguards:** removing the last passkey turns the requirement off, so nobody is locked out. Challenges are single-use, tied to their purpose and person, and expire after two minutes. Sign-in options never reveal which accounts exist, and only VAULT's own origin is accepted.
+  - **Storage and dependency:** migration 7 (additive); the `webauthn` library (py_webauthn).
+- **Verification evidence (2026-10-30):**
+  - **`tests/security/test_passkeys.py`, 4 tests:**
+    - the options name the relying party and require user verification;
+    - a garbage answer is refused, a reused challenge is refused, and another person's challenge is refused;
+    - unknown users get the same-shaped options;
+    - a foreign origin gets 403;
+    - with "require passkey" on, a wrong password still gives 401, a right password gives 403, and removing the last passkey lifts the requirement.
+  - **`tests/e2e/specs/059-passkeys.spec.ts`:** a real WebAuthn ceremony in Chromium with a virtual authenticator registers a passkey, then signs in with it and no password. It passed locally.
+- **Merge:** Luke approved on 2026-10-30; merged as PR #82.
 
 ## F10 — User Interface
 

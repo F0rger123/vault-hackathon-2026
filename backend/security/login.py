@@ -41,6 +41,10 @@ class LoginLocked(Exception):
         self.wait = wait
 
 
+class PasskeyRequired(Exception):
+    """The password was right, but this account turned on "require my passkey" (F09.14)."""
+
+
 class LoginBusy(Exception):
     pass
 
@@ -78,7 +82,7 @@ def set_password(conn: sqlite3.Connection, username: str, password: str) -> int:
     conn.execute("UPDATE users SET password_hash = ? WHERE id = ?", (hash_password(password), row["id"]))
     cur = conn.execute(
         "UPDATE api_tokens SET revoked = 1, revoked_at = ? "
-        "WHERE user_id = ? AND revoked = 0 AND label IN ('password-login', 'demo-login')",
+        "WHERE user_id = ? AND revoked = 0 AND label IN ('password-login', 'demo-login', 'passkey-login')",
         (now(), row["id"]),
     )
     return cur.rowcount
@@ -113,7 +117,9 @@ def password_login(conn: sqlite3.Connection, username: str, password: str, ttl_h
 
     Raises LoginLocked when the username used up its attempts, LoginBusy when too many run at once.
     """
-    row = conn.execute("SELECT id, username, role, password_hash FROM users WHERE username = ?", (username,)).fetchone()
+    row = conn.execute(
+        "SELECT id, username, role, password_hash, require_passkey FROM users WHERE username = ?", (username,)
+    ).fetchone()
     _start_attempt(row["username"] if row else UNKNOWN)
     if not _slots.acquire(timeout=5):
         raise LoginBusy()
@@ -125,6 +131,9 @@ def password_login(conn: sqlite3.Connection, username: str, password: str, ttl_h
     if not ok:
         return None
     clear_attempts(row["username"])
+    # Told only after a correct password, so it reveals nothing to someone guessing.
+    if row["require_passkey"]:
+        raise PasskeyRequired()
     return _session(conn, row, "password-login", ttl_hours)
 
 
@@ -137,6 +146,10 @@ def demo_login(conn: sqlite3.Connection, role: str, ttl_hours: float) -> dict | 
         return None
     row = conn.execute("SELECT id, username, role FROM users WHERE username = ?", (role,)).fetchone()
     return _session(conn, row, "demo-login", ttl_hours) if row else None
+
+
+def passkey_session(conn: sqlite3.Connection, row, ttl_hours: float) -> dict:
+    return _session(conn, row, "passkey-login", ttl_hours)
 
 
 def _session(conn: sqlite3.Connection, row, label: str, ttl_hours: float) -> dict:

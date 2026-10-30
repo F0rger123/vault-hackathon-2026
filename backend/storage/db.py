@@ -230,6 +230,21 @@ MIGRATIONS: list[str] = [
     );
     CREATE INDEX knowledge_collection ON knowledge(collection_id, kind, retired_at);
     """,
+    # 7: passkeys (F09.14): WebAuthn public keys per user, and an opt-in to refuse password-only sign-in.
+    # Additive only.
+    """
+    CREATE TABLE passkeys (
+        id INTEGER PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id),
+        credential_id TEXT NOT NULL UNIQUE,
+        public_key BLOB NOT NULL,
+        sign_count INTEGER NOT NULL DEFAULT 0,
+        name TEXT NOT NULL,
+        created_at REAL NOT NULL,
+        last_used_at REAL
+    );
+    ALTER TABLE users ADD COLUMN require_passkey INTEGER NOT NULL DEFAULT 0;
+    """,
 ]
 
 

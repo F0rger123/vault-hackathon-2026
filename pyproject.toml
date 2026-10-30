@@ -19,6 +19,8 @@ dependencies = [
     "typer>=0.12",
     # F12.11: AES-256-GCM for encrypted transfer packs. pyca/cryptography, the standard audited library.
     "cryptography>=44",
+    # F09.14: WebAuthn passkeys (Windows Hello, Touch ID, hardware security keys).
+    "webauthn>=2.2",
     # F08.6: share packs are written as clean, newly drawn PDFs.
     "reportlab>=4.2",
 ]

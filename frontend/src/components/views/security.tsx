@@ -4,6 +4,7 @@ import { useState } from "react";
 import { atLeast, errorText, vault, type AuditEntry } from "@/lib/api";
 import { dateTime, formatNumber, humanize, providerLabel } from "@/lib/format";
 import { useLoad } from "@/lib/use-load";
+import { PasskeysPanel } from "../passkeys-panel";
 import { Quarantine, SecurityPosture } from "../security-posture";
 import { useSession } from "../session";
 import { TitleBlock } from "../title-block";
@@ -24,6 +25,9 @@ export function SecurityView() {
       </div>
       <div className="mb-6">
         <Quarantine isAdmin={isAdmin} />
+      </div>
+      <div className="mb-6">
+        <PasskeysPanel />
       </div>
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <RemoteInference isAdmin={isAdmin} />
