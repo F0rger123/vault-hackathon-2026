@@ -249,6 +249,8 @@ Pen-testing it yourself with open-source tools: [docs/PENTEST_GUIDE.md](docs/PEN
 
 ## Honest limits
 
+Each person has their own login, and every sign-in goes into a log the database refuses to change. Editing the file directly normally shows up as a broken chain, but someone with full control of it could rewrite the whole log. A full read of the code on 2026-10-30 found holes that are now fixed, each with a test; see [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md).
+
 VAULT checks permissions on the server, validates files by content, refuses path escapes, keeps originals read-only, treats document text as data rather than instructions, and logs every denial. It has **not** been independently audited and is not certified for regulated or classified use, so nobody should call it unhackable. Details: [docs/SECURITY.md](docs/SECURITY.md) and [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md).
 
 ## Built by
