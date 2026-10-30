@@ -30,6 +30,10 @@ dev = [
     "bandit>=1.7",
     "pip-audit>=2.7",
 ]
+# F12.9: `start.ps1 --app` opens VAULT in a native window (WebView2 on Windows, GTK/WebKit or Qt on Linux).
+desktop = [
+    "pywebview>=5",
+]
 
 [project.scripts]
 vault = "cli.main:app"
