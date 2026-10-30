@@ -1,7 +1,36 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { useSession } from "./session";
+
+const CIPHER = "ｱｶｻﾀﾅﾊﾏﾔﾗﾜ0123456789";
+
+/** The title resolves out of random type once when the page opens. The real text is in the page from the start. */
+function useDecode(text: string) {
+  const ref = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const steps = 18;
+    let step = 0;
+    const timer = window.setInterval(() => {
+      step += 1;
+      const shown = Math.floor((step / steps) * text.length);
+      el.textContent = [...text]
+        .map((c, i) => (i < shown || c === " " ? c : CIPHER[Math.floor(Math.random() * CIPHER.length)]))
+        .join("");
+      if (step >= steps) {
+        el.textContent = text;
+        window.clearInterval(timer);
+      }
+    }, 28);
+    return () => {
+      window.clearInterval(timer);
+      el.textContent = text;
+    };
+  }, [text]);
+  return ref;
+}
 
 /**
  * Page header: an expanded title with one line of context, the collection in view, and the page's actions.
@@ -20,6 +49,7 @@ export function TitleBlock({
   collectionLabel?: string;
 }) {
   const { collection } = useSession();
+  const heading = useDecode(title);
   return (
     <header className="mb-8 flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
       <div className="min-w-0 max-w-3xl">
@@ -29,7 +59,9 @@ export function TitleBlock({
           </svg>
           <span className="truncate">{collectionLabel ?? collection?.name ?? "No collection selected"}</span>
         </p>
-        <h1 className="display text-balance text-[29px] leading-[1.1] sm:text-[35px]">{title}</h1>
+        <h1 ref={heading} className="display text-balance text-[27px] leading-[1.1] sm:text-[33px]">
+          {title}
+        </h1>
         {description && <div className="mt-2 text-[15px] leading-relaxed text-muted">{description}</div>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}

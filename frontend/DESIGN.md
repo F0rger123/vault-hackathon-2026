@@ -1,3 +1,5 @@
+> **Updated 2026-10-30 (F10.16):** the look is now black and white with falling type behind the work, mono titles, small radii, and two signals: green for live or verified and red for conflicts and denials. This replaces the blue below.
+
 > **Updated 2026-10-30 (F10.15):** the look is now graphite with one blue accent, Inter and JetBrains Mono, larger radii and one shared easing. There is no yellow and no decorative gradient. Where this file says otherwise, the tokens in `src/app/globals.css` win.
 
 # Design: VAULT

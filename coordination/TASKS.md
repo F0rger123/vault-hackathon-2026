@@ -1323,6 +1323,11 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 - **Description:** An independent read of the whole code found one proven bypass and several smaller holes. Fixed: a benchmark could release a held document; document text could reach a remote model unscreened from estimate, calibrate, investigations and teaching examples; outside links in Office files escaped detection with single quotes or a big part; a proposal pattern could allocate gigabytes; a tampered database row could point downloads at the secrets folder; oversized bodies were parsed before sign-in; passkey options revealed which accounts have passkeys; an old session could change passkeys; page reads were not logged; viewers could see server paths.
 - **Verification evidence (2026-10-30):** `tests/security/test_audit_fixes.py`, one test per attack. bandit, pip-audit and `npm audit --omit=dev` found nothing. This is not an independent certification, and no attack was run against a real browser, the packaged app or a live remote model.
 
+#### F10.16 — Black-and-white look, agents you can watch, and the unlock moment
+
+- **Priority:** P1 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F10.15, F07.10, F09.14
+- **Description:** Luke asked (2026-10-30) for agents shown handing work to each other, agents visibly touching files in the brain, stronger 3D, a striking face unlock, and a futuristic look, black and white with a couple of accents. The run board now has an agent floor, the 3D brain has craft that fly to documents with bloom, sparks and stars, sign-in and sign-out have a full-screen sequence, and tokens are black, white, green and red with falling type behind the work. Agents only move because of recorded events, live or replayed and labelled as such. The face animation is theatre: the device does the check, and VAULT never touches the camera.
+
 ## F11 — Synthetic Data & Evaluation
 - **Verification evidence (E-E2E-2, 2026-10-28):** covered by the Playwright suite in `tests/e2e/` (`02-investigate`); 13 of 13 tests passed in 5 consecutive fresh runs on Windows 11 (Chromium, desktop and Pixel 7 profiles).
 

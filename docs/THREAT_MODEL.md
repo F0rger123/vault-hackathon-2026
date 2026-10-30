@@ -1,3 +1,5 @@
+> **Security audit, 2026-10-30 (F09.18):** a full read of the code found one proven bypass and several smaller holes. All are fixed, each with a test in `tests/security/test_audit_fixes.py`. Sign-ins now go to a log that the database refuses to change and that reveals edits made directly to the file. That makes tampering visible, and it does not stop someone who fully controls the file from rewriting it. No audit can show that nothing can be hacked, and VAULT has had no outside review.
+
 # Threat Model
 
 ## Scope

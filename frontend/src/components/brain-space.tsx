@@ -3,9 +3,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
+import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
+import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
+import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 import { CSS2DObject, CSS2DRenderer } from "three/examples/jsm/renderers/CSS2DRenderer.js";
-import type { BrainGraph, BrainNode } from "@/lib/api";
+import { activityOf, laneSlots, replayDelays, type Activity } from "@/lib/agent-activity";
+import type { AgentEvent, BrainGraph, BrainNode } from "@/lib/api";
 import { humanize } from "@/lib/format";
+import { createSwarm } from "./brain-agents";
 import { Button, cx, inputClass } from "./ui";
 
 type Kind = BrainNode["kind"];
@@ -20,6 +26,9 @@ const KIND_LABEL: Record<Kind, string> = {
 const RADIUS: Record<Kind, number> = { document: 3, project: 9, doc_type: 8, part: 5, marking: 6 };
 const IDLE_MS = 5000;
 const FLY_SPEED = 220; // world units per second
+const REPLAY_SECONDS = 45;
+const STARS = 1400;
+const SPARKS = 240;
 
 interface Body extends BrainNode {
   p: THREE.Vector3;
@@ -45,7 +54,7 @@ function readPalette(el: Element): Palette {
     // The line token alone vanishes into the fog, so lift it a little toward muted.
     edge: c("--line-strong").lerp(muted, 0.35),
     red: c("--redline"),
-    fill: { document: muted, project: c("--ink"), doc_type: c("--blue"), part: c("--green"), marking: c("--amber") },
+    fill: { document: muted, project: c("--ink"), doc_type: c("--blue"), part: c("--amber"), marking: c("--green") },
   };
 }
 
@@ -124,10 +133,17 @@ export default function BrainSpace({
   graph,
   onOpenDocument,
   onUnsupported,
+  events,
+  runId,
+  running,
 }: {
   graph: BrainGraph;
   onOpenDocument: (id: number) => void;
   onUnsupported?: () => void;
+  /** The recorded events of the latest run in this collection; the agents fly only from these. */
+  events?: AgentEvent[];
+  runId?: number | null;
+  running?: boolean;
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -140,7 +156,9 @@ export default function BrainSpace({
   });
   const [selected, setSelected] = useState<string | null>(null);
   const [find, setFind] = useState("");
-  const api = useRef<{ paint: () => void; reset: () => void; focus: (id: string) => void } | null>(null);
+  const api = useRef<{ paint: () => void; reset: () => void; focus: (id: string) => void; play: (a: Activity, slots?: number) => void } | null>(null);
+  const feedRef = useRef<HTMLOListElement>(null);
+  const [replaying, setReplaying] = useState(false);
   // The scene reads these on its own schedule, so it keeps the latest values in a ref.
   const state = useRef({ shown, selected, find, onOpenDocument, onUnsupported });
   useEffect(() => {
@@ -181,7 +199,37 @@ export default function BrainSpace({
     const home = new THREE.Vector3(radius * 0.3, radius * 0.35, radius * 1.55);
     camera.position.copy(home);
     scene.fog = new THREE.Fog(0x000000, radius * 1.3, radius * 4.5);
-    scene.add(new THREE.AmbientLight(0xffffff, 1.9));
+    scene.add(new THREE.AmbientLight(0xffffff, 2.2));
+    // Depth: far points that drift with the camera. Decoration, not data.
+    const starPositions = new Float32Array(STARS * 3);
+    for (let i = 0; i < STARS; i++) {
+      const dir = new THREE.Vector3().randomDirection().multiplyScalar(radius * (2 + Math.random() * 3));
+      starPositions.set([dir.x, dir.y, dir.z], i * 3);
+    }
+    const starGeometry = new THREE.BufferGeometry();
+    starGeometry.setAttribute("position", new THREE.BufferAttribute(starPositions, 3));
+    const starMaterial = new THREE.PointsMaterial({ color: 0x8a8a8a, size: 1.4, sizeAttenuation: false, fog: false });
+    const stars = new THREE.Points(starGeometry, starMaterial);
+    scene.add(stars);
+
+    // When an agent touches a document, sparks run from it along its real links.
+    const sparkPositions = new Float32Array(SPARKS * 3).fill(1e7);
+    const sparkGeometry = new THREE.BufferGeometry();
+    sparkGeometry.setAttribute("position", new THREE.BufferAttribute(sparkPositions, 3));
+    const sparkMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 3, sizeAttenuation: false, fog: false, transparent: true, blending: THREE.AdditiveBlending });
+    const sparkPoints = new THREE.Points(sparkGeometry, sparkMaterial);
+    sparkPoints.frustumCulled = false;
+    scene.add(sparkPoints);
+    const sparks: { from: THREE.Vector3; to: THREE.Vector3; t: number; slot: number }[] = [];
+    let sparkSlot = 0;
+    const flashes = new Map<string, number>();
+    const touched = new Set<string>();
+
+    const composer = new EffectComposer(renderer);
+    composer.addPass(new RenderPass(scene, camera));
+    const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.55, 0.4, 0.5);
+    composer.addPass(bloom);
+    composer.addPass(new OutputPass());
     const sun = new THREE.DirectionalLight(0xffffff, 1.1);
     sun.position.set(1, 1.4, 0.8);
     scene.add(sun);
@@ -266,6 +314,7 @@ export default function BrainSpace({
         m4.compose(b.p, one, s3.setScalar(size));
         mesh.setMatrixAt(i, m4);
         tmp.copy(b.conflict ? palette.red : palette.fill[b.kind]);
+        if (touched.has(b.id)) tmp.lerp(palette.ink, 0.75);
         if (f || b.id === sel) tmp.lerp(palette.ink, b.conflict ? 0 : 0.35);
         const dim = !lit(b.id) && !f ? 0.85 : match && !f ? 0.6 : 0;
         mesh.setColorAt(i, tmp.lerp(palette.bg, dim));
@@ -320,7 +369,32 @@ export default function BrainSpace({
       controls.update();
       lastInput = performance.now();
     };
-    api.current = { paint, reset, focus };
+    const swarm = createSwarm({
+      scene,
+      radius,
+      docPosition: (id) => byId.get(`doc:${id}`)?.p ?? null,
+      onTouch: (a, who) => {
+        const id = `doc:${a.document_id}`;
+        const body = byId.get(id);
+        if (!body) return;
+        touched.add(id);
+        flashes.set(id, performance.now());
+        for (const other of neighbours.get(id) ?? []) {
+          const hub = byId.get(other);
+          if (!hub) continue;
+          sparks.push({ from: body.p, to: hub.p, t: 0, slot: sparkSlot });
+          sparkSlot = (sparkSlot + 1) % SPARKS;
+        }
+        const list = feedRef.current;
+        if (list) {
+          const line = document.createElement("li");
+          line.textContent = `${who} ${a.verb} ${body.label}`;
+          list.prepend(line);
+          while (list.children.length > 5) list.lastChild?.remove();
+        }
+      },
+    });
+    api.current = { paint, reset, focus, play: (a, slots) => swarm.feed(a, slots) };
 
     // Picking: a ray against the spheres first, then the nearest dot on screen so small documents stay easy to hit.
     const ray = new THREE.Raycaster();
@@ -410,6 +484,7 @@ export default function BrainSpace({
       const { width, height } = canvas.getBoundingClientRect();
       if (!width || !height) return;
       renderer.setSize(width, height, false);
+      composer.setSize(width, height);
       labels.setSize(width, height);
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
@@ -467,7 +542,32 @@ export default function BrainSpace({
         const far = camera.position.distanceTo(byId.get(id)!.p) / (radius * 4);
         tag.element.style.filter = far > 0.55 ? `opacity(${Math.max(0.15, 1.3 - far * 1.4)})` : "";
       }
-      renderer.render(scene, camera);
+      swarm.update(dt);
+      // Fly each spark along its link, and let a touched document swell and settle.
+      for (let i = sparks.length - 1; i >= 0; i--) {
+        const s = sparks[i];
+        s.t += dt * 1.6;
+        const p = s.t >= 1 ? null : step.copy(s.from).lerp(s.to, s.t);
+        sparkPositions.set(p ? [p.x, p.y, p.z] : [1e7, 1e7, 1e7], s.slot * 3);
+        if (!p) sparks.splice(i, 1);
+      }
+      sparkGeometry.attributes.position.needsUpdate = true;
+      if (flashes.size) {
+        const clock = performance.now();
+        slots.forEach((b, i) => {
+          const at = flashes.get(b.id);
+          if (at === undefined) return;
+          const age = (clock - at) / 900;
+          if (age >= 1) flashes.delete(b.id);
+          const boost = age >= 1 ? 1 : 1 + 2.4 * (1 - age);
+          m4.compose(b.p, one, s3.setScalar(b.r * boost));
+          mesh.setMatrixAt(i, m4);
+          mesh.setColorAt(i, tmp.copy(palette.ink));
+        });
+        mesh.instanceMatrix.needsUpdate = true;
+        if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+      }
+      composer.render(dt);
       labels.render(scene, camera);
     };
     const run = () => {
@@ -504,6 +604,12 @@ export default function BrainSpace({
       controls.dispose();
       for (const tag of tags.values()) tag.element.remove();
       labels.domElement.remove();
+      swarm.dispose();
+      composer.dispose();
+      starGeometry.dispose();
+      starMaterial.dispose();
+      sparkGeometry.dispose();
+      sparkMaterial.dispose();
       sphere.dispose();
       material.dispose();
       mesh.dispose();
@@ -513,6 +619,46 @@ export default function BrainSpace({
       api.current = null;
     };
   }, [graph, neighbours]);
+
+  // Live events play as they arrive. A finished run replays once by itself, and again from the button.
+  const timers = useRef<number[]>([]);
+  const playedTo = useRef(0);
+  const startedRun = useRef<number | null>(null);
+  const startReplay = () => {
+    timers.current.forEach((t) => window.clearTimeout(t));
+    const items = (events ?? []).map(activityOf).filter((a): a is Activity => a !== null && a.document_id != null);
+    const delays = replayDelays(items, REPLAY_SECONDS);
+    const slots = laneSlots(events ?? []);
+    setReplaying(true);
+    timers.current = items.map((a, i) => window.setTimeout(() => api.current?.play(a, slots.get(a.lane ?? "")), delays[i]));
+    timers.current.push(window.setTimeout(() => setReplaying(false), REPLAY_SECONDS * 1000 + 800));
+  };
+  const replayRef = useRef(startReplay);
+  useEffect(() => {
+    replayRef.current = startReplay;
+  });
+  const hasEvents = (events?.length ?? 0) > 0;
+  useEffect(() => {
+    if (!hasEvents || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (running) {
+      for (const e of events ?? []) {
+        if (e.id <= playedTo.current) continue;
+        playedTo.current = e.id;
+        // Only what happens from now on flies; earlier work in this run is already done.
+        const a = startedRun.current === runId ? activityOf(e) : null;
+        if (a) api.current?.play(a, laneSlots(events ?? []).get(a.lane ?? ""));
+      }
+      startedRun.current = runId ?? null;
+    } else if (startedRun.current !== runId) {
+      startedRun.current = runId ?? null;
+      const handle = window.setTimeout(() => replayRef.current(), 600);
+      return () => window.clearTimeout(handle);
+    }
+  }, [events, hasEvents, running, runId]);
+  useEffect(() => {
+    const list = timers;
+    return () => list.current.forEach((t) => window.clearTimeout(t));
+  }, []);
 
   const sel = selected ? nodeById.get(selected) : null;
   const selDocs = sel
@@ -545,12 +691,17 @@ export default function BrainSpace({
           value={find}
           onChange={(e) => setFind(e.target.value)}
         />
-        <Button type="button" variant="quiet" className="ml-auto" onClick={() => api.current?.reset()}>
+        {runId != null && !running && (
+          <Button type="button" variant="quiet" className="ml-auto" disabled={!hasEvents} onClick={startReplay}>
+            Replay run {runId}
+          </Button>
+        )}
+        <Button type="button" variant="quiet" className={runId != null && !running ? "" : "ml-auto"} onClick={() => api.current?.reset()}>
           Reset view
         </Button>
       </div>
       <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_260px]">
-        <div ref={wrapRef} className="relative h-[560px] overflow-hidden rounded-control border border-line bg-raised">
+        <div ref={wrapRef} className="space-scope relative h-[620px] overflow-hidden rounded-control border border-line bg-black">
           <canvas
             ref={canvasRef}
             tabIndex={0}
@@ -558,6 +709,12 @@ export default function BrainSpace({
             role="img"
             aria-label={`Map of ${graph.nodes.length} items and ${graph.edges.length} links, in 3D. Drag to look around, scroll to zoom, and with the map focused use W A S D or the arrow keys to fly, Q and E to go down and up. Use the list beside it to browse.`}
           />
+          {runId != null && (
+            <div aria-hidden className="pointer-events-none absolute left-3 top-3 max-w-[70%] font-mono text-[11px] text-[#d0d0d0]">
+              <p className="mb-1 text-[#00e676]">{running ? `Live: run ${runId}` : replaying ? `Replaying the record of run ${runId}` : `Record of run ${runId}`}</p>
+              <ol ref={feedRef} className="flex flex-col gap-0.5 [&>li]:truncate" />
+            </div>
+          )}
           <p className="pointer-events-none absolute bottom-2 left-3 text-[11px] text-muted" aria-hidden>
             Drag to look · Scroll to zoom · Click here, then W A S D or arrows to fly · Q / E down and up
           </p>

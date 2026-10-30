@@ -4,6 +4,7 @@ import { useState } from "react";
 import { errorText, vault, type RunSummary } from "@/lib/api";
 import { humanize } from "@/lib/format";
 import { useLoad } from "@/lib/use-load";
+import { ASK_EVENT, type AskDetail } from "./agent-floor";
 import { Button, cx, inputClass, Panel } from "./ui";
 
 const SUGGESTIONS = ["How is it going?", "How fast is it?", "Did anything fail?", "What did the security gate do?"];
@@ -20,6 +21,7 @@ export function RunSummaryPanel({ jobId, finished }: { jobId: number; finished: 
     setMessages((m) => [...m, { who: "you", text: q }]);
     setQuestion("");
     setBusy(true);
+    window.dispatchEvent(new CustomEvent<AskDetail>(ASK_EVENT, { detail: { stage: "asked" } }));
     try {
       const r = await vault.askRun(jobId, q);
       setMessages((m) => [...m, { who: "vault", text: r.answer, by: r.by }]);
@@ -27,6 +29,7 @@ export function RunSummaryPanel({ jobId, finished }: { jobId: number; finished: 
       setMessages((m) => [...m, { who: "vault", text: errorText(e), by: "error" }]);
     } finally {
       setBusy(false);
+      window.dispatchEvent(new CustomEvent<AskDetail>(ASK_EVENT, { detail: { stage: "answered" } }));
     }
   };
 
