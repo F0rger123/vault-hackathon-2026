@@ -20,6 +20,9 @@ from backend.workers.jobs import JobRunner
 
 log = logging.getLogger("vault")
 
+MAX_UPLOAD_BODY = 2 * 1024**3
+MAX_JSON_BODY = 16 * 1024**2
+
 
 def create_app(settings: Settings | None = None, resume_jobs: bool = True) -> FastAPI:
     settings = settings or get_settings()
@@ -56,6 +59,16 @@ def create_app(settings: Settings | None = None, resume_jobs: bool = True) -> Fa
             for name, value in API_HEADERS.items():
                 response.headers.setdefault(name, value)
         return response
+
+    @app.middleware("http")
+    async def limit_body(request: Request, call_next):
+        # Refused before anything is parsed or spooled to disk, so nobody fills the disk without signing in.
+        size = request.headers.get("content-length")
+        chunked = "chunked" in request.headers.get("transfer-encoding", "").lower()
+        ceiling = MAX_UPLOAD_BODY if request.url.path.endswith("/documents") else MAX_JSON_BODY
+        if chunked or (size and (not size.isdigit() or int(size) > ceiling)):
+            return JSONResponse(status_code=413, content={"detail": "request too large"})
+        return await call_next(request)
 
     @app.exception_handler(Exception)
     async def unhandled(request: Request, exc: Exception):

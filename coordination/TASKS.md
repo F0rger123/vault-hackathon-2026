@@ -1317,6 +1317,12 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 - **Description:** Luke asked (2026-10-30) for several users with their own logins and a record of who signed in, when and how, that cannot be deleted. Admins add people, set roles, reset passwords and disable accounts. Nobody is ever deleted. Triggers refuse UPDATE and DELETE on the sign-in log and audit log, and each sign-in row is hash-chained to the one before, so a change made directly in the database file shows. A person with full control of the file could rewrite the chain, so this is tamper-evident, not tamper-proof.
 - **Verification evidence (2026-10-30):** `tests/security/test_users.py`, including denied cases for analyst and viewer, trigger refusals, and chain breaks after edits behind the triggers.
 
+#### F09.18 — Fixes from the 2026-10-30 security audit
+
+- **Priority:** P0 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F09.13, F09.14, F09.17
+- **Description:** An independent read of the whole code found one proven bypass and several smaller holes. Fixed: a benchmark could release a held document; document text could reach a remote model unscreened from estimate, calibrate, investigations and teaching examples; outside links in Office files escaped detection with single quotes or a big part; a proposal pattern could allocate gigabytes; a tampered database row could point downloads at the secrets folder; oversized bodies were parsed before sign-in; passkey options revealed which accounts have passkeys; an old session could change passkeys; page reads were not logged; viewers could see server paths.
+- **Verification evidence (2026-10-30):** `tests/security/test_audit_fixes.py`, one test per attack. bandit, pip-audit and `npm audit --omit=dev` found nothing. This is not an independent certification, and no attack was run against a real browser, the packaged app or a live remote model.
+
 ## F11 — Synthetic Data & Evaluation
 - **Verification evidence (E-E2E-2, 2026-10-28):** covered by the Playwright suite in `tests/e2e/` (`02-investigate`); 13 of 13 tests passed in 5 consecutive fresh runs on Windows 11 (Chromium, desktop and Pixel 7 profiles).
 

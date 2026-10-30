@@ -40,7 +40,7 @@ def test_unverified_answers_and_reused_challenges_are_refused(client, tokens):
 def test_login_options_do_not_reveal_accounts_and_bad_logins_fail(client, tokens):
     real = client.post(f"{API}/auth/passkey-login/options", json={"username": "analyst"}).json()
     fake = client.post(f"{API}/auth/passkey-login/options", json={"username": "nobody-here"}).json()
-    assert set(real["options"]) == set(fake["options"]) and fake["options"].get("allowCredentials", []) == []
+    assert set(real["options"]) == set(fake["options"]) and len(fake["options"]["allowCredentials"]) == 1
     r = client.post(f"{API}/auth/passkey-login", json={"handle": fake["handle"], "credential": {"id": "nope"}})
     assert r.status_code == 401
     r = client.post(

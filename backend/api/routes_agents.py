@@ -16,7 +16,7 @@ from backend.security import audit
 from backend.security.auth import Principal
 from backend.security.posture import posture
 from backend.storage.db import dumps, loads, now
-from backend.workers.processing import load_pages
+from backend.workers.processing import load_pages, may_go_remote
 
 router = APIRouter(prefix="/api/v1")
 
@@ -116,9 +116,12 @@ def calibrate_capacity(
     """Measure throughput at increasing concurrency on real stored documents (admin; can take minutes)."""
     provider, info = _provider(conn, settings, body.provider, body.confirm_remote, p.username)
     docs = conn.execute(
-        "SELECT id, filename FROM documents WHERE media_type NOT LIKE 'image/%' ORDER BY RANDOM() LIMIT ?",
+        "SELECT id, filename FROM documents WHERE media_type NOT LIKE 'image/%' AND status != 'quarantined' "
+        "ORDER BY RANDOM() LIMIT ?",
         (body.sample_size,),
     ).fetchall()
+    if info.locality == "remote":
+        docs = [d for d in docs if may_go_remote(conn, d["id"])]
     if len(docs) < 2:
         raise HTTPException(status_code=400, detail="need at least 2 text documents to calibrate")
     sample = [(d["filename"], load_pages(conn, d["id"])) for d in docs]

@@ -10,7 +10,7 @@ import sqlite3
 
 from backend.core.config import Settings
 from backend.indexing.findings import LATEST_EXTRACTION
-from backend.security.files import safe_join, sanitize_filename
+from backend.security.files import original_path, safe_join, sanitize_filename
 from backend.storage.db import dumps, loads, now
 
 PATTERN_FIELDS = {"project", "doc_type", "year"}
@@ -25,7 +25,10 @@ def _segment(value: str | None, fallback: str) -> str:
 
 def build_plan(conn: sqlite3.Connection, collection_id: int, pattern: str = DEFAULT_PATTERN) -> list[dict]:
     fields = set(re.findall(r"{(\w+)}", pattern))
-    if not fields or not fields <= PATTERN_FIELDS or ".." in pattern or pattern.startswith(("/", "\\")):
+    # Only plain {name} fields: anything else in braces, such as a width, could make a huge string.
+    leftover = re.sub(r"{\w+}", "", pattern)
+    bad_braces = "{" in leftover or "}" in leftover
+    if bad_braces or not fields or not fields <= PATTERN_FIELDS or ".." in pattern or pattern.startswith(("/", "\\")):
         raise ValueError(f"pattern may only use {sorted(PATTERN_FIELDS)} separated by '/'")
     rows = conn.execute(
         f"""SELECT d.id, d.filename, x.project, x.doc_type, x.doc_date FROM documents d
@@ -40,7 +43,9 @@ def build_plan(conn: sqlite3.Connection, collection_id: int, pattern: str = DEFA
             "doc_type": _segment(r["doc_type"], "unclassified"),
             "year": _segment((r["doc_date"] or "")[:4], "undated"),
         }
-        folder = pattern.format(**values)
+        folder = pattern
+        for name, value in values.items():
+            folder = folder.replace("{" + name + "}", value)
         plan.append(
             {
                 "document_id": r["id"],
@@ -74,8 +79,8 @@ def execute_proposal(conn: sqlite3.Connection, settings: Settings, proposal_id: 
     export_root.mkdir(parents=True, exist_ok=True)
     copied, used = 0, set()
     for item in plan["items"]:
-        doc = conn.execute("SELECT stored_path FROM documents WHERE id = ?", (item["document_id"],)).fetchone()
-        if not doc:
+        doc = conn.execute("SELECT stored_path, status FROM documents WHERE id = ?", (item["document_id"],)).fetchone()
+        if not doc or doc["status"] == "quarantined":
             continue
         target_rel = item["target"]
         stem, dot, ext = target_rel.rpartition(".")
@@ -85,7 +90,7 @@ def execute_proposal(conn: sqlite3.Connection, settings: Settings, proposal_id: 
             target_rel = f"{stem}-{n}{dot}{ext}" if dot else f"{item['target']}-{n}"
         used.add(target_rel)
         target = safe_join(export_root, *target_rel.split("/"))
-        source = safe_join(settings.data_dir, *doc["stored_path"].replace("\\", "/").split("/"))
+        source = original_path(settings.data_dir, doc["stored_path"])
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(source, target)
         copied += 1

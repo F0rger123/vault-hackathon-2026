@@ -39,14 +39,14 @@ from backend.providers.base import ProviderError
 from backend.security import audit, signin_log
 from backend.security import login as signin
 from backend.security.auth import Principal, list_tokens, revoke_token
-from backend.security.files import FileRejected, contained, safe_join
+from backend.security.files import FileRejected, contained, original_path
 from backend.storage.db import dumps, loads, now
 from backend.workers import training
 from backend.workers.corrections import record_correction
 from backend.workers.importer import candidate_files, create_import_job, import_one
 from backend.workers.jobs import create_process_job, documents_to_read
 from backend.workers.layout_request import interpret as interpret_layout
-from backend.workers.processing import process_document
+from backend.workers.processing import may_go_remote, process_document
 from backend.workers.proposals import create_proposal, execute_proposal
 from backend.workers.records import COLUMNS, collection_records, to_csv
 
@@ -396,7 +396,7 @@ def _collection(conn, collection_id: int) -> dict:
 
 
 @router.post("/collections/{collection_id}/documents")
-async def upload(
+def upload(
     collection_id: int,
     files: list[UploadFile],
     conn=Depends(get_conn),
@@ -407,7 +407,7 @@ async def upload(
     limit = settings.max_upload_mb * 1024 * 1024
     accepted, rejected = [], []
     for f in files[:500]:
-        data = await f.read(limit + 1)
+        data = f.file.read(limit + 1)
         try:
             res = ingest_bytes(conn, settings, collection_id, f.filename or "", data)
             accepted.append(res.__dict__)
@@ -517,9 +517,11 @@ def estimate(
     _collection(conn, collection_id)
     provider, info = _provider(conn, settings, body.provider, body.confirm_remote, p.username)
     docs = conn.execute(
-        "SELECT id FROM documents WHERE collection_id = ? ORDER BY RANDOM() LIMIT ?",
+        "SELECT id FROM documents WHERE collection_id = ? AND status != 'quarantined' ORDER BY RANDOM() LIMIT ?",
         (collection_id, body.sample_size),
     ).fetchall()
+    if info.locality == "remote":
+        docs = [d for d in docs if may_go_remote(conn, d["id"])]
     total = conn.execute("SELECT COUNT(*) FROM documents WHERE collection_id = ?", (collection_id,)).fetchone()[0]
     if not docs:
         raise HTTPException(status_code=400, detail="collection has no documents")
@@ -608,8 +610,9 @@ def get_document(document_id: int, conn=Depends(get_conn), _: Principal = Depend
 
 @router.get("/documents/{document_id}/pages/{page_no}")
 def get_page(
-    document_id: int, page_no: int, conn=Depends(get_conn), _: Principal = Depends(require("documents:read"))
+    document_id: int, page_no: int, conn=Depends(get_conn), p: Principal = Depends(require("documents:read"))
 ) -> dict:
+    audit.record(conn, p.username, "document.read_page", "allowed", target=f"document:{document_id}")
     return _row(
         conn.execute(
             "SELECT document_id, page_no, text FROM pages WHERE document_id = ? AND page_no = ?", (document_id, page_no)
@@ -640,7 +643,11 @@ def get_original(
             detail={"reason": "quarantined"},
         )
         raise HTTPException(status_code=423, detail="held by the security gate until an administrator releases it")
-    path = safe_join(settings.data_dir, *doc["stored_path"].replace("\\", "/").split("/"))
+    try:
+        path = original_path(settings.data_dir, doc["stored_path"])
+    except FileRejected as exc:
+        audit.record(conn, p.username, "document.download", "denied", target=f"document:{document_id}")
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     audit.record(conn, p.username, "document.download", "allowed", target=f"document:{document_id}")
     return FileResponse(
         path, media_type=doc["media_type"], filename=doc["filename"], headers={"X-Content-Type-Options": "nosniff"}
@@ -787,6 +794,7 @@ def create_job(
 def _job(conn, job_id: int) -> dict:
     job = _row(conn.execute("SELECT * FROM jobs WHERE id = ?", (job_id,)).fetchone())
     job["params"] = loads(job["params"], {})
+    job["params"].pop("path", None)  # an absolute server path; only the admin who started the import knows it
     job["items"] = {
         r["status"]: r["n"]
         for r in conn.execute(
@@ -886,6 +894,9 @@ def new_investigation(
 ) -> dict:
     _collection(conn, body.collection_id)
     provider, info = _provider(conn, settings, body.provider, body.confirm_remote, p.username)
+    if info.locality == "remote" and not p.can("jobs:create"):
+        audit.record(conn, p.username, "investigation.run", "denied", detail={"reason": "remote needs analyst"})
+        raise HTTPException(status_code=403, detail="asking a remote model needs an analyst or admin")
     try:
         result = investigate(conn, body.collection_id, body.question, provider)
     except ProviderError as exc:

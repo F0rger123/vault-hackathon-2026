@@ -49,8 +49,13 @@ def _pdf(data: bytes) -> set[str]:
         if "/XFA" in (root.get("/AcroForm") or {}):
             found.add("uses a scriptable XFA form")
         for page in reader.pages:
+            if "/AA" in page:
+                found.add("runs actions on document events")
             for annot in page.get("/Annots") or []:
-                action = (annot.get_object().get("/A") or {}) if hasattr(annot, "get_object") else {}
+                widget = annot.get_object() if hasattr(annot, "get_object") else {}
+                if "/AA" in widget:
+                    found.add("runs actions on document events")
+                action = widget.get("/A") or {}
                 kind = action.get("/S") if hasattr(action, "get") else None
                 if kind == "/Launch":
                     found.add("can start a program")
@@ -59,6 +64,9 @@ def _pdf(data: bytes) -> set[str]:
     except Exception:  # noqa: S110 - the raw scan above already ran; a parse failure is reported at upload
         pass
     return found
+
+
+_EXTERNAL = re.compile(rb"""TargetMode\s*=\s*["']\s*External""", re.IGNORECASE)
 
 
 def _office(data: bytes) -> set[str]:
@@ -71,8 +79,9 @@ def _office(data: bytes) -> set[str]:
                     found.add("contains ActiveX controls")
                 elif "/embeddings/" in name and name.endswith(".bin"):
                     found.add("contains embedded objects")
-                elif name.endswith(".rels") and info.file_size < 1_000_000:
-                    if b'TargetMode="External"' in z.read(info):
+                elif name.endswith(".rels"):
+                    # XML allows either quote and spaces. A part too big to check is held, not skipped.
+                    if info.file_size >= 1_000_000 or _EXTERNAL.search(z.read(info)):
                         found.add("links to outside files or web addresses")
     except (zipfile.BadZipFile, OSError):
         pass
