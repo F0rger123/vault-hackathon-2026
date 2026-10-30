@@ -20,13 +20,13 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 | F04 AI Model System | 11 | 7 | 0 | 0 | 1 | 2 | 1 | 0 |
 | F05 Parallel Processing | 10 | 9 | 0 | 0 | 0 | 0 | 1 | 0 |
 | F06 Search & Investigation | 7 | 6 | 0 | 0 | 0 | 1 | 0 | 0 |
-| F07 Teaching & Corrections | 8 | 7 | 0 | 0 | 0 | 1 | 0 | 0 |
+| F07 Teaching & Corrections | 9 | 8 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F08 Actions & Organization | 6 | 6 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F09 Security | 11 | 10 | 0 | 0 | 0 | 1 | 0 | 0 |
 | F10 User Interface | 13 | 13 | 0 | 0 | 0 | 0 | 0 | 0 |
 | F11 Synthetic Data & Evaluation | 7 | 6 | 0 | 1 | 0 | 0 | 0 | 0 |
 | F12 Deployment & Submission | 11 | 8 | 0 | 0 | 0 | 2 | 1 | 0 |
-| **Total** | **109** | **95** | **1** | **1** | **1** | **8** | **3** | **0** |
+| **Total** | **110** | **96** | **1** | **1** | **1** | **8** | **3** | **0** |
 
 **Recorded evidence used below**
 
@@ -825,6 +825,17 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 - **Description:** A map of the collection on the Brain screen. Documents cluster around their projects, document types, parts and markings. A person can drag and zoom, filter by kind, and search. Clicking a hub lists its documents, and clicking a document opens it. Parts with conflicting values are red. It is drawn on a canvas with no new dependency. A 3D version would need a 3D library, so it is left for Luke to decide.
 - **Verification evidence (2026-10-29):** `test_brain_graph_links_documents_to_what_they_mention`. Every edge joins existing nodes, and every planted rating conflict is flagged red. On v1 there are 222 items and 737 links.
 
+
+#### F07.9 — Training made clear: steps, trend, and Quiz VAULT; easier navigation
+
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F07.6
+- **Description:** Luke said (2026-10-30) Training was confusing and felt fake, and that it was hard to find things.
+  - **Training:** a four-step guide shows where you are (test, mistakes, teach, re-test), plus a trend line of the held-out score.
+  - **Quiz VAULT:** shows one real document, its first page and what VAULT read, and the person confirms or corrects it. Each answer becomes a labelled example, which guides the next reading and is what grades real collections.
+  - **Navigation:** the rail is grouped into Work, Teach and Control, and **Ctrl+K** opens a palette that finds any place by plain words ("passkey", "upload", "quiz").
+- **Verification evidence (2026-10-30):**
+  - Playwright `055-training.spec.ts`: the steps show, the quiz shows a reading, Skip moves on, and Ctrl+K "passkey" opens Security.
+  - Screenshots checked on the Llama-read demo: held-out type 97.7%.
 
 ## F08 — Actions & Organization
 

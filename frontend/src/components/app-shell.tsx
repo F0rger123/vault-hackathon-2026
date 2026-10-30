@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { errorText, setToken, vault, type AuthOptions, type SignedIn } from "@/lib/api";
 import { CollectionSwitcher } from "./collection-switcher";
+import { CommandPalette } from "./command-palette";
 import { VaultMark } from "./vault-mark";
 import { SessionGate, SessionProvider, useMaybeSession, useSession } from "./session";
 import { Button, cx, inputClass } from "./ui";
@@ -31,6 +32,9 @@ const NAV = [
   { href: "/approvals", label: "Approvals" },
   { href: "/security", label: "Security" },
 ] as const;
+
+// Section headings in the rail, so each place is found by what you want to do.
+const GROUP_START: Record<string, string> = { "/": "Work", "/training": "Teach", "/approvals": "Control" };
 
 export function sheetNumber(href: string): number {
   return NAV.findIndex((n) => n.href === href) + 1;
@@ -62,6 +66,11 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
               : null;
         return (
           <li key={item.href}>
+            {GROUP_START[item.href] && (
+              <p className={cx("px-3 pb-1 text-[11px] font-medium text-muted/80", item.href !== "/" && "mt-3")}>
+                {GROUP_START[item.href]}
+              </p>
+            )}
             <Link
               href={item.href}
               onClick={onNavigate}
@@ -224,7 +233,7 @@ function Chrome({ children }: { children: ReactNode }) {
       {ready && (
         <nav
           aria-label="Main"
-          className="rail-scope sticky top-0 hidden h-dvh flex-col gap-7 border-r border-line bg-paper px-3 py-5 lg:flex"
+          className="rail-scope sticky top-0 hidden h-dvh flex-col gap-5 overflow-y-auto border-r border-line bg-paper px-3 py-5 lg:flex"
         >
           <div className="px-2">
             <Wordmark />
@@ -234,6 +243,15 @@ function Chrome({ children }: { children: ReactNode }) {
             </p>
           </div>
           <NavLinks />
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new Event("vault:palette"))}
+            className="mx-1 flex items-center justify-between rounded-control border border-line px-3 py-1.5 text-xs text-muted hover:border-line-strong hover:text-ink"
+          >
+            Find anything
+            <kbd className="rounded border border-line px-1.5 font-mono text-[10px]">Ctrl K</kbd>
+          </button>
+          <CommandPalette />
           <div className="mt-auto flex flex-col gap-4 border-t border-line px-2 pt-4">
             <ModeSwitch />
             <CollectionSwitcher id="collection-rail" />
