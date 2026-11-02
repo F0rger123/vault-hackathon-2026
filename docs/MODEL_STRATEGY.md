@@ -42,7 +42,7 @@ Each provider reports its name, model, locality, `is_ai_model`, supported tasks,
 | `llama3:latest` via Ollama | 3 docs | 7,718 | 37,992 (includes first-call model load) | Weak: classified a drawing as `parts_list` and missed its pressure ratings and date. Memo and revision history were classified correctly. |
 | `llama3:latest`, full 150 docs, prompt v3 | 150 docs | 5,221 mean (6.8 min wall, 2 workers) | — | Held-out doc_type 0.956, project 0.889, date 0.917, 10/10 conflicts. See `evaluation/results/SUMMARY.md`. |
 | `muse-spark-1.3` | — | pending | pending | pending (needs API key) |
-| `muse-glimmer:30b` | — | pending | pending | pending (needs download approval) |
+| `muse-glimmer:30b` via Ollama 0.40.13 | 3 docs, none finished | over 20 min on the first document (timed out) | — | Not usable on this laptop. 71% of it runs on the processor, about 2 tokens a second on a trivial prompt, and it spends tokens thinking before it answers. Needs a machine with about 21 GB of graphics memory. Quality not measured. |
 
 ## Plan to improve quality (F04)
 

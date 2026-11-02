@@ -116,6 +116,12 @@ body {
   outline-offset: 2px;
 }
 
+/* Checkboxes and radios follow the theme instead of the browser's blue. */
+input,
+progress {
+  accent-color: var(--accent);
+}
+
 ::selection {
   background: color-mix(in srgb, var(--accent) 35%, transparent);
 }
@@ -230,13 +236,8 @@ body {
 }
 /* Page sections arrive in order; capped so a long page never waits on its tenth block. */
 .page-enter > * {
-  animation: rise 0.45s var(--ease-out-soft) both;
+  animation: fade-in 0.14s ease-out both;
 }
-.page-enter > *:nth-child(2) { animation-delay: 40ms; }
-.page-enter > *:nth-child(3) { animation-delay: 80ms; }
-.page-enter > *:nth-child(4) { animation-delay: 120ms; }
-.page-enter > *:nth-child(5) { animation-delay: 160ms; }
-.page-enter > *:nth-child(n + 6) { animation-delay: 200ms; }
 
 /* Loading placeholders: a soft sweep instead of the word "loading". */
 @keyframes shimmer {
@@ -532,10 +533,10 @@ section.rounded-card:hover {
   --door-out: 101%;
 }
 .unlock-door-left.unlock-door-closing {
-  animation: door-shut-left 0.7s var(--ease-settle) both;
+  animation: door-shut-left 0.5s var(--ease-settle) both;
 }
 .unlock-door-right.unlock-door-closing {
-  animation: door-shut-right 0.7s var(--ease-settle) both;
+  animation: door-shut-right 0.5s var(--ease-settle) both;
 }
 .unlock-content-out {
   animation: fade-out 0.1s linear 0.8s both;
@@ -543,6 +544,15 @@ section.rounded-card:hover {
 .unlock-fade {
   animation: fade-out 0.1s linear 0.8s both;
 }
+/* A password sign-in has no scan to look at, so it goes straight to the doors. */
+.unlock-quick .unlock-door-open {
+  animation-duration: 0.95s;
+}
+.unlock-quick .unlock-content-out,
+.unlock-quick .unlock-fade {
+  animation-delay: 0.4s;
+}
+
 /* Stay open while the result shows, slam shut, hold a beat, then part. */
 @keyframes door-part {
   0%,

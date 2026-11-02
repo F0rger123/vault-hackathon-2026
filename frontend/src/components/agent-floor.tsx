@@ -231,9 +231,20 @@ export function AgentFloor({
     };
 
     let frame = 0;
+    let dirty = true;
+    let onScreen = true;
+    const seen = new IntersectionObserver(([entry]) => {
+      onScreen = entry.isIntersecting;
+    });
+    seen.observe(host);
     const draw = (now: number) => {
       frame = requestAnimationFrame(draw);
-      if (document.hidden) return;
+      if (document.hidden || !onScreen) return;
+      // Nothing flying and nobody busy means this frame would match the last one, so skip it.
+      const boxes = [you, coordinator, gate, reviewer, ...allReaders()];
+      const active = packets.length > 0 || boxes.some((b) => now < b.until || now - b.flash < 500);
+      if (!active && !dirty) return;
+      dirty = active;
       ctx.clearRect(0, 0, width, height);
       ctx.strokeStyle = colors.line;
       ctx.lineWidth = 1;
@@ -275,9 +286,24 @@ export function AgentFloor({
 
     readColors();
     layout();
-    const sizer = new ResizeObserver(layout);
+    // Resizing a canvas wipes it, and with reduced motion no later frame would draw it back.
+    const redrawStill = () => {
+      if (!reduced) return;
+      dirty = true;
+      draw(performance.now());
+      cancelAnimationFrame(frame);
+    };
+    const sizer = new ResizeObserver(() => {
+      layout();
+      dirty = true;
+      redrawStill();
+    });
     sizer.observe(host);
-    const theme = new MutationObserver(readColors);
+    const theme = new MutationObserver(() => {
+      readColors();
+      dirty = true;
+      redrawStill();
+    });
     theme.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
     frame = requestAnimationFrame(draw);
     if (reduced) {
@@ -290,6 +316,7 @@ export function AgentFloor({
       cancelAnimationFrame(frame);
       sizer.disconnect();
       theme.disconnect();
+      seen.disconnect();
       engine.current = null;
     };
   }, [laneKey]);

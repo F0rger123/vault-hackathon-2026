@@ -5,13 +5,17 @@ import { useSession } from "./session";
 
 const CIPHER = "ｱｶｻﾀﾅﾊﾏﾔﾗﾜ0123456789";
 
-/** The title resolves out of random type once when the page opens. The real text is in the page from the start. */
+// Once per title per visit: seen every time, it stops being a flourish and starts being a wait.
+const decoded = new Set<string>();
+
+/** The title resolves out of random type the first time. The real text is in the page from the start. */
 function useDecode(text: string) {
   const ref = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
     const el = ref.current;
-    if (!el || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const steps = 18;
+    if (!el || decoded.has(text) || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    decoded.add(text);
+    const steps = 10;
     let step = 0;
     const timer = window.setInterval(() => {
       step += 1;
@@ -23,7 +27,7 @@ function useDecode(text: string) {
         el.textContent = text;
         window.clearInterval(timer);
       }
-    }, 28);
+    }, 24);
     return () => {
       window.clearInterval(timer);
       el.textContent = text;

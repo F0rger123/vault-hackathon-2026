@@ -10,6 +10,7 @@ import shutil
 import statistics
 import subprocess  # noqa: S404 - fixed argv, no shell
 from dataclasses import asdict, dataclass, field
+from functools import lru_cache
 from pathlib import Path
 
 import psutil
@@ -34,6 +35,18 @@ class HardwareProfile:
 
     def to_dict(self) -> dict:
         return asdict(self)
+
+
+@lru_cache(maxsize=1)
+def _static_facts() -> tuple[str, str, int | None, int, tuple[GpuInfo, ...]]:
+    """What does not change while VAULT runs. Asking nvidia-smi starts a program, so it happens only once."""
+    return (
+        f"{platform.system()} {platform.release()}",
+        platform.processor() or platform.machine(),
+        psutil.cpu_count(logical=False),
+        os.cpu_count() or 1,
+        tuple(_detect_nvidia()),
+    )
 
 
 def _detect_nvidia() -> list[GpuInfo]:
@@ -63,15 +76,16 @@ def _detect_nvidia() -> list[GpuInfo]:
 def profile_hardware(data_dir: Path) -> HardwareProfile:
     vm = psutil.virtual_memory()
     data_dir.mkdir(parents=True, exist_ok=True)
+    system, cpu, physical, logical, gpus = _static_facts()
     return HardwareProfile(
-        os=f"{platform.system()} {platform.release()}",
-        cpu_model=platform.processor() or platform.machine(),
-        physical_cores=psutil.cpu_count(logical=False),
-        logical_cores=os.cpu_count() or 1,
+        os=system,
+        cpu_model=cpu,
+        physical_cores=physical,
+        logical_cores=logical,
         ram_total_mb=vm.total // 2**20,
         ram_available_mb=vm.available // 2**20,
         disk_free_mb=shutil.disk_usage(data_dir).free // 2**20,
-        gpus=_detect_nvidia(),
+        gpus=list(gpus),
     )
 
 
