@@ -6,8 +6,8 @@ The two-minute snapshot. Read this first in a new session. Detail lives in the l
 
 | | |
 |---|---|
-| Last updated | 2026-10-29 night (after PRs #60–#70; audit in `docs/FINAL_COMPREHENSIVE_AUDIT.md`) |
-| Latest verified commit on `main` | `6a59db1` (PR #66 merged; CI green on every merge) |
+| Last updated | 2026-11-02 (after PRs through #89 and the speed work F12.13) |
+| Latest verified commit on `main` | See `git log`; CI green on every merge |
 | Phase | MVP build. Feature freeze **Nov 2**, video **Nov 3**, deadline **Nov 4, 9:00 PM ET** |
 | Team | **Solo indie project:** Luke Knight with AI coding agents (Indie track). |
 

@@ -5,7 +5,7 @@ import { cx } from "./ui";
 
 const GLYPHS = "ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜ0123456789VAULT";
 const CELL = 16;
-const FPS = 14;
+const FPS = 10;
 
 /** Falling type, drawn behind the interface. Decoration only: it says nothing about what the agents are doing. */
 export function MatrixRain({ className, fps = FPS }: { className?: string; fps?: number }) {
@@ -13,7 +13,7 @@ export function MatrixRain({ className, fps = FPS }: { className?: string; fps?:
 
   useEffect(() => {
     const canvas = ref.current;
-    const ctx = canvas?.getContext("2d");
+    const ctx = canvas?.getContext("2d", { alpha: false });
     if (!canvas || !ctx) return;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let drops: number[] = [];
@@ -30,6 +30,8 @@ export function MatrixRain({ className, fps = FPS }: { className?: string; fps?:
       canvas.height = Math.max(1, height);
       const columns = Math.ceil(width / CELL);
       drops = Array.from({ length: columns }, () => Math.floor((Math.random() * height) / CELL));
+      ctx.fillStyle = colors.paper;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.font = `13px ${getComputedStyle(canvas).getPropertyValue("--font-data") || "monospace"}, monospace`;
     };
     const draw = () => {
@@ -54,7 +56,8 @@ export function MatrixRain({ className, fps = FPS }: { className?: string; fps?:
     sizer.observe(canvas);
     const theme = new MutationObserver(() => {
       readColors();
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = colors.paper;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
     });
     theme.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 

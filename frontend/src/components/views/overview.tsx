@@ -190,7 +190,7 @@ function PrivacyPosture({
                 <p className="display text-[17px] text-green">Remote inference is off</p>
                 <p className="mt-1 text-sm text-muted">
                   Every document is read on this machine. Only an administrator can turn remote models on, on the
-                  Security sheet.
+                  Security page.
                 </p>
               </>
             )}

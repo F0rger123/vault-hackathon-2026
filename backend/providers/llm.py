@@ -13,6 +13,7 @@ import httpx
 from pydantic import ValidationError
 
 from backend.core.config import Settings
+from backend.core.swr import cached
 from backend.providers.base import Provider, ProviderError, ProviderInfo
 from backend.providers.prompting import SYSTEM_PROMPT, build_user_prompt
 from backend.providers.schema import Extraction, inline_schema
@@ -25,6 +26,9 @@ def _parse(content: str) -> Extraction:
         return Extraction.model_validate(json.loads(content))
     except (json.JSONDecodeError, ValidationError) as exc:
         raise ProviderError(f"model returned output that failed schema validation ({type(exc).__name__})") from exc
+
+
+_installed_models: dict = {}
 
 
 class OllamaProvider(Provider):
@@ -40,12 +44,18 @@ class OllamaProvider(Provider):
             # A remote Ollama would silently send documents off-machine; treat it as misconfiguration.
             raise ProviderError("VAULT_OLLAMA_URL must point at a local host for the local provider")
 
-    def _available(self) -> tuple[bool, str]:
+    def _installed(self) -> set[str] | None:
         try:
             r = httpx.get(f"{self.url}/api/tags", timeout=3)
             r.raise_for_status()
-            names = {m.get("name") for m in r.json().get("models", [])}
+            return {m.get("name") for m in r.json().get("models", [])}
         except (httpx.HTTPError, ValueError):
+            return None
+
+    def _available(self) -> tuple[bool, str]:
+        # Every screen asks this. While Ollama is busy reading documents it can take seconds to answer (F12.13).
+        names = cached(_installed_models, self.url, self._installed, 15, 300)
+        if names is None:
             return False, "Ollama server not reachable"
         if self.model not in names:
             return False, f"model {self.model} not pulled (run: ollama pull {self.model})"

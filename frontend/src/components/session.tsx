@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { preload } from "@/lib/use-load";
 import { VaultMark } from "./vault-mark";
 import { ApiError, errorText, getToken, setToken, vault, type Collection, type Me, type Stats } from "@/lib/api";
 
@@ -116,6 +117,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   // Header counters (active runs, pending approvals) stay fresh while signed in.
   const ready = state.phase === "ready";
+  useEffect(() => {
+    if (!ready) return;
+    preload("providers", vault.providers);
+    preload("local-models", vault.localModels);
+    preload("jobs", vault.jobs);
+    const idle = window.setTimeout(() => void import("./brain-space"), 1500);
+    return () => window.clearTimeout(idle);
+  }, [ready]);
   useEffect(() => {
     if (!ready) return;
     let alive = true;

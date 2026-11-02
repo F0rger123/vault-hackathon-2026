@@ -7,7 +7,8 @@ import { cx } from "./ui";
 
 export type UnlockPhase = "scanning" | "granted" | "denied" | "locking";
 
-const DONE_MS: Partial<Record<UnlockPhase, number>> = { granted: 1900, denied: 1500, locking: 1100 };
+const DONE_MS: Partial<Record<UnlockPhase, number>> = { granted: 1900, denied: 1500, locking: 700 };
+const QUICK_GRANTED_MS = 950;
 
 const COIL_TURNS = 9;
 
@@ -191,9 +192,9 @@ export function UnlockSequence({
     const wait = DONE_MS[phase];
     if (!wait || !onDone) return;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const timer = window.setTimeout(onDone, reduced ? 150 : wait);
+    const timer = window.setTimeout(onDone, reduced ? 150 : phase === "granted" && !face ? QUICK_GRANTED_MS : wait);
     return () => window.clearTimeout(timer);
-  }, [phase, onDone]);
+  }, [phase, onDone, face]);
 
   useEffect(() => {
     if (phase !== "granted") return;
@@ -203,7 +204,7 @@ export function UnlockSequence({
 
   const open = phase === "granted";
   return createPortal(
-    <div role="status" aria-live="assertive" className="unlock-stage fixed inset-0 z-[100] overflow-hidden">
+    <div role="status" aria-live="assertive" className={cx("unlock-stage fixed inset-0 z-[100] overflow-hidden", !face && "unlock-quick")}>
       <div aria-hidden className={cx("unlock-door unlock-door-left", open && "unlock-door-open", phase === "locking" && "unlock-door-closing")} />
       <div aria-hidden className={cx("unlock-door unlock-door-right", open && "unlock-door-open", phase === "locking" && "unlock-door-closing")} />
       <MatrixRain className={cx("absolute inset-0 h-full w-full opacity-30", open && "unlock-fade")} fps={20} />

@@ -12,13 +12,13 @@ Set up a run.
 
 from __future__ import annotations
 
-import time
 from urllib.parse import urlparse
 
 import httpx
 
 from backend.core.config import Settings
 from backend.core.hardware import HardwareProfile
+from backend.core.swr import cached
 
 LOCAL_HOSTS = {"127.0.0.1", "localhost", "::1", "host.docker.internal"}
 # Context cache and runtime buffers on top of the weights, as a fraction of the file size plus a fixed part.
@@ -36,22 +36,21 @@ def _origin(name: str, family: str | None) -> str:
 
 _cache: dict[tuple[str, str], tuple[float, dict]] = {}
 CACHE_SECONDS = 30
+STALE_SECONDS = 300
 
 
 def cache_clear() -> None:
     """After an install or a model change, so the next screen shows it at once."""
+    from backend.providers.llm import _installed_models
+
     _cache.clear()
+    _installed_models.clear()
 
 
 def local_models(settings: Settings, hw: HardwareProfile) -> dict:
-    """Cached for half a minute: Ollama takes about a second to answer, and several screens ask."""
+    """Answers from memory: Ollama takes a second or more to answer, and several screens ask (F12.13)."""
     key = (settings.ollama_url, settings.ollama_model)
-    hit = _cache.get(key)
-    if hit and time.monotonic() - hit[0] < CACHE_SECONDS:
-        return hit[1]
-    result = _local_models(settings, hw)
-    _cache[key] = (time.monotonic(), result)
-    return result
+    return cached(_cache, key, lambda: _local_models(settings, hw), CACHE_SECONDS, STALE_SECONDS)
 
 
 def _local_models(settings: Settings, hw: HardwareProfile) -> dict:

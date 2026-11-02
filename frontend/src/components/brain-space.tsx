@@ -500,6 +500,9 @@ export default function BrainSpace({
     });
     theme.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "class"] });
 
+    let useBloom = true;
+    let frames = 0;
+    let slowSeconds = 0;
     const forward = new THREE.Vector3();
     const right = new THREE.Vector3();
     const step = new THREE.Vector3();
@@ -567,7 +570,20 @@ export default function BrainSpace({
         mesh.instanceMatrix.needsUpdate = true;
         if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
       }
-      composer.render(dt);
+      // A machine that cannot keep up loses the glow rather than the smoothness.
+      frames += 1;
+      slowSeconds += dt;
+      if (frames === 40) {
+        if (useBloom && slowSeconds / frames > 1 / 28) {
+          useBloom = false;
+          renderer.setPixelRatio(1);
+          resize();
+        }
+        frames = 0;
+        slowSeconds = 0;
+      }
+      if (useBloom) composer.render(dt);
+      else renderer.render(scene, camera);
       labels.render(scene, camera);
     };
     const run = () => {

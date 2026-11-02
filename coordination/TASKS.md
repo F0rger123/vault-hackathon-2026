@@ -446,14 +446,14 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 
 #### F04.6 — Muse Glimmer 30B local test
 - **Description:** Try `muse-glimmer:30b` (Apache-2.0, text + image) through Ollama with CPU/GPU split.
-- **Priority:** P1 · **Owner:** luke · **Status:** READY · **Dependencies:** F04.2
+- **Priority:** P1 · **Owner:** luke · **Status:** DONE · **Dependencies:** F04.2
 - **Scope:** configuration only (`VAULT_OLLAMA_MODEL`), plus measured benchmark.
 - **Expected behavior:** Either it runs at a usable speed on 8 GB VRAM + 31 GB RAM, or we document that it does not.
 - **Acceptance criteria:** Benchmark numbers recorded in `docs/MODEL_STRATEGY.md`.
 - **Required tests:** `vault estimate --provider ollama --sample 3`.
-- **Blockers:** Luke approved the download on 2026-10-30, but `ollama pull muse-glimmer:30b` refused: Ollama 0.32.1 is too old for this model. It needs an Ollama update first.
+- **Blockers:** none. Ollama was updated to 0.40.13 with Luke's approval.
 - **Related PR/commit:** —
-- **Verification evidence:** —
+- **Verification evidence:**  2026-11-02: `vault estimate --sample 3` hit `ReadTimeout` at 120 s and again at 1,200 s on its first document. Recorded in `docs/MODEL_STRATEGY.md`. It does not run at a usable speed on 8 GB of graphics memory, so VAULT stays on Llama 3.
 
 #### F04.7 — Image and stamp understanding with a vision-capable Meta model
 - **Description:** Send images (and image-only PDF pages) to Muse Spark (API), Muse Glimmer (local), or Llama 3.2 Vision (local; blocker B7) to read stamps and classify diagrams.
@@ -1335,6 +1335,12 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 
 - **Priority:** P2 · **Owner:** luke · **Status:** DONE · **Dependencies:** F10.16
 - **Description:** Luke asked (2026-10-30) for a coil animation and interface for face unlock. A coil winds round the head during the scan and tightens when verified. Sign-in has its own face unlock button, and adding a passkey plays the same scan. It remains theatre around the device's own check.
+
+#### F12.13 — Make every screen feel instant
+
+- **Priority:** P1 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F10.16
+- **Verification evidence (2026-11-02):** browser timing on the demo. Overview settled 4,881 ms before and 50 to 96 ms after; opening a page 175 to 319 ms before and 43 to 171 ms after; 3D brain 165 fps on the RTX 5070. The before numbers were taken while Muse Glimmer was loading the processor, so not all of the gain is from this change.
+- **Description:** Luke said (2026-11-02) that everything loads slowly. Measured: `/system/providers` took 1.5 to 3 s and `/system/local-models` up to 4.7 s while Ollama was busy, and most pages wait on one of them. The server now answers these from memory and refreshes behind the scenes, and runs `nvidia-smi` only once. The interface shows the last answer at once on a return visit, shares identical requests and loads common data ahead. Motion is quicker, and the agent floor stops drawing when nothing changes. The 3D brain drops its glow on machines that cannot keep up.
 
 ## F11 — Synthetic Data & Evaluation
 - **Verification evidence (E-E2E-2, 2026-10-28):** covered by the Playwright suite in `tests/e2e/` (`02-investigate`); 13 of 13 tests passed in 5 consecutive fresh runs on Windows 11 (Chromium, desktop and Pixel 7 profiles).

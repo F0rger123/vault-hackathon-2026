@@ -720,7 +720,7 @@ function LaneAndStart({
                       <p className="mt-1">
                         Text from unmarked documents in this collection is sent to the remote provider. Documents with
                         markings, personal data or instruction-like text stay on local lanes.
-                        {!remoteAllowed && " Remote inference is currently off; an administrator must turn it on from the Security sheet."}
+                        {!remoteAllowed && " Remote inference is currently off; an administrator must turn it on from the Security page."}
                       </p>
                     </Notice>
                   )}

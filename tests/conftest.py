@@ -67,3 +67,13 @@ def wait_job(client: TestClient, token: str, job_id: int, timeout: float = 60) -
             return j
         time.sleep(0.1)
     raise AssertionError("job did not finish")
+
+
+@pytest.fixture(autouse=True)
+def _forget_cached_model_lists():
+    """Each test fakes its own Ollama, so none may see the answer another one got."""
+    from backend.core.local_models import cache_clear
+
+    cache_clear()
+    yield
+    cache_clear()
