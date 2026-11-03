@@ -2,10 +2,13 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
+import { useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { atLeast, errorText, vault, type Brain, type BrainQuestion, type ProviderName, TERMINAL, type AgentEvent } from "@/lib/api";
 import { humanize } from "@/lib/format";
+import { useActivityFeed } from "@/lib/live-activity";
 import { useLoad } from "@/lib/use-load";
+import { ActivityTicker } from "../activity-ticker";
 import { BrainMap } from "../brain-map";
 import { DocumentDrawer } from "../document-drawer";
 import { useSession } from "../session";
@@ -31,6 +34,12 @@ function hasWebGL(): boolean {
   return webgl;
 }
 const noSubscribe = () => () => {};
+const reducedQuery = "(prefers-reduced-motion: reduce)";
+const watchReduced = (cb: () => void) => {
+  const m = window.matchMedia(reducedQuery);
+  m.addEventListener("change", cb);
+  return () => m.removeEventListener("change", cb);
+};
 
 const DESCRIPTION =
   "What VAULT knows about this collection, what you taught it, and what it still wants to ask.";
@@ -58,6 +67,24 @@ export function BrainView() {
   const run = mine?.find((j) => !TERMINAL.includes(j.status)) ?? mine?.find((j) => j.status === "completed") ?? mine?.[0];
   const running = run && !TERMINAL.includes(run.status);
   const runEvents = useLoad(run ? `brain-events:${run.id}` : null, () => allEvents(run!.id), running ? 2000 : undefined);
+  // F10.22: the live activity feed. ?run= narrows it to one Ask VAULT reply or one approval, played once.
+  const params = useSearchParams();
+  const runFilter = /^[A-Za-z0-9-]{1,40}$/.test(params.get("run") ?? "") ? params.get("run") : null;
+  const feed = useActivityFeed(collection?.id, runFilter);
+  const reduced = useSyncExternalStore(watchReduced, () => window.matchMedia(reducedQuery).matches, () => false);
+  const names = useMemo(() => {
+    const m = new Map<number, string>();
+    for (const n of graph.data?.nodes ?? []) if (n.document_id != null) m.set(n.document_id, n.label);
+    return m;
+  }, [graph.data]);
+  const nameOf = useCallback((id: number) => names.get(id), [names]);
+  // When a run finishes, draw the map again so the documents it read join their clusters.
+  const wasRunning = useRef(false);
+  const reloadGraph = graph.reload;
+  useEffect(() => {
+    if (wasRunning.current && !running) reloadGraph();
+    wasRunning.current = !!running;
+  }, [running, reloadGraph]);
   const [openDoc, setOpenDoc] = useState<number | null>(null);
   const close = useCallback(() => setOpenDoc(null), []);
   const [learned, setLearned] = useState(0);
@@ -83,6 +110,7 @@ export function BrainView() {
     setLearned((n) => n + 1);
     brain.reload();
   };
+  const ticker = <ActivityTicker feed={feed} run={runFilter} name={nameOf} reduced={reduced} />;
 
   return (
     <>
@@ -117,12 +145,30 @@ export function BrainView() {
           </div>
         )}
         {graph.data && graph.data.nodes.length > 0 && canWebGL !== null && mapView === "3d" && (
-          <BrainSpace graph={graph.data} onOpenDocument={setOpenDoc} onUnsupported={fallback} events={runEvents.data} runId={run?.id ?? null} running={!!running} />
+          <BrainSpace
+            graph={graph.data}
+            onOpenDocument={setOpenDoc}
+            onUnsupported={fallback}
+            events={runEvents.data}
+            runId={run?.id ?? null}
+            running={!!running}
+            activity={feed.events}
+            liveFrom={feed.loaded ? feed.liveFrom : Number.MAX_SAFE_INTEGER}
+            side={ticker}
+          />
         )}
         {graph.data && graph.data.nodes.length > 0 && canWebGL !== null && mapView === "2d" && (
-          <BrainMap graph={graph.data} onOpenDocument={setOpenDoc} />
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_300px]">
+            <BrainMap graph={graph.data} onOpenDocument={setOpenDoc} />
+            {ticker}
+          </div>
         )}
-        {graph.data && graph.data.nodes.length === 0 && <Empty>Read the documents first; the map fills in as VAULT reads.</Empty>}
+        {graph.data && graph.data.nodes.length === 0 && (
+          <div className="flex flex-col gap-3">
+            <Empty>Read the documents first; the map fills in as VAULT reads.</Empty>
+            {ticker}
+          </div>
+        )}
         {((!graph.data && !graph.error) || (graph.data && graph.data.nodes.length > 0 && canWebGL === null)) && (
           <Skeleton className="h-[520px] w-full" />
         )}

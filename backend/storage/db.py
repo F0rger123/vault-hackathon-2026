@@ -302,6 +302,42 @@ MIGRATIONS: list[str] = [
     """
     ALTER TABLE documents ADD COLUMN media_info TEXT;
     """,
+    # 12: F10.22, one activity feed per collection: what VAULT actually did to which file, for the live brain.
+    # Files stored and documents read are copied in by triggers, so the import and processing code stay untouched.
+    # Detail holds ids, counts, file names and export-relative paths only, never document text or disk paths.
+    """
+    CREATE TABLE activity (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        collection_id INTEGER NOT NULL,
+        ts REAL NOT NULL,
+        actor TEXT NOT NULL,
+        action TEXT NOT NULL,
+        document_id INTEGER,
+        run TEXT,
+        detail TEXT NOT NULL DEFAULT '{}'
+    );
+    CREATE INDEX activity_collection ON activity(collection_id, id);
+    CREATE TRIGGER activity_document_stored AFTER INSERT ON documents BEGIN
+        INSERT INTO activity (collection_id, ts, actor, action, document_id, detail) VALUES (
+            NEW.collection_id, NEW.created_at, 'Importer',
+            CASE WHEN NEW.media_type LIKE 'image/%' OR NEW.media_type LIKE 'audio/%' OR NEW.media_type LIKE 'video/%'
+                 THEN 'media_stored' ELSE 'stored' END,
+            NEW.id,
+            json_object('filename', NEW.filename, 'media_type', NEW.media_type, 'size_bytes', NEW.size_bytes,
+                        'status', NEW.status)
+        );
+    END;
+    CREATE TRIGGER activity_document_read AFTER INSERT ON agent_events
+        WHEN NEW.document_id IS NOT NULL AND NEW.action IN ('extract', 'review', 'quarantine.hold', 'injection.flagged')
+    BEGIN
+        INSERT INTO activity (collection_id, ts, actor, action, document_id, run, detail)
+        SELECT j.collection_id, NEW.ts, NEW.agent,
+            CASE NEW.action WHEN 'extract' THEN 'read' WHEN 'review' THEN 'reviewed'
+                 WHEN 'quarantine.hold' THEN 'held' ELSE 'flagged' END,
+            NEW.document_id, 'job-' || NEW.job_id, json_object('job_id', NEW.job_id, 'outcome', NEW.outcome)
+        FROM jobs j WHERE j.id = NEW.job_id AND j.collection_id IS NOT NULL;
+    END;
+    """,
 ]
 
 

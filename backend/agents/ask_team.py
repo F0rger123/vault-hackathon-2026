@@ -6,6 +6,8 @@ around those calls; nothing waits for show. Helpers that do not depend on each o
 own threads, each with its own database connection, and the plan event says which ones those are.
 
 Only the Answer writer (and the optional model planning) uses a language model. The other helpers are plain code.
+Each helper that looks at documents records which ones (in the order it produced) in the collection's activity feed
+(F10.22), under this run's id, so the live brain can show the same work.
 The message is data: it fills the chat command's fixed fields and the investigation's plan, and is never run.
 """
 
@@ -13,6 +15,7 @@ from __future__ import annotations
 
 import logging
 import queue
+import secrets
 import threading
 import time
 from collections.abc import Callable, Iterator
@@ -37,6 +40,7 @@ from backend.providers.base import Provider, ProviderError
 from backend.security import audit
 from backend.security.auth import Principal
 from backend.storage.db import connect
+from backend.workers import activity
 
 log = logging.getLogger("vault.ask")
 
@@ -101,6 +105,7 @@ class Team:
     # Returns (provider, info, note): the note says when the default local model was not running.
     resolve_provider: Callable[[object], tuple[Provider, object, str | None]]
     started: float = field(default_factory=time.perf_counter)
+    run: str = field(default_factory=lambda: "ask-" + secrets.token_hex(6))
 
     def _t(self) -> int:
         return round((time.perf_counter() - self.started) * 1000)
@@ -119,7 +124,7 @@ class Team:
                 yield self._event("error", status=500, detail="internal error")
 
     def _events(self, conn) -> Iterator[dict]:
-        yield self._event("start", collection_id=self.collection_id)
+        yield self._event("start", collection_id=self.collection_id, run=self.run)
         t0 = time.perf_counter()
         cmd = assistant.interpret(conn, self.collection_id, self.message, self.previous)
         source, model = "rules", None
@@ -215,6 +220,7 @@ class Team:
                 events.put(self._failed(step, began, "internal error"))
             else:
                 results[step.helper] = result
+                self._record(step, result.get("touched"))
                 events.put(
                     self._event(
                         "helper",
@@ -239,6 +245,16 @@ class Team:
                     left -= 1
                 else:
                     yield ev
+
+    def _record(self, step: Step, touched: dict | None) -> None:
+        """Write what the helper looked at to the activity feed. A failed write never fails the answer."""
+        if not touched:
+            return
+        try:
+            with connect(self.settings.db_path) as own:
+                activity.record(own, self.collection_id, HELPERS[step.helper][0], run=self.run, **touched)
+        except Exception:  # noqa: BLE001
+            log.exception("could not record activity for %s", step.helper)
 
     def _failed(self, step: Step, began: float, detail: str) -> dict:
         return self._event(
@@ -279,6 +295,12 @@ class Team:
             return f"{len(hits)} matching document{'s' if len(hits) != 1 else ''}", {
                 "hits": hits,
                 "shown": {"count": len(hits), "documents": shown[:PREVIEW]},
+                "touched": {
+                    "action": "looked_at",
+                    "document_ids": activity.unique_ids(h["document_id"] for h in hits),
+                    "count": len(hits),
+                    "words": words[:8],
+                },
             }
 
         def conflicts(c, progress):
@@ -288,6 +310,14 @@ class Team:
             return f"{len(matched)} recorded conflict{'s' if len(matched) != 1 else ''} match", {
                 "matched": matched,
                 "shown": {"count": len(matched), "findings": shown},
+                "touched": {
+                    "action": "checked_conflicts",
+                    "document_ids": activity.unique_ids(
+                        e.get("document_id") for f in matched for e in f.get("evidence", [])
+                    ),
+                    "count": len(matched),
+                    "keys": [f["key"] for f in matched][:10],
+                },
             }
 
         first = [Step("finder", "to find documents that mention the question's words", find)]
@@ -306,7 +336,13 @@ class Team:
             state["raw"] = raw
             by = info.model if info.is_ai_model and state["sources"] else "VAULT's rules"
             return f"{len(raw)} sentence{'s' if len(raw) != 1 else ''} by {by}", {
-                "shown": {"sentences": len(raw), "by": by, "provider": info.name}
+                "shown": {"sentences": len(raw), "by": by, "provider": info.name},
+                "touched": {
+                    "action": "cited",
+                    "document_ids": activity.unique_ids(src["document_id"] for src in state["sources"]),
+                    "count": len(state["sources"]),
+                    "by": by,
+                },
             }
 
         def facts(c, progress):
@@ -319,8 +355,15 @@ class Team:
                 {"sentence": i + 1, "verified": s["verified"], "unsupported_numbers": s["unsupported_numbers"]}
                 for i, s in enumerate(checked)
             ]
+            by_id = {src["id"]: src["document_id"] for src in state["sources"]}
             return f"{ok} of {cited} cited sentence{'s' if cited != 1 else ''} verified", {
-                "shown": {"verified": ok, "cited": cited, "sentences": rows}
+                "shown": {"verified": ok, "cited": cited, "sentences": rows},
+                "touched": {
+                    "action": "fact_checked",
+                    "document_ids": activity.unique_ids(by_id.get(n) for s in checked for n in s["sources"]),
+                    "verified": ok,
+                    "cited": cited,
+                },
             }
 
         model_use = info.is_ai_model
@@ -421,7 +464,13 @@ class Team:
             shown = [{"document_id": d["document_id"], "filename": d["filename"]} for d in docs[:PREVIEW]]
             text = f"{len(docs)} document{'s' if len(docs) != 1 else ''}"
             return text + (" (without the words, which matched nothing)" if dropped else ""), {
-                "shown": {"count": len(docs), "documents": shown, "dropped_words": dropped}
+                "shown": {"count": len(docs), "documents": shown, "dropped_words": dropped},
+                "touched": {
+                    "action": "looked_at",
+                    "document_ids": activity.unique_ids(d["document_id"] for d in docs),
+                    "count": len(docs),
+                    "words": (cmd.q or "").split()[:8] or None,
+                },
             }
 
         def sort(c, progress):
@@ -432,7 +481,16 @@ class Team:
                 {"document_id": d["document_id"], "filename": d["filename"], "doc_date": d.get("doc_date")}
                 for d in state["docs"][:PREVIEW]
             ]
-            return f"Sorted by {cmd.sort} ({cmd.order})", {"shown": {"first": shown}}
+            return f"Sorted by {cmd.sort} ({cmd.order})", {
+                "shown": {"first": shown},
+                "touched": {
+                    "action": "sorted",
+                    "document_ids": activity.unique_ids(d["document_id"] for d in state["docs"]),
+                    "count": len(state["docs"]),
+                    "sort": cmd.sort,
+                    "order": order,
+                },
+            }
 
         steps = [[Step("finder", "to list the documents you described", find)]]
         if cmd.sort != "relevance":

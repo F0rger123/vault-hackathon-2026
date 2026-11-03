@@ -270,6 +270,9 @@ function VaultTurn({ turn, onOpen }: { turn: Extract<Turn, { who: "vault" }>; on
   const done = events.find((e): e is Extract<TeamEvent, { type: "done" }> => e.type === "done");
   const notes = events.filter((e): e is Extract<TeamEvent, { type: "coordinator" }> => e.type === "coordinator");
   const helpers = helperStates(events, plan?.helpers ?? []);
+  // F10.22: the helpers' work for this reply is recorded under its run id, so the brain can show the same steps.
+  const start = events.find((e): e is Extract<TeamEvent, { type: "start" }> => e.type === "start");
+  const watch = start?.run && plan?.steps.some((g) => g.some((h) => h === "finder" || h === "sorter")) ? start.run : null;
 
   return (
     <article className="chat-msg flex flex-col gap-3" aria-label="VAULT's reply">
@@ -281,6 +284,14 @@ function VaultTurn({ turn, onOpen }: { turn: Extract<Turn, { who: "vault" }>; on
         <p className="text-xs text-muted">
           {helpers.size} helper{helpers.size === 1 ? "" : "s"} · {(done.duration_ms / 1000).toFixed(done.duration_ms < 1000 ? 2 : 1)} s in all
           {answer?.answered_by && <> · written by {answer.answered_by.is_ai_model ? answer.answered_by.model : "VAULT's rules (no model)"}</>}
+          {watch && (
+            <>
+              {" · "}
+              <Link href={`/brain?run=${encodeURIComponent(watch)}`} className="underline underline-offset-4 hover:text-ink">
+                Watch in the brain
+              </Link>
+            </>
+          )}
         </p>
       )}
     </article>
