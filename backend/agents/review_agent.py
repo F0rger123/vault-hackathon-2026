@@ -8,6 +8,8 @@ Rules are deliberately simple and visible:
 
 from dataclasses import dataclass
 
+from backend.ingest.media import is_media
+
 ACCEPT, ESCALATE, HUMAN = "accepted", "escalate", "needs_human_review"
 
 
@@ -23,7 +25,7 @@ def review(result: dict, injection_flags: int, media_type: str, escalated: bool)
         return Review(HUMAN, ["document contains instruction-like text aimed at AI systems"])
     if result.get("verified_ratio", 0) < 1.0 and result.get("evidence_count", 0) > 0:
         reasons.append("some evidence quotes were not found in the source")
-    if result.get("doc_type") == "other" and not media_type.startswith("image/"):
+    if result.get("doc_type") == "other" and not is_media(media_type):
         reasons.append("document could not be classified")
     if not reasons:
         return Review(ACCEPT, [])

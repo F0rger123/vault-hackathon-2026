@@ -6,6 +6,7 @@ import time
 
 from backend.agents.security_agent import screen
 from backend.core.config import Settings
+from backend.ingest.media import describe, kind_of
 from backend.providers import apply_policy, get_provider
 from backend.providers.base import Provider, ProviderInfo
 from backend.providers.fill_fields import fill_from_text
@@ -86,7 +87,8 @@ def process_document(
     lane: str | None = None,
 ) -> dict:
     doc = conn.execute(
-        "SELECT id, collection_id, filename, media_type, status FROM documents WHERE id = ?", (document_id,)
+        "SELECT id, collection_id, filename, media_type, status, media_info FROM documents WHERE id = ?",
+        (document_id,),
     ).fetchone()
     if not doc:
         raise LookupError(f"document {document_id} not found")
@@ -105,12 +107,18 @@ def process_document(
     shots = pick_examples(mine, pages)
 
     started = time.perf_counter()
-    picture = (doc["media_type"] or "").startswith("image/")
-    if picture:
-        # No model can see the picture yet (no vision or OCR), so nothing is extracted and nothing is pretended:
-        # the record says plainly that the picture was stored but not read.
-        extraction = Extraction(title=doc["filename"][:200], summary="Picture stored. VAULT cannot read pictures yet.")
-        info = ProviderInfo("none", "not read: picture", "local", False, (), "Nothing was sent anywhere.", True)
+    kind = kind_of(doc["media_type"])
+    if kind != "document":
+        # No model sees photos, video or sound (no vision, OCR or transcription), so nothing is extracted and nothing
+        # is pretended: the record says plainly the file was stored, with only the details read from its header.
+        details = loads(doc["media_info"], {}) or {"kind": kind}
+        taken = (details.get("taken") or "")[:10] or None
+        extraction = Extraction(
+            title=doc["filename"][:200],
+            summary=f"{describe(details)}. Stored, not read: VAULT does not look inside photos, video or sound.",
+            doc_date=taken,
+        )
+        info = ProviderInfo("none", f"not read: {kind}", "local", False, (), "Nothing was sent anywhere.", True)
     else:
         extraction = provider.extract(pages, doc["filename"], rules, shots)
     filled = 0

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ApiError, errorText, openOriginal, vault, type DocumentDetail, type Screening } from "@/lib/api";
 import { formatBytes, humanize, providerLabel } from "@/lib/format";
+import { KindBadge, mediaLine, NOT_READ_NOTE } from "@/lib/media";
 import { useLoad } from "@/lib/use-load";
 import { Button, Empty, LoadError, Notice, Tag, VerifiedMark } from "./ui";
 
@@ -66,11 +67,21 @@ export function DocumentDrawer({ documentId, onClose }: { documentId: number | n
             <h2 id="drawer-title" className="break-all font-mono text-base font-medium">
               {current?.doc.filename ?? (loading ? "Loading" : `Document ${documentId}`)}
             </h2>
-            {current && (
-              <p className="mt-1 text-sm text-muted">
-                {humanize(x?.data.doc_type)}, {current.doc.page_count} {current.doc.page_count === 1 ? "page" : "pages"},{" "}
-                {formatBytes(current.doc.size_bytes)}
-              </p>
+            {current && current.doc.kind && current.doc.kind !== "document" ? (
+              <>
+                <p className="mt-1 text-sm text-muted">
+                  <KindBadge kind={current.doc.kind} />
+                  {mediaLine(current.doc.media_info, current.doc.kind)}, {formatBytes(current.doc.size_bytes)}
+                </p>
+                <p className="mt-1 text-xs text-muted">Stored, not read: VAULT does not look inside photos, video or sound. {NOT_READ_NOTE}</p>
+              </>
+            ) : (
+              current && (
+                <p className="mt-1 text-sm text-muted">
+                  {humanize(x?.data.doc_type)}, {current.doc.page_count} {current.doc.page_count === 1 ? "page" : "pages"},{" "}
+                  {formatBytes(current.doc.size_bytes)}
+                </p>
+              )
             )}
           </div>
           <Button variant="secondary" onClick={onClose}>

@@ -7,7 +7,8 @@ import { useLoad } from "@/lib/use-load";
 import { AskPanel } from "../ask-panel";
 import { DocumentDrawer } from "../document-drawer";
 import { FindingRedline } from "../finding-redline";
-import { NarrowBar, type NarrowQuery } from "../narrow-bar";
+import { KindBadge, mediaLine, NOT_READ_NOTE } from "@/lib/media";
+import { MEDIA_LABELS, NarrowBar, SORT_LABELS, type NarrowQuery } from "../narrow-bar";
 import { useSession } from "../session";
 import { TitleBlock } from "../title-block";
 import { Button, cx, Empty, Field, inputClass, LoadError, Panel } from "../ui";
@@ -22,7 +23,7 @@ function Snippet({ text }: { text: string }) {
 }
 
 type Query = NarrowQuery;
-const EMPTY: Query = { q: "", doc_type: "", project: "", part_number: "", exclude: "", year: "", media: "" };
+const EMPTY: Query = { q: "", doc_type: "", project: "", part_number: "", exclude: "", year: "", media: "", sort: "" };
 
 export function InvestigateView() {
   const { collection } = useSession();
@@ -154,6 +155,28 @@ export function InvestigateView() {
                   </select>
                 </Field>
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Kind of file" htmlFor="f-media">
+                  <select id="f-media" className={inputClass} value={form.media} onChange={(e) => setForm({ ...form, media: e.target.value })}>
+                    <option value="">Any</option>
+                    {(["document", "photo", "video", "audio"] as const).map((k) => (
+                      <option key={k} value={k}>
+                        {MEDIA_LABELS[k].replace(" only", "")}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="Sort by" htmlFor="f-sort">
+                  <select id="f-sort" className={inputClass} value={form.sort} onChange={(e) => setForm({ ...form, sort: e.target.value })}>
+                    <option value="">Best match</option>
+                    {Object.entries(SORT_LABELS).map(([v, label]) => (
+                      <option key={v} value={v}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              </div>
               <Field label="Part number" htmlFor="f-part">
                 <input
                   id="f-part"
@@ -185,12 +208,20 @@ export function InvestigateView() {
               {!query && (
                 <div className="flex flex-col gap-2 text-sm text-muted">
                   <p>Search by words, or narrow by type, project or part number. After searching, keep narrowing step by step.</p>
-                  <Button type="button" onClick={() => searchFor({ ...EMPTY, media: "image" })}>
-                    Show the pictures in this archive
-                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button type="button" onClick={() => searchFor({ ...EMPTY, media: "photo", sort: "date" })}>
+                      Show the photos
+                    </Button>
+                    <Button type="button" onClick={() => searchFor({ ...EMPTY, media: "video", sort: "duration" })}>
+                      Videos
+                    </Button>
+                    <Button type="button" onClick={() => searchFor({ ...EMPTY, media: "audio", sort: "duration" })}>
+                      Audio
+                    </Button>
+                  </div>
                   <p className="text-xs">
-                    Pictures are listed by name only. VAULT cannot read text or objects inside pictures yet, and it
-                    does not accept video or sound files.
+                    VAULT stores photos, video and sound with their details (length, size in pixels, date taken,
+                    camera). {NOT_READ_NOTE} Nothing in them is read, watched or listened to.
                   </p>
                 </div>
               )}
@@ -199,6 +230,9 @@ export function InvestigateView() {
               {query && results.data && (
                 <>
                   <NarrowBar query={query} results={results.data.results} types={types} projects={projects} onChange={searchFor} />
+                  {results.data.note && (
+                    <p className="mb-2 rounded-control border border-line bg-raised/50 px-2.5 py-1.5 text-xs text-muted">{results.data.note}</p>
+                  )}
                   <p className="mb-2 text-sm text-muted" role="status">
                     {results.data.count === 0
                       ? "Nothing matched. Try fewer words or clear a filter."
@@ -212,14 +246,21 @@ export function InvestigateView() {
                             className="break-all text-left font-mono text-[13px] font-medium text-blue underline-offset-4 hover:underline"
                             onClick={() => setOpenDoc(r.document_id)}
                           >
+                            <KindBadge kind={r.kind} />
                             {r.filename}
                           </button>
                           {r.page != null && <span className="text-xs text-muted">Page {r.page}</span>}
                         </div>
                         <p className="text-xs text-muted">
-                          {humanize(r.doc_type)}
-                          {r.project && `, project ${r.project}`}
-                          {r.doc_date && `, ${r.doc_date}`}
+                          {r.kind && r.kind !== "document" ? (
+                            mediaLine(r.media_info, r.kind)
+                          ) : (
+                            <>
+                              {humanize(r.doc_type)}
+                              {r.project && `, project ${r.project}`}
+                              {r.doc_date && `, ${r.doc_date}`}
+                            </>
+                          )}
                         </p>
                         {r.snippet && <Snippet text={r.snippet.trim()} />}
                         {r.part_numbers.length > 0 && (

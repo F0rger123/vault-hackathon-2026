@@ -13,7 +13,23 @@ export interface NarrowQuery {
   exclude: string;
   year: string;
   media: string;
+  sort: string;
 }
+
+/** F11.8: kinds of file and the orders that fit them. Values are the API's own words. */
+export const MEDIA_LABELS: Record<string, string> = {
+  document: "Documents only",
+  image: "Photos only",
+  photo: "Photos only",
+  video: "Videos only",
+  audio: "Audio only",
+};
+export const SORT_LABELS: Record<string, string> = {
+  name: "Name, A to Z",
+  date: "Date, newest first",
+  duration: "Length, longest first",
+  size: "Size, largest first",
+};
 
 /**
  * Turn "only inspection reports from 2023 about Alpha without FAIL" into filters, using the collection's own
@@ -28,8 +44,13 @@ export function parseNarrowing(text: string, types: string[], projects: string[]
   if (project) out.project = project;
   const year = t.match(/\b(19|20)\d{2}\b/);
   if (year) out.year = year[0];
-  if (/\b(photos?|pictures?|images?)\b/.test(t)) out.media = "image";
+  if (/\b(audio|sounds?|voice (memos?|notes?)|recordings?)\b/.test(t)) out.media = "audio";
+  else if (/\b(videos?|clips?|footage)\b/.test(t)) out.media = "video";
+  else if (/\b(photos?|pictures?|images?)\b/.test(t)) out.media = "photo";
   else if (/\bdocuments? only\b|\bno (photos|pictures|images)\b/.test(t)) out.media = "document";
+  if (/\blongest\b|\bby (length|duration)\b/.test(t)) out.sort = "duration";
+  else if (/\b(biggest|largest)\b|\bby size\b/.test(t)) out.sort = "size";
+  else if (/\b(newest|latest)\b|\bby date\b/.test(t)) out.sort = "date";
   const without = [...t.matchAll(/\b(?:without|not|except|excluding|leave out)\s+("([^"]+)"|[\w.-]+)/g)].map((m) => m[2] ?? m[1]);
   if (without.length) out.exclude = without.join(" ");
   const part = t.match(/\b[a-z]{2,4}-\d{3,5}\b/);
@@ -46,7 +67,8 @@ const LABELS: Record<keyof NarrowQuery, (v: string) => string> = {
   part_number: (v) => `Part ${v}`,
   exclude: (v) => `without “${v}”`,
   year: (v) => `from ${v}`,
-  media: (v) => (v === "image" ? "Pictures only" : "Documents only"),
+  media: (v) => MEDIA_LABELS[v] ?? "Documents only",
+  sort: (v) => `sorted by ${(SORT_LABELS[v] ?? v).toLowerCase()}`,
 };
 
 /** F06.7: narrow results step by step: chips for what the results contain, plain words, and removable steps. */
@@ -78,7 +100,9 @@ export function NarrowBar({
     ...(query.project ? [] : count((r) => r.project).map(([v, n]) => ({ key: "project" as const, value: v, label: `Project ${v}`, n }))),
     ...(query.year ? [] : count((r) => r.doc_date?.slice(0, 4) ?? null).map(([v, n]) => ({ key: "year" as const, value: v, label: v, n }))),
   ];
-  const pictures = results.filter((r) => r.media_type.startsWith("image/")).length;
+  const kinds = (["photo", "video", "audio"] as const)
+    .map((k) => ({ k, n: results.filter((r) => (r.kind ?? (r.media_type.startsWith("image/") ? "photo" : "document")) === k).length }))
+    .filter((x) => x.n > 0);
 
   return (
     <div className="mb-3 flex flex-col gap-2 rounded-control border border-line bg-raised/50 p-3">
@@ -96,7 +120,7 @@ export function NarrowBar({
           ))}
         </div>
       )}
-      {(facets.length > 0 || pictures > 0) && (
+      {(facets.length > 0 || kinds.length > 0) && (
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-xs text-muted">Narrow down</span>
           {facets.map((f) => (
@@ -109,11 +133,12 @@ export function NarrowBar({
               {f.label} <span className="tabular-nums">{f.n}</span>
             </button>
           ))}
-          {!query.media && pictures > 0 && (
-            <button type="button" onClick={() => onChange({ ...query, media: "image" })} className="rounded-full border border-line px-2 py-0.5 text-xs text-muted hover:border-ink hover:text-ink">
-              Pictures only <span className="tabular-nums">{pictures}</span>
-            </button>
-          )}
+          {!query.media &&
+            kinds.map(({ k, n }) => (
+              <button key={k} type="button" onClick={() => onChange({ ...query, media: k })} className="rounded-full border border-line px-2 py-0.5 text-xs text-muted hover:border-ink hover:text-ink">
+                {MEDIA_LABELS[k]} <span className="tabular-nums">{n}</span>
+              </button>
+            ))}
         </div>
       )}
       <form

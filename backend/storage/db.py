@@ -297,7 +297,12 @@ MIGRATIONS: list[str] = [
     ALTER TABLE users ADD COLUMN require_password INTEGER NOT NULL DEFAULT 0;
     ALTER TABLE users ADD COLUMN require_voice INTEGER NOT NULL DEFAULT 0;
     """,
-    # 11: F10.22, one activity feed per collection: what VAULT actually did to which file, for the live brain.
+    # 11: F11.8, photos, video and sound. The details read from the file's own header (length, size in pixels,
+    # date taken, camera), as JSON. NULL for documents. Nothing inside the picture or recording is stored.
+    """
+    ALTER TABLE documents ADD COLUMN media_info TEXT;
+    """,
+    # 12: F10.22, one activity feed per collection: what VAULT actually did to which file, for the live brain.
     # Files stored and documents read are copied in by triggers, so the import and processing code stay untouched.
     # Detail holds ids, counts, file names and export-relative paths only, never document text or disk paths.
     """

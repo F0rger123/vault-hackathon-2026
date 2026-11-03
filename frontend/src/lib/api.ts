@@ -145,6 +145,26 @@ export interface DocumentRow {
   page_count: number;
   status: string;
   created_at: number;
+  /** F11.8: what kind of file, and for a photo, video or sound file the details read from its header. */
+  kind?: MediaKind;
+  media_info?: MediaInfo | null;
+}
+
+export type MediaKind = "document" | "photo" | "video" | "audio";
+
+/** Read from the file's own header. VAULT never looks inside photos, video or sound. */
+export interface MediaInfo {
+  kind: MediaKind;
+  format?: string;
+  duration_s?: number;
+  width?: number;
+  height?: number;
+  sample_rate?: number;
+  channels?: number;
+  bitrate?: number;
+  codec?: string;
+  taken?: string;
+  camera?: string;
 }
 
 export interface Component {
@@ -515,12 +535,17 @@ export interface SearchResult {
   snippet: string | null;
   part_numbers: string[];
   extracted_by: string | null;
+  kind: MediaKind;
+  size_bytes: number;
+  media_info: MediaInfo | null;
 }
 
 export interface SearchResponse {
   query: string;
   count: number;
   results: SearchResult[];
+  /** Set when a word search touches photos, video or sound: they are found by name and details only. */
+  note?: string;
 }
 
 export interface UpdateInfo {
@@ -542,9 +567,9 @@ export interface ChatCommand {
   project: string | null;
   year: string | null;
   part_number: string | null;
-  media: "image" | "document" | null;
+  media: "image" | "photo" | "video" | "audio" | "document" | null;
   exclude: string;
-  sort: "relevance" | "date" | "name" | "type" | "project";
+  sort: "relevance" | "date" | "name" | "type" | "project" | "duration" | "size";
   order: "asc" | "desc";
   page: string | null;
 }

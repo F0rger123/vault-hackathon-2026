@@ -369,9 +369,25 @@ export function PasskeysPanel() {
               mode="enroll"
               onCancel={() => setCapturing(null)}
               onDone={async (f) => {
-                setCapturing(null);
-                await act("face", () => enrollFace(f), "Face check set up. Tick Face check above to require it.");
+                const saved = await act("face", () => enrollFace(f), "Face check set up. Tick Face check above to require it.");
+                // Saved: let the check mark show for a moment before the camera view closes. Not saved: close now; the
+                // error (or the "confirm it's you" box) shows above.
+                if (saved) window.setTimeout(() => setCapturing(null), 1600);
+                else setCapturing(null);
+                return saved;
               }}
+              poorCamera={(problems) => (
+                <PhoneInstead
+                  problems={problems}
+                  supported={supported}
+                  busy={busy === "phone"}
+                  onAdd={() =>
+                    act("phone", () => addPasskey("Phone", "phone"), "Phone added as a passkey. Tick Passkey above to sign in with it.").then((added) => {
+                      if (added) setCapturing(null);
+                    })
+                  }
+                />
+              )}
             />
           ) : (
             <div className="flex flex-wrap gap-2">
@@ -407,8 +423,10 @@ export function PasskeysPanel() {
               mode="enroll"
               onCancel={() => setCapturing(null)}
               onDone={async (takes) => {
-                setCapturing(null);
-                await act("voice", () => enrollVoice(takes), "Key phrase set up. Tick Key phrase above to require it.");
+                const saved = await act("voice", () => enrollVoice(takes), "Key phrase set up. Tick Key phrase above to require it.");
+                if (saved) window.setTimeout(() => setCapturing(null), 1600);
+                else setCapturing(null);
+                return saved;
               }}
             />
           ) : (
@@ -426,6 +444,61 @@ export function PasskeysPanel() {
         </Setup>
       </div>
     </Panel>
+  );
+}
+
+/**
+ * F10.21: shown when the webcam fails the face check's quality checks. Adds the phone as a passkey instead: the browser
+ * shows a QR code, the phone scans it and unlocks with its own Face ID or fingerprint. That check happens on the phone;
+ * VAULT's webcam face check is not involved, and VAULT keeps only the passkey's public key.
+ */
+function PhoneInstead({ problems, supported, busy, onAdd }: { problems: string[]; supported: boolean; busy: boolean; onAdd: () => void }) {
+  return (
+    <section aria-labelledby="phone-instead-h" className="trim rounded-card border border-line-strong bg-raised p-4">
+      <div className="flex gap-4">
+        <PhoneQr />
+        <div className="min-w-0 flex-1">
+          <h4 id="phone-instead-h" className="display text-[15px] leading-snug">
+            Your camera isn&apos;t good enough. Use your phone instead
+          </h4>
+          <ul className="mt-1.5 list-disc pl-4 text-xs text-muted">
+            {problems.map((p) => (
+              <li key={p}>{p}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
+      <ol className="mt-3 flex list-decimal flex-col gap-1 pl-5 text-sm">
+        <li>Press the button. Your browser shows a QR code.</li>
+        <li>Scan it with your phone&apos;s camera and confirm with Face ID or your fingerprint.</li>
+        <li>Tick Passkey above and save. Untick Face check if you had it ticked.</li>
+      </ol>
+      <p className="mt-2 text-xs text-muted">
+        Honest note: your phone does that face or fingerprint check itself. It replaces VAULT&apos;s webcam face check; it
+        does not improve it. VAULT stores only the passkey&apos;s public key.
+      </p>
+      <Button variant="primary" className="mt-3" disabled={!supported} busy={busy} onClick={onAdd}>
+        {busy ? "Scan the QR code with your phone" : "Add my phone as a passkey"}
+      </Button>
+      {!supported && <p className="mt-2 text-xs text-amber">This browser or window cannot use passkeys.</p>}
+    </section>
+  );
+}
+
+/** A phone with a QR code on its screen: a drawing of what the browser is about to show, not a real code. */
+function PhoneQr() {
+  const cells = [0, 1, 2, 4, 6, 8, 9, 12, 13, 14, 15, 17, 19, 21, 22, 24];
+  return (
+    <svg viewBox="0 0 40 64" className="h-16 w-10 shrink-0 text-ink" aria-hidden>
+      <rect x="1" y="1" width="38" height="62" rx="6" fill="none" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M16 5h8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <g fill="currentColor">
+        {cells.map((c) => (
+          <rect key={c} x={8 + (c % 5) * 5} y={20 + Math.floor(c / 5) * 5} width="4" height="4" />
+        ))}
+      </g>
+      <path d="M6 18v-3h3M31 15h3v3M34 44v3h-3M9 47H6v-3" fill="none" stroke="var(--green)" strokeWidth="1.6" />
+    </svg>
   );
 }
 

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { api, errorText, vault, type DocumentDetail, type TrainingHistoryEntry } from "@/lib/api";
 import { humanize } from "@/lib/format";
+import { kindOf } from "@/lib/media";
 import { useLoad } from "@/lib/use-load";
 import { Button, cx, inputClass, Notice, Panel } from "./ui";
 
@@ -77,7 +78,7 @@ export function ScoreTrend({ history }: { history: TrainingHistoryEntry[] }) {
  * answer is saved as a labelled example, which guides the next reading and grows the set the graded test checks.
  */
 async function pickDocument(collectionId: number): Promise<{ doc: DocumentDetail; page: string } | null> {
-  const rows = (await vault.documents(collectionId, 500, 0)).filter((d) => d.status === "processed" && !d.media_type.startsWith("image/"));
+  const rows = (await vault.documents(collectionId, 500, 0)).filter((d) => d.status === "processed" && kindOf(d.media_type) === "document");
   if (!rows.length) return null;
   const pick = rows[Math.floor(Math.random() * rows.length)];
   const doc = await vault.document(pick.id);
