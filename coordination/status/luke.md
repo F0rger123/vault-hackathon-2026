@@ -23,6 +23,12 @@ Last updated: 2026-11-03
 
 ## Updates
 
+### 2026-11-03 · F09.19, F10.19, F11.7 · merged
+- **Merged:** #98. Real sign-in levels (passkey kind choice, confirm-it's-you, webcam face check with the Human library, admin controls), Progress live status, mock-up audit fixes, the fictional test set generator, and `docs/TEST_GUIDE.md`.
+- **Release:** v0.2.0 published on GitHub.
+- **Waiting on Luke:** try the face check on the real webcam (Chrome or the app); the preview pane blocks cameras, so it is untested on a camera.
+- **Open audit items:** agent-floor slot routing, two always-pass posture checks, the assumed "8 per copy", the pre-run estimate, and the Meta key test call.
+
 ### 2026-11-03 · F06.8, F03.9, F10.18, F12.14 · merged
 - **Merged:** #96 (chat box that finds, sorts and asks; Models page; new logo; loading animation; plainer page names, "Add files" and "Progress") and #97 (update check, version 0.2.0).
 - **Release:** tag `v0.2.0` pushed. The Release workflow attaches the installer and zip to a draft release. Luke publishes it on GitHub; installed copies then see it.

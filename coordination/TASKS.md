@@ -1148,7 +1148,7 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 
 #### F09.19 — Real sign-in levels: passkeys that work, a webcam face check, no mock-ups
 
-- **Priority:** P0 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F09.14, F09.17
+- **Priority:** P0 · **Owner:** luke · **Status:** DONE · **Dependencies:** F09.14, F09.17
 - **Description:** Luke said (2026-11-03) that adding a passkey as admin failed, that face unlock was a mock-up ("it's just your Google password"), and asked for several security levels with instructions. Causes found:
   - Passkey changes need a sign-in in the last 15 minutes, and the screen only showed an error. It now asks you to confirm it's you in place.
   - Chrome offered Google Password Manager because VAULT did not say where the passkey should live. Now you choose: this computer (Windows Hello), a security key, or a phone.
@@ -1378,7 +1378,7 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 
 #### F10.19 — Progress shows VAULT is on; audit of mock-ups and fake numbers
 
-- **Priority:** P0 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F10.16, F12.13
+- **Priority:** P0 · **Owner:** luke · **Status:** DONE · **Dependencies:** F10.16, F12.13
 - **Description:** Luke said (2026-11-03) that Progress acted as if VAULT was off and that the software felt like a mock-up. An audit found 28 items. Fixed:
   - **Progress:** a live status (server answering every 3 s, run in progress, documents waiting, model loaded) and runs limited to this collection. A run in progress always takes over the board; older runs are labelled finished.
   - **No automatic replays** on Progress or Brain, no artificial delays after sign-in, sign-out or setup, and no fake face scan.
@@ -1515,7 +1515,7 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 
 #### F11.7 — A large fictional test file set for hands-on testing
 
-- **Priority:** P1 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F11.1
+- **Priority:** P1 · **Owner:** luke · **Status:** DONE · **Dependencies:** F11.1
 - **Description:** Luke asked (2026-11-03) for a large set of fake files, photos, videos and sound to test with. `scripts/make_test_files.py` writes 427 deterministic files (136 MB) with a manifest of the expected result for each and 26 planted conflicts. It found a real bug: names over 180 characters lost their extension and were refused; fixed in `sanitize_filename`.
 
 ## F12 — Deployment & Submission
