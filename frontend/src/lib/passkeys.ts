@@ -85,14 +85,18 @@ export async function addPasskey(name: string, kind: PasskeyKind = "device"): Pr
   });
 }
 
-/** Sign in with a passkey: the device asks for a face, fingerprint, PIN or a touch of the security key. */
-export async function signInWithPasskey(username: string): Promise<SignInResult> {
+/**
+ * Sign in with a passkey: the device asks for a face, fingerprint, PIN or a touch of the security key. With `step`,
+ * the passkey is a later step of a sign-in that already started (F09.20).
+ */
+export async function signInWithPasskey(username: string, step?: string): Promise<SignInResult> {
   const { handle, options } = await post<{ handle: string; options: Json }>("/auth/passkey-login/options", { username });
   const cred = (await navigator.credentials.get({ publicKey: requestOptions(options) })) as PublicKeyCredential | null;
   if (!cred) throw new Error("No passkey was used.");
   const r = cred.response as AuthenticatorAssertionResponse;
   return post<SignInResult>("/auth/passkey-login", {
     handle,
+    step,
     credential: {
       id: cred.id,
       rawId: toB64url(cred.rawId),

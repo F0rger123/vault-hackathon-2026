@@ -5,7 +5,7 @@
  * Models load from VAULT itself (public/models/human), so this works offline.
  */
 import type { Human, Config, FaceResult } from "@vladmandic/human";
-import { post, type SignedIn } from "./api";
+import { post, type SignInResult } from "./api";
 
 const CONFIG: Partial<Config> = {
   backend: "webgl",
@@ -67,17 +67,79 @@ export function read(face: FaceResult | undefined, width: number): FaceReading {
   return { face, live: face.live ?? 0, real: face.real ?? 0, size: face.box[2] / width, embedding: emb };
 }
 
+/** F09.20: what the camera delivers. A poor camera is refused before any face is read. */
+export interface CameraQuality {
+  width: number;
+  height: number;
+  fps: number;
+  /** Average brightness of the face, 0 to 255. */
+  brightness: number;
+  /** How sharp the face is (variance of edges); low means blurred or out of focus. */
+  sharpness: number;
+  /** Face width in pixels. */
+  face_px: number;
+}
+
+export const QUALITY = { width: 640, height: 360, fps: 12, brightness: [45, 215] as const, sharpness: 12, face_px: 140 };
+
+/** Plain-words problems with the camera picture, empty when it is good enough. */
+export function qualityProblems(q: CameraQuality): string[] {
+  const out: string[] = [];
+  if (q.width < QUALITY.width || q.height < QUALITY.height)
+    out.push(`The camera sends ${q.width}×${q.height}; VAULT needs ${QUALITY.width}×${QUALITY.height} or better.`);
+  if (q.fps && q.fps < QUALITY.fps) out.push(`The camera runs at ${q.fps.toFixed(0)} frames a second; VAULT needs ${QUALITY.fps}.`);
+  if (q.face_px) {
+    if (q.brightness < QUALITY.brightness[0]) out.push("Too dark. Face a window or turn on a lamp.");
+    else if (q.brightness > QUALITY.brightness[1]) out.push("Too bright. Move away from the light behind the camera.");
+    if (q.sharpness < QUALITY.sharpness) out.push("The picture is blurred. Wipe the lens and hold still.");
+  }
+  return out;
+}
+
+/** Brightness and sharpness of the face region, measured on the frame just drawn. */
+export function measureFace(ctx: CanvasRenderingContext2D, box: [number, number, number, number]): { brightness: number; sharpness: number } {
+  const [x, y, w, h] = box.map((v) => Math.max(0, Math.round(v))) as [number, number, number, number];
+  if (w < 8 || h < 8) return { brightness: 0, sharpness: 0 };
+  const img = ctx.getImageData(x, y, w, h).data;
+  const step = Math.max(1, Math.floor(w / 96));
+  const cols = Math.floor(w / step);
+  const rows = Math.floor(h / step);
+  const g = new Float32Array(cols * rows);
+  let sum = 0;
+  for (let r = 0; r < rows; r++)
+    for (let c = 0; c < cols; c++) {
+      const i = ((r * step) * w + c * step) * 4;
+      const v = 0.299 * img[i] + 0.587 * img[i + 1] + 0.114 * img[i + 2];
+      g[r * cols + c] = v;
+      sum += v;
+    }
+  let lsum = 0;
+  let lsq = 0;
+  let n = 0;
+  for (let r = 1; r < rows - 1; r++)
+    for (let c = 1; c < cols - 1; c++) {
+      const i = r * cols + c;
+      const lap = 4 * g[i] - g[i - 1] - g[i + 1] - g[i - cols] - g[i + cols];
+      lsum += lap;
+      lsq += lap * lap;
+      n++;
+    }
+  const mean = n ? lsum / n : 0;
+  return { brightness: sum / (cols * rows), sharpness: n ? lsq / n - mean * mean : 0 };
+}
+
 export interface FaceSamples {
   samples: number[][];
   live: number;
   real: number;
+  quality: CameraQuality;
 }
 
 export function enrollFace(s: FaceSamples) {
-  return post("/auth/face", s);
+  return post("/auth/face", { samples: s.samples, live: s.live, real: s.real, quality: s.quality });
 }
 
-/** The second sign-in step: send the best reading; VAULT compares it and only then issues a session. */
-export function faceStep(handle: string, s: FaceSamples): Promise<SignedIn> {
-  return post<SignedIn>("/auth/face-step", { handle, embedding: s.samples[0], live: s.live, real: s.real });
+/** A later sign-in step: send the best reading; VAULT compares it, then asks for the next step or gives a session. */
+export function faceStep(handle: string, s: FaceSamples): Promise<SignInResult> {
+  return post<SignInResult>("/auth/face-step", { handle, embedding: s.samples[0], live: s.live, real: s.real, quality: s.quality });
 }

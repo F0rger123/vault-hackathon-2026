@@ -1156,6 +1156,17 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
   - **New:** a real face check by webcam with the open-source Human library (MIT): face fingerprints, liveness and anti-spoof scores in the browser; matching and the session on the server; four levels; admin controls under People. The animation is removed.
 - **Verification evidence (2026-11-03):** `tests/security/test_face_unlock.py` covers matching, strangers refused, photo and not-live refused, mixed readings refused, a single-use ticket, 3 tries, admin levels needing setup, and requirement removed with the data. Full pytest passes. In the browser the models load from VAULT; the preview pane blocks cameras, so the live camera path is **not yet verified** on a real webcam.
 
+#### F09.20 — Pick your own sign-in steps, spoken key phrase, camera and microphone checks
+
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F09.19
+- **Description:** Luke asked (2026-11-03) for people to choose two, three or more sign-in steps, working hardware security keys, a face check that refuses poor cameras, and a phrase spoken into the microphone. Built:
+  - Any mix of password, passkey, face check and key phrase, asked in order through a short-lived step ticket; a session only after the last step. Admins set it under People. The four fixed levels are replaced by step cards, quick picks, a live preview and a strength meter.
+  - Spoken key phrase: MFCC speech features in the browser, dynamic time warping on the server, thresholds calibrated with `scripts/calibrate_voice.py` on Windows' built-in voices. No recording leaves the page.
+  - Camera checks (resolution, frame rate, light, focus, face size) and microphone checks (sample rate, muted, clipping, length, noise), measured on the real signal and re-checked by the server.
+  - Security keys: step-by-step instructions in the screen; a passkey can be a later step after the password.
+  - The microphone was blocked by VAULT's own `Permissions-Policy`; now `microphone=(self)`.
+- **Verification evidence (2026-11-03):** `tests/security/test_sign_in_steps.py` (three-step chain, order enforced, wrong answers end it, setup required, admin steps, quality refusals, key phrase accepts the same phrase and voice and refuses other phrases and the other voice). e2e `059-passkeys.spec.ts` adds a virtual USB FIDO2 key used as the second step after a password. **Not verified:** a physical YubiKey, a real webcam, and a real microphone (the preview pane blocks both); the key-phrase bar was calibrated on synthetic speech, so a person's own repeats may need a retake.
+
 ## F10 — User Interface
 
 All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each needs a branch `luke/F10.x-short-name`, a PR, and screenshots in the PR description using synthetic data only.

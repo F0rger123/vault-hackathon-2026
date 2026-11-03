@@ -39,7 +39,7 @@ from backend.indexing.search import search as run_search
 from backend.ingest.service import ensure_collection, ingest_bytes
 from backend.providers import PROVIDER_NAMES, get_provider
 from backend.providers.base import ProviderError
-from backend.security import audit, face, signin_log
+from backend.security import audit, face, signin_log, steps, voice
 from backend.security import login as signin
 from backend.security.auth import Principal, list_tokens, revoke_token
 from backend.security.files import FileRejected, contained, original_path
@@ -153,9 +153,9 @@ def login(
         audit.record(conn, who, "auth.login", "denied", detail={"reason": "wrong credentials"})
         _log_signin(conn, request, who, "password", "denied", "wrong credentials")
         raise HTTPException(status_code=401, detail="wrong username or password")
-    if session.get("step") == "face":
-        # Right password, but no session yet: the face check decides (POST /auth/face-step), and that is logged.
-        audit.record(conn, session["username"], "auth.login", "allowed", detail={"next": "face check"})
+    if "step" in session:
+        # Right password, but no session yet: the next step this person chose decides, and that is logged too.
+        audit.record(conn, session["username"], "auth.login", "allowed", detail={"next": session["step"]})
         return session
     audit.record(conn, session["username"], "auth.login", "allowed")
     _log_signin(conn, request, session["username"], "password", "allowed")
@@ -167,33 +167,88 @@ class FaceStep(BaseModel):
     embedding: list[float] = Field(max_length=2048)
     live: float = Field(ge=0, le=1)
     real: float = Field(ge=0, le=1)
+    quality: dict[str, float] = Field(default_factory=dict, max_length=12)
+
+
+class VoiceStep(BaseModel):
+    handle: str = Field(max_length=64)
+    frames: list[list[float]] = Field(max_length=voice.MAX_FRAMES)
+    snr_db: float = Field(ge=-100, le=200)
+
+
+class PasswordStep(BaseModel):
+    handle: str = Field(max_length=64)
+    password: str = Field(min_length=1, max_length=200)
+
+
+def run_step(conn, request: Request, settings: Settings, handle: str, factor: str, check) -> dict:
+    """F09.20: one later sign-in step. `check(row)` raises ValueError when it fails, or returns audit detail."""
+    if not _browser_origin_ok(request, settings):
+        raise HTTPException(status_code=403, detail="sign-in is only accepted from VAULT's own interface")
+    try:
+        ticket = steps.peek(handle)
+    except steps.StepError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+    row = signin.step_user(conn, ticket["user_id"])
+    if not row or steps.remaining(row, ticket["done"])[:1] != [factor]:
+        raise HTTPException(status_code=409, detail="this sign-in does not need that step")
+    method = steps.method_label([*ticket["done"], factor])
+    try:
+        detail = check(row) or {}
+    except ValueError as exc:
+        steps.wrong(handle)
+        audit.record(conn, row["username"], f"auth.{factor}", "denied", detail={"reason": str(exc)})
+        _log_signin(conn, request, row["username"], method, "denied", str(exc))
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+    try:
+        result = signin.continue_step(conn, handle, factor, settings.session_ttl_hours)
+    except steps.StepError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+    audit.record(conn, row["username"], f"auth.{factor}", "allowed", detail={**detail, "next": result.get("step")})
+    if "step" not in result:
+        _log_signin(conn, request, row["username"], method, "allowed")
+    return result
 
 
 @router.post("/auth/face-step")
 def face_step(
     body: FaceStep, request: Request, conn=Depends(get_conn), settings: Settings = Depends(get_settings)
 ) -> dict:
-    """F09.19: the second step after a correct password or passkey. A session exists only once the face matches."""
-    if not _browser_origin_ok(request, settings):
-        raise HTTPException(status_code=403, detail="sign-in is only accepted from VAULT's own interface")
-    try:
-        step = face.use_step(body.handle)
-    except face.FaceError as exc:
-        raise HTTPException(status_code=401, detail=str(exc)) from exc
-    user = conn.execute("SELECT username FROM users WHERE id = ?", (step["user_id"],)).fetchone()
-    who = user["username"] if user else "unknown-user"
-    method = step["method"].replace("-login", "") + "+face"
-    try:
-        score = face.match(conn, step["user_id"], body.embedding, body.live, body.real)
-        session = signin.face_session(conn, step["user_id"], step["method"], settings.session_ttl_hours)
-    except face.FaceError as exc:
-        audit.record(conn, who, "auth.face", "denied", detail={"reason": str(exc)})
-        _log_signin(conn, request, who, method, "denied", str(exc))
-        raise HTTPException(status_code=401, detail=str(exc)) from exc
-    face.finish_step(body.handle)
-    audit.record(conn, who, "auth.face", "allowed", detail={"similarity": round(score, 2)})
-    _log_signin(conn, request, who, method, "allowed")
-    return session
+    """F09.19: the face check after a correct password or passkey. A session exists only once every step passed."""
+
+    def check(row) -> dict:
+        face.check_quality(body.quality)
+        return {"similarity": round(face.match(conn, row["id"], body.embedding, body.live, body.real), 2)}
+
+    return run_step(conn, request, settings, body.handle, "face", check)
+
+
+@router.post("/auth/voice-step")
+def voice_step(
+    body: VoiceStep, request: Request, conn=Depends(get_conn), settings: Settings = Depends(get_settings)
+) -> dict:
+    """F09.20: the spoken key phrase. Numbers describing the sound arrive, never a recording."""
+    return run_step(
+        conn,
+        request,
+        settings,
+        body.handle,
+        "voice",
+        lambda row: {"distance": round(voice.match(conn, row["id"], body.frames, body.snr_db), 3)},
+    )
+
+
+@router.post("/auth/password-step")
+def password_step(
+    body: PasswordStep, request: Request, conn=Depends(get_conn), settings: Settings = Depends(get_settings)
+) -> dict:
+    """F09.20: the password, when this person asked for it after their passkey."""
+
+    def check(row) -> None:
+        if not signin.check_password(conn, row["id"], body.password):
+            raise ValueError("wrong password")
+
+    return run_step(conn, request, settings, body.handle, "password", check)
 
 
 @router.post("/setup/owner", status_code=201)

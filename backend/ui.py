@@ -31,7 +31,7 @@ COMMON_HEADERS = {
     "X-Frame-Options": "DENY",
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "no-referrer",
-    "Permissions-Policy": "camera=(self), microphone=(), geolocation=(), payment=(), usb=()",
+    "Permissions-Policy": "camera=(self), microphone=(self), geolocation=(), payment=(), usb=()",
     "Cross-Origin-Opener-Policy": "same-origin",
 }
 UI_HEADERS = {"Content-Security-Policy": CSP, **COMMON_HEADERS}
