@@ -4,12 +4,15 @@
   "private": true,
   "license": "Apache-2.0",
   "scripts": {
+    "predev": "node scripts/copy-face-models.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/copy-face-models.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
+    "@vladmandic/human": "3.3.6",
     "next": "16.4.3",
     "react": "19.3.0",
     "react-dom": "19.3.0",

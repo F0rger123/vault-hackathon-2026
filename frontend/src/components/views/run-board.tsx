@@ -30,37 +30,41 @@ import { AgentFloor } from "../agent-floor";
 import { RunSummaryPanel } from "../run-summary";
 import { useSession } from "../session";
 import { TitleBlock } from "../title-block";
-import { Button, cx, Empty, inputClass, LoadError, Meter, Notice, Tag } from "../ui";
+import { Button, cx, inputClass, LoadError, Meter, Notice, Tag } from "../ui";
 import { Loader, LoadingBlock } from "../loader";
 
 export function RunBoardView() {
   const params = useSearchParams();
   const router = useRouter();
+  const { collection } = useSession();
   const requested = Number(params.get("job")) || null;
-  const all = useLoad("jobs", vault.jobs, 5000);
-  // Path imports (kind "import") are jobs too, but have no model lanes to show on this board.
-  const jobs = { ...all, data: all.data?.filter((j) => j.kind === "process") };
-  const newest = jobs.data?.find((j) => !TERMINAL.includes(j.status)) ?? jobs.data?.find((j) => j.status === "completed") ?? jobs.data?.[0];
-  const jobId = requested ?? newest?.id ?? null;
+  const all = useLoad("jobs", vault.jobs, 3000);
+  // Only reading runs for the collection on screen: path imports have no model lanes, and other collections
+  // (for example the demo archive in Real mode) are not this one's work.
+  const jobs = { ...all, data: all.data?.filter((j) => j.kind === "process" && j.collection_id === collection?.id) };
+  const active = jobs.data?.find((j) => !TERMINAL.includes(j.status));
+  // A run in progress always takes the board; an old run is shown only when someone picks it.
+  const jobId = active?.id ?? requested ?? null;
 
   return (
     <>
       <TitleBlock
         href="/run"
         title="Progress"
-        description="Watch VAULT read your documents, live."
+        description="What VAULT is doing right now, and every run it has done."
         actions={
           jobs.data && jobs.data.length > 0 ? (
             <div className="flex items-center gap-2">
               <label htmlFor="run-pick" className="text-sm text-muted">
-                Run
+                Show
               </label>
               <select
                 id="run-pick"
                 className={cx(inputClass, "w-auto")}
                 value={jobId ?? ""}
-                onChange={(e) => router.replace(`/run?job=${e.target.value}`)}
+                onChange={(e) => router.replace(e.target.value ? `/run?job=${e.target.value}` : "/run")}
               >
+                <option value="">Right now</option>
                 {jobs.data.map((j) => (
                   <option key={j.id} value={j.id}>
                     Run {j.id}: {statusText(j.status).toLowerCase()}
@@ -72,14 +76,103 @@ export function RunBoardView() {
         }
       />
       <LoadError error={jobs.error} status={jobs.status} what="runs" />
-      {jobs.data && jobs.data.length === 0 && !requested && (
-        <Empty>
-          There are no runs yet. Go to <Link href="/setup" className="text-blue underline">Add files</Link>, choose
-          your model lanes and start one; it will appear here live.
-        </Empty>
-      )}
+      <LiveStatus active={active} checkedAt={all.at} runs={jobs.data} onOpen={(id) => router.replace(`/run?job=${id}`)} />
       {jobId !== null && <Board key={jobId} jobId={jobId} />}
     </>
+  );
+}
+
+/**
+ * What VAULT is doing right now, from live data: the server answering, the reading model, a run in progress, and
+ * documents in this collection still waiting. Shown above every run, so the page never looks switched off.
+ */
+function LiveStatus({
+  active,
+  checkedAt,
+  runs,
+  onOpen,
+}: {
+  active: Job | undefined;
+  checkedAt: number | null;
+  runs: Job[] | undefined;
+  onOpen: (id: number) => void;
+}) {
+  const { collection } = useSession();
+  const models = useLoad("local-models", vault.localModels, 10000);
+  const reader = models.data?.models.find((m) => m.used_by_vault);
+  const now = useNow(true) * 1000;
+  const waiting = collection ? Math.max(0, collection.documents - (collection.processed ?? 0)) : 0;
+  const last = runs?.find((j) => TERMINAL.includes(j.status));
+  const seconds = checkedAt ? Math.max(0, Math.round((now - checkedAt) / 1000)) : null;
+
+  return (
+    <section aria-label="VAULT right now" className="mb-5 grid gap-3 rounded-card border border-line bg-panel p-4 sm:grid-cols-3">
+      <div>
+        <p className="flex items-center gap-2 text-sm font-medium">
+          <span aria-hidden className={cx("h-2 w-2 rounded-full", seconds !== null && seconds < 15 ? "live-dot bg-green" : "bg-amber")} />
+          {seconds !== null && seconds < 15 ? "VAULT is on" : "Checking the server"}
+        </p>
+        <p className="mt-0.5 text-xs text-muted">{seconds !== null ? `Server answered ${seconds} s ago. Checks every 3 s.` : "Waiting for the first answer."}</p>
+      </div>
+      <div>
+        <p className="text-sm font-medium">
+          {active ? `Reading: run ${active.id}` : waiting ? `${waiting} documents not read yet` : "Idle: everything here is read"}
+        </p>
+        <p className="mt-0.5 text-xs text-muted">
+          {active
+            ? `${active.done + active.failed} of ${active.total} documents done. Updates live below.`
+            : waiting
+              ? "VAULT reads when you start a run; it does not watch folders by itself yet."
+              : last
+                ? `Last run ${last.id} finished ${last.finished_at ? clockTime(last.finished_at) : ""}.`
+                : "Add files to start."}
+        </p>
+        {!active && waiting > 0 && (
+          <Link href="/setup" className="mt-1.5 inline-block text-xs font-medium text-ink underline underline-offset-4">
+            Start reading them
+          </Link>
+        )}
+      </div>
+      <div>
+        <p className="text-sm font-medium">
+          {!models.data
+            ? "Checking the AI model"
+            : !models.data.reachable
+              ? "Ollama is not running"
+              : reader
+                ? `${reader.name.replace(":latest", "")} ${reader.loaded ? "is loaded" : "is ready"}`
+                : "No reading model downloaded"}
+        </p>
+        <p className="mt-0.5 text-xs text-muted">
+          {!models.data
+            ? ""
+            : !models.data.reachable
+              ? "Start Ollama so VAULT can read with Llama."
+              : reader
+                ? reader.loaded
+                  ? "In memory now, answers at once."
+                  : "Loads into memory on the first document, a few seconds."
+                : "Download one on the Models page."}
+        </p>
+      </div>
+      {!active && runs && runs.length > 0 && (
+        <div className="sm:col-span-3">
+          <p className="mb-1 text-xs text-muted">Earlier runs (finished, not live):</p>
+          <div className="flex flex-wrap gap-1.5">
+            {runs.slice(0, 8).map((j) => (
+              <button
+                key={j.id}
+                type="button"
+                onClick={() => onOpen(j.id)}
+                className="rounded-control border border-line px-2.5 py-1 text-xs hover:border-line-strong"
+              >
+                Run {j.id}: {statusText(j.status).toLowerCase()}, {j.done} of {j.total}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </section>
   );
 }
 

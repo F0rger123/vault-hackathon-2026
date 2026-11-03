@@ -19,6 +19,8 @@ frontend/next-env.d.ts
 data/runtime/
 data/demo/
 data/e2e/
+# Large fictional drag-in test set from scripts/make_test_files.py; regenerate it, never commit it.
+data/testset/
 data/*.db
 *.db
 *.db-wal
@@ -46,3 +48,4 @@ tests/e2e/playwright-report/
 frontend/.next-e2e/
 # Interface builds for another API port (start.py --api-port).
 frontend/.next-api*/
+frontend/public/models/

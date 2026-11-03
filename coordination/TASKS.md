@@ -1146,6 +1146,16 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 - **Priority:** P2 · **Owner:** luke · **Status:** BACKLOG · **Dependencies:** F02.8
 - **Description:** PDF and Office parsing runs inside the API process. Move it to a child process with memory and time limits. Found by the 2026-10-30 review.
 
+#### F09.19 — Real sign-in levels: passkeys that work, a webcam face check, no mock-ups
+
+- **Priority:** P0 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F09.14, F09.17
+- **Description:** Luke said (2026-11-03) that adding a passkey as admin failed, that face unlock was a mock-up ("it's just your Google password"), and asked for several security levels with instructions. Causes found:
+  - Passkey changes need a sign-in in the last 15 minutes, and the screen only showed an error. It now asks you to confirm it's you in place.
+  - Chrome offered Google Password Manager because VAULT did not say where the passkey should live. Now you choose: this computer (Windows Hello), a security key, or a phone.
+  - The face scan was an animation; this laptop has no IR camera, so Windows Hello can only use a PIN.
+  - **New:** a real face check by webcam with the open-source Human library (MIT): face fingerprints, liveness and anti-spoof scores in the browser; matching and the session on the server; four levels; admin controls under People. The animation is removed.
+- **Verification evidence (2026-11-03):** `tests/security/test_face_unlock.py` covers matching, strangers refused, photo and not-live refused, mixed readings refused, a single-use ticket, 3 tries, admin levels needing setup, and requirement removed with the data. Full pytest passes. In the browser the models load from VAULT; the preview pane blocks cameras, so the live camera path is **not yet verified** on a real webcam.
+
 ## F10 — User Interface
 
 All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each needs a branch `luke/F10.x-short-name`, a PR, and screenshots in the PR description using synthetic data only.
@@ -1366,6 +1376,25 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 - **Description:** Luke said (2026-11-02) the logo looks bad, loading needs better animations, and some wording overcomplicates things. New mark, a shared loading animation in place of "Loading" text, and shorter labels and page descriptions.
 - **Verification evidence (2026-11-03):** PR #96 merged, CI green, including the e2e heading change to Progress. New mark in `vault-mark.tsx`, `icon.svg` and `favicon.ico` (also the exe icon).
 
+#### F10.19 — Progress shows VAULT is on; audit of mock-ups and fake numbers
+
+- **Priority:** P0 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F10.16, F12.13
+- **Description:** Luke said (2026-11-03) that Progress acted as if VAULT was off and that the software felt like a mock-up. An audit found 28 items. Fixed:
+  - **Progress:** a live status (server answering every 3 s, run in progress, documents waiting, model loaded) and runs limited to this collection. A run in progress always takes over the board; older runs are labelled finished.
+  - **No automatic replays** on Progress or Brain, no artificial delays after sign-in, sign-out or setup, and no fake face scan.
+  - **Pictures** are stored as "not read: picture" instead of being sent to the model as if read.
+  - **Vision model** no longer recommended, since nothing uses it, and copy no longer promises searching inside photos or video.
+  - **Overview** counts this collection only.
+  - **Privacy line** follows the real remote setting.
+  - **Chat suggestions** don't use demo names in Real mode.
+  - **Setup wizard:** the security step is marked optional.
+- **Not fixed yet** (from the audit):
+  - agent floor slots use the order events arrive rather than the recorded slot;
+  - two always-pass posture checks;
+  - "8 requests per copy" is assumed, not measured;
+  - the pre-run estimate is never called from the UI;
+  - the Meta API key is not test-called when saved.
+
 ## F11 — Synthetic Data & Evaluation
 - **Verification evidence (E-E2E-2, 2026-10-28):** covered by the Playwright suite in `tests/e2e/` (`02-investigate`); 13 of 13 tests passed in 5 consecutive fresh runs on Windows 11 (Chromium, desktop and Pixel 7 profiles).
 
@@ -1483,6 +1512,11 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 - **Blockers:** none
 - **Related PR/commit:** branch `luke/F05-agent-orchestrator`
 - **Verification evidence:** Generated 3,700 files in 53 s; v1 hashes unchanged; pipeline found 200/200 planted conflicts.
+
+#### F11.7 — A large fictional test file set for hands-on testing
+
+- **Priority:** P1 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F11.1
+- **Description:** Luke asked (2026-11-03) for a large set of fake files, photos, videos and sound to test with. `scripts/make_test_files.py` writes 427 deterministic files (136 MB) with a manifest of the expected result for each and 26 planted conflicts. It found a real bug: names over 180 characters lost their extension and were refused; fixed in `sanitize_filename`.
 
 ## F12 — Deployment & Submission
 

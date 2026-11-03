@@ -42,7 +42,11 @@ def documents_to_read(conn, collection_id: int, readers: set[tuple[str, str]]) -
         r["id"]
         for r in rows
         if not (
-            r["status"] == "processed" and (r["provider"], r["model"]) in readers and (r["created_at"] or 0) > changed
+            r["status"] == "processed"
+            # A stored picture (provider "none") has nothing any model can read yet, so it is never queued again.
+            and (
+                r["provider"] == "none" or ((r["provider"], r["model"]) in readers and (r["created_at"] or 0) > changed)
+            )
         )
     ]
     return todo, len(rows) - len(todo)

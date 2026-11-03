@@ -271,6 +271,18 @@ MIGRATIONS: list[str] = [
     CREATE TRIGGER users_no_delete BEFORE DELETE ON users
         BEGIN SELECT RAISE(ABORT, 'users are disabled, never deleted'); END;
     """,
+    # 9: F09.19, a face check by webcam as an extra sign-in step. Only face fingerprints (numbers), never pictures.
+    """
+    CREATE TABLE face_templates (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL REFERENCES users(id),
+        embedding TEXT NOT NULL,
+        model TEXT NOT NULL,
+        created_at REAL NOT NULL
+    );
+    CREATE INDEX face_templates_user ON face_templates(user_id);
+    ALTER TABLE users ADD COLUMN require_face INTEGER NOT NULL DEFAULT 0;
+    """,
 ]
 
 

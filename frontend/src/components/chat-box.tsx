@@ -13,7 +13,9 @@ type Entry =
   | { id: number; who: "you"; text: string }
   | { id: number; who: "vault"; reply?: ChatReply; answer?: Investigation; error?: string; busy?: boolean };
 
-const STARTERS = ["Find drawings for Alpha", "Newest first", "Which parts have conflicting ratings?", "Are my models downloaded?"];
+// Demo suggestions name the fictional archive's projects; a real collection gets general ones.
+const DEMO_STARTERS = ["Find drawings for Alpha", "Newest first", "Which parts have conflicting ratings?", "Are my models downloaded?"];
+const STARTERS = ["Find contracts, newest first", "Show inspection reports", "Which parts have conflicting ratings?", "Are my models downloaded?"];
 
 /** Type what you want: "find the Alpha drawings", "sort by name", "only 2024", or a question. On every screen. */
 export function ChatBox() {
@@ -126,7 +128,7 @@ export function ChatBox() {
               <div className="flex flex-col gap-3 py-2">
                 <p className="text-sm text-muted">Type what you want to find, how to sort it, or a question.</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {STARTERS.map((s) => (
+                  {(collection.is_demo ? DEMO_STARTERS : STARTERS).map((s) => (
                     <button
                       key={s}
                       type="button"

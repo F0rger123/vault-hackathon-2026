@@ -99,7 +99,8 @@ def grade(conn: sqlite3.Connection, collection_id: int) -> dict:
     for d in docs:
         if d["doc_type"] is None and d["provider"] is None:
             continue  # not read yet
-        readers.add(f"{d['provider']}:{d['model']}")
+        if d["provider"] != "none":  # pictures are stored, not read, so they name no reader
+            readers.add(f"{d['provider']}:{d['model']}")
         for f in GRADED_FIELDS:
             want = d["truth"].get(f)
             if not want:

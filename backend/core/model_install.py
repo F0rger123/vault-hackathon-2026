@@ -39,13 +39,12 @@ CATALOG: tuple[CatalogModel, ...] = (
     CatalogModel("llama3:8b", "Llama 3 8B", 4.7, "text", "VAULT's measured default: best accuracy on 8 GB cards"),
     CatalogModel("llama3.1:8b", "Llama 3.1 8B", 4.9, "text", "Like Llama 3 8B, with room for much longer documents"),
     CatalogModel(
-        "llama3.2-vision:11b", "Llama 3.2 Vision 11B", 7.8, "text and images", "Reads photos, stamps and scanned pages"
+        "llama3.2-vision:11b", "Llama 3.2 Vision 11B", 7.8, "text and images", "Sees images; not used by VAULT yet"
     ),
     CatalogModel("llama3.3:70b", "Llama 3.3 70B", 43.0, "text", "Server-class accuracy for large archives"),
-    CatalogModel("llama4:scout", "Llama 4 Scout", 67.0, "text and images", "Server-class, reads text and images"),
+    CatalogModel("llama4:scout", "Llama 4 Scout", 67.0, "text and images", "Server-class; VAULT uses it for text only"),
 )
 BY_NAME = {m.name: m for m in CATALOG}
-VISION = "llama3.2-vision:11b"
 GPU_PREFERENCE = ("llama3.3:70b", "llama3:8b", "llama3.1:8b", "llama3.2:3b", "llama3.2:1b")
 CPU_PREFERENCE = ("llama3.2:3b", "llama3:8b", "llama3.2:1b")
 # Ollama sends a progress line every few seconds while downloading; five quiet minutes means it stalled.
@@ -68,15 +67,13 @@ def catalog_for(hw: HardwareProfile, installed: set[str]) -> dict:
         need = memory_gb(m.size_gb)
         where = "gpu" if need <= vram else "cpu" if need <= ram else "too_big"
         rows.append({**m.__dict__, "memory_gb": need, "runs_on": where, "installed": m.name in have})
-    # One strong text reader plus the vision model covers every file type VAULT accepts. The reader is the
-    # most accurate one that fits on the graphics card; without a card, a small one, because the CPU is slow.
+    # One strong text reader: the most accurate one that fits on the graphics card; without a card, a small one,
+    # because the CPU is slow. The vision model is not recommended: nothing in VAULT reads pictures with it yet.
     where = {r["name"]: r["runs_on"] for r in rows}
     reader = next((n for n in GPU_PREFERENCE if where[n] == "gpu"), None) or next(
         (n for n in CPU_PREFERENCE if where[n] == "cpu"), None
     )
     picks = [reader] if reader else []
-    if where[VISION] != "too_big":
-        picks.append(VISION)
     return {
         "models": rows,
         "recommended": picks,

@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 from backend.api.deps import get_conn, get_settings, require
 from backend.api.routes import _browser_origin_ok, _log_signin
 from backend.core.config import Settings
-from backend.security import audit, passkeys, signin_log
+from backend.security import audit, face, passkeys, signin_log
 from backend.security import login as signin
 from backend.security.auth import Principal, hash_token
 from backend.storage.db import now
@@ -129,6 +129,52 @@ def login(
         _log_signin(conn, request, "unknown-user", "passkey", "denied", str(exc))
         raise HTTPException(status_code=401, detail=str(exc)) from exc
     signin.clear_attempts(row["username"])
+    needs_face = conn.execute("SELECT require_face FROM users WHERE id = ?", (row["id"],)).fetchone()[0]
+    if needs_face:
+        audit.record(conn, row["username"], "auth.passkey_login", "allowed", detail={"next": "face check"})
+        return signin.face_step(row, "passkey-login")
     audit.record(conn, row["username"], "auth.passkey_login", "allowed")
     _log_signin(conn, request, row["username"], "passkey", "allowed")
     return signin.passkey_session(conn, row, settings.session_ttl_hours)
+
+
+# ---------- face check (F09.19) ----------
+
+
+class FaceEnroll(BaseModel):
+    samples: list[list[float]] = Field(min_length=1, max_length=face.MAX_SAMPLES)
+    live: float = Field(ge=0, le=1)
+    real: float = Field(ge=0, le=1)
+
+
+@router.get("/auth/face")
+def face_status(conn=Depends(get_conn), p: Principal = Depends(require("system:read"))) -> dict:
+    return {**face.status(conn, p.user_id), "match": face.MATCH, "live_min": face.LIVE_MIN, "real_min": face.REAL_MIN}
+
+
+@router.post("/auth/face", status_code=201)
+def face_enroll(body: FaceEnroll, conn=Depends(get_conn), p: Principal = Depends(fresh_session)) -> dict:
+    """Save this person's face fingerprints. Numbers only: the browser never sends a picture."""
+    try:
+        n = face.enroll(conn, p.user_id, body.samples, body.live, body.real)
+    except face.FaceError as exc:
+        audit.record(conn, p.username, "face.enroll", "denied", detail={"reason": str(exc)})
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    audit.record(conn, p.username, "face.enroll", "allowed", detail={"samples": n})
+    return face.status(conn, p.user_id)
+
+
+@router.delete("/auth/face")
+def face_remove(conn=Depends(get_conn), p: Principal = Depends(fresh_session)) -> dict:
+    face.remove(conn, p.user_id)
+    audit.record(conn, p.username, "face.remove", "allowed")
+    return face.status(conn, p.user_id)
+
+
+@router.put("/auth/face/required")
+def face_required(body: Required, conn=Depends(get_conn), p: Principal = Depends(fresh_session)) -> dict:
+    if body.required and not face.status(conn, p.user_id)["enrolled"]:
+        raise HTTPException(status_code=409, detail="set up face unlock first")
+    conn.execute("UPDATE users SET require_face = ? WHERE id = ?", (int(body.required), p.user_id))
+    audit.record(conn, p.username, "face.require", "allowed", detail={"required": body.required})
+    return face.status(conn, p.user_id)

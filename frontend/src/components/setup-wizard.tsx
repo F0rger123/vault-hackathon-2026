@@ -190,12 +190,12 @@ export function SetupWizard({ createOwner, onFinish }: { createOwner: boolean; o
   const next = () => setStep(order[index + 1] ?? "open");
   const finish = () => {
     setStep("open");
-    window.setTimeout(onFinish, 1100);
+    onFinish();
   };
   const LABELS: Record<Step, string> = {
     welcome: "Welcome",
     owner: "Owner",
-    unlock: "Unlock",
+    unlock: "Extra security (optional)",
     scan: "This computer",
     models: "AI models",
     start: "First collection",
@@ -227,9 +227,9 @@ export function SetupWizard({ createOwner, onFinish }: { createOwner: boolean; o
           )}
           {step === "owner" && <OwnerStep onDone={next} />}
           {step === "unlock" && (
-            <Pane title="Choose how to unlock" text="Use your face or fingerprint (Windows Hello, Touch ID), or a physical USB security key such as a YubiKey. The key must be plugged in and touched, and your face or fingerprint never leaves the device.">
+            <Pane title="Extra sign-in security (optional)" text="Your password already works. If you like, add a passkey (Windows Hello, a security key or your phone) or a face check by webcam now. You can skip this and do it later under Security.">
               <PasskeysPanel />
-              <Actions onNext={next} next="Continue" skip="You can add one later under Security." />
+              <Actions onNext={next} next="Skip for now" />
             </Pane>
           )}
           {step === "scan" && <ScanStep onNext={next} />}

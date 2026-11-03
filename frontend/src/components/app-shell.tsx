@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
-import { errorText, setToken, vault, type AuthOptions, type SignedIn } from "@/lib/api";
+import { errorText, needsFace, setToken, vault, type AuthOptions, type FaceStepNeeded, type SignedIn, type SignInResult } from "@/lib/api";
+import { faceStep as faceStepCall } from "@/lib/face";
 import { useLoad } from "@/lib/use-load";
 import { signInWithPasskey, passkeysSupported } from "@/lib/passkeys";
+import { FaceCapture } from "./face-capture";
 import { MatrixRain } from "./matrix-rain";
-import { UnlockSequence, type UnlockPhase } from "./unlock-sequence";
 import { CollectionSwitcher } from "./collection-switcher";
 import { ChatBox } from "./chat-box";
 import { CommandPalette } from "./command-palette";
@@ -51,6 +52,18 @@ export function sheetNumber(href: string): number {
 }
 export const SHEET_COUNT = NAV.length;
 
+
+/** Says "private" only while remote inference is off; the server's own setting decides, not this page. */
+function PrivacyLine() {
+  const providers = useLoad("providers", vault.providers);
+  const remote = providers.data?.allow_remote_inference;
+  return (
+    <p className="mt-3 flex items-center gap-2 text-xs text-muted">
+      <span aria-hidden className={cx("h-1.5 w-1.5 rounded-full", remote === undefined ? "bg-line-strong" : remote ? "bg-amber" : "bg-green")} />
+      {remote === undefined ? "Checking privacy" : remote ? "Remote AI allowed by an admin" : "Private. Runs on this machine."}
+    </p>
+  );
+}
 
 /** Whether the model VAULT reads with is downloaded, in one line under the wordmark (F03.9). */
 function ModelBadge() {
@@ -230,7 +243,6 @@ function ThemeToggle() {
 
 function UserBox() {
   const { me, signOut } = useSession();
-  const [locking, setLocking] = useState(false);
   return (
     <div className="flex items-center gap-3 text-sm">
       <span
@@ -243,10 +255,9 @@ function UserBox() {
         <div className="truncate font-medium">{me.username}</div>
         <div className="text-xs capitalize text-muted">{me.role}</div>
       </div>
-      <Button variant="quiet" onClick={() => setLocking(true)}>
+      <Button variant="quiet" onClick={signOut}>
         Sign out
       </Button>
-      {locking && <UnlockSequence phase="locking" onDone={signOut} />}
     </div>
   );
 }
@@ -279,10 +290,7 @@ function Chrome({ children }: { children: ReactNode }) {
         >
           <div className="px-2">
             <Wordmark />
-            <p className="mt-3 flex items-center gap-2 text-xs text-muted">
-              <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-green" />
-              Private. Runs on this machine.
-            </p>
+            <PrivacyLine />
             <PostureBadge />
             <ModelBadge />
           </div>
@@ -345,12 +353,11 @@ function Chrome({ children }: { children: ReactNode }) {
   );
 }
 
-function CoilIcon() {
+function KeyIcon() {
   return (
-    <svg aria-hidden viewBox="0 0 32 32" className="face-coil h-8 w-8 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <circle cx="16" cy="13" r="4.5" />
-      <path d="M8.5 25.5c1.4-4 4.2-6 7.5-6s6.100 2 7.500 6" strokeLinecap="round" />
-      <ellipse className="face-coil-ring" cx="16" cy="16" rx="14" ry="4" />
+    <svg aria-hidden viewBox="0 0 32 32" className="h-8 w-8 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+      <circle cx="11" cy="16" r="5" />
+      <path d="M16 16h12M24 16v4M28 16v3" />
     </svg>
   );
 }
@@ -362,7 +369,8 @@ function SignIn({ onSignedIn, message }: { onSignedIn: () => void; message?: str
   const [token, setTokenValue] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
-  const [unlock, setUnlock] = useState<{ phase: UnlockPhase; who?: string; face?: boolean } | null>(null);
+  const [faceStep, setFaceStep] = useState<FaceStepNeeded | null>(null);
+  const [faceTry, setFaceTry] = useState(0);
 
   useEffect(() => {
     vault.authOptions().then(setOptions, () => setOptions({ demo_login: false, password_login: false, passkey_login: false }));
@@ -370,33 +378,63 @@ function SignIn({ onSignedIn, message }: { onSignedIn: () => void; message?: str
 
   if (options?.needs_owner) return <SetupWizard createOwner onFinish={onSignedIn} />;
 
-  const finish = async (label: string, attempt: () => Promise<SignedIn>) => {
+  // A session is stored only when the server issued one: after the password or passkey, and the face if required.
+  const signedIn = (session: SignedIn) => {
+    setToken(session.token);
+    onSignedIn();
+  };
+
+  const finish = async (label: string, attempt: () => Promise<SignInResult>) => {
     setBusy(label);
     setError(null);
-    if (label === "passkey") setUnlock({ phase: "scanning", face: true });
     try {
-      const session = await attempt();
-      setToken(session.token);
-      setUnlock({ phase: "granted", who: session.username, face: label === "passkey" });
+      const r = await attempt();
+      if (needsFace(r)) setFaceStep(r);
+      else signedIn(r);
     } catch (e) {
-      if (label === "passkey") setUnlock({ phase: "denied", face: true });
       setError(e instanceof DOMException ? "The passkey was cancelled or not allowed on this device." : errorText(e));
     } finally {
       setBusy(null);
     }
   };
 
+  if (faceStep)
+    return (
+      <div className="grid min-h-dvh place-items-center px-4 py-10">
+        <div className="animate-rise w-full max-w-md rounded-card border border-line bg-panel p-5 shadow-lift">
+          <h1 className="display text-xl">Face check</h1>
+          <p className="mb-4 mt-1 text-sm text-muted">
+            {faceStep.username}&apos;s account also asks for a face check. Look at the camera.
+          </p>
+          {error && (
+            <p className="mb-3 text-sm text-redline" role="alert">
+              {error}
+            </p>
+          )}
+          <FaceCapture
+            key={faceTry}
+            mode="verify"
+            onCancel={() => {
+              setFaceStep(null);
+              setError(null);
+            }}
+            onDone={async (samples) => {
+              try {
+                signedIn(await faceStepCall(faceStep.handle, samples));
+              } catch (e) {
+                const text = errorText(e);
+                setError(text);
+                if (/start again/.test(text)) setFaceStep(null);
+                else setFaceTry((n) => n + 1);
+              }
+            }}
+          />
+        </div>
+      </div>
+    );
+
   return (
     <div className="grid min-h-dvh place-items-center px-4 py-10">
-      {unlock && (
-        <UnlockSequence
-          phase={unlock.phase}
-          who={unlock.who}
-          face={unlock.face}
-          detail={unlock.phase === "scanning" ? "Look at your camera or touch your key when your device asks. Your device checks you; VAULT never sees the camera." : undefined}
-          onDone={unlock.phase === "granted" ? onSignedIn : () => setUnlock(null)}
-        />
-      )}
       <div className="animate-rise w-full max-w-sm rounded-card border border-line bg-panel shadow-lift">
         <div className="vault-dial-intro border-b border-line px-5 py-4">
           <Wordmark />
@@ -479,10 +517,14 @@ function SignIn({ onSignedIn, message }: { onSignedIn: () => void; message?: str
                 onClick={() => finish("passkey", () => signInWithPasskey(username.trim()))}
                 className="press face-unlock group flex items-center gap-3 rounded-control border border-line-strong bg-raised px-3 py-2.5 text-left hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <CoilIcon />
+                <KeyIcon />
                 <span>
-                  <span className="block text-sm font-semibold">Sign in with face, fingerprint or security key</span>
-                  <span className="block text-xs text-muted">{username.trim() ? "Your device checks it's you" : "Type your username first"}</span>
+                  <span className="block text-sm font-semibold">
+                    {busy === "passkey" ? "Follow your device's prompt" : "Sign in with a passkey"}
+                  </span>
+                  <span className="block text-xs text-muted">
+                    {username.trim() ? "Windows Hello, Touch ID, a security key or your phone" : "Type your username first"}
+                  </span>
                 </span>
               </button>
             )}

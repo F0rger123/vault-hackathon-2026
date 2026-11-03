@@ -33,6 +33,6 @@ test("register a passkey and sign in with it", async ({ page, browserName }) => 
   await page.evaluate(() => sessionStorage.clear());
   await page.goto("/");
   await page.getByLabel("Username").fill("viewer");
-  await page.getByRole("button", { name: "Sign in with face, fingerprint or security key" }).click();
+  await page.getByRole("button", { name: /Sign in with a passkey/ }).click();
   await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
 });
