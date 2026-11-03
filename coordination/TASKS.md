@@ -1170,7 +1170,7 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 
 #### F09.21 — Invite someone: a step-by-step wizard and one-time invite links
 
-- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F09.17, F09.20
+- **Priority:** P0 · **Owner:** luke · **Status:** DONE · **Dependencies:** F09.17, F09.20
 - **Description:** An admin gives someone access from Security > People > **Invite someone**: (1) username and an optional admin-only note; (2) role, with exactly what it can and cannot do, read from a new `GET /users/roles` built on the enforced `ROLE_PERMISSIONS`; (3) sign-in steps: password always, plus passkey, face check or key phrase requested; (4) a one-time link and code (hashed, 48 hours, single use, withdrawable), shown with copy buttons and a QR code drawn by a small local encoder, or a temporary password instead; (5) review and create. The person opens `/join#CODE`, sees who invited them and as what, picks a password and lands signed in on Security with a welcome note.
 - **Extra steps, honestly:** a passkey, face or key phrase needs the person's own device, face or voice, so the admin's wish is stored as "requested". Security asks them to set each one up, and the server switches it on the moment it is set up (passkey added, face or key phrase saved). People shows what is still waiting.
 - **Acceptance criteria:** every new admin route needs `users:manage` with a denied-case test; public routes have the own-origin check and the login-style rate limit; one answer for unknown, used, withdrawn and expired codes; nothing secret in errors or the audit trail; keyboard and phone width work.
@@ -1182,6 +1182,7 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 ## F10 — User Interface
 
 All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each needs a branch `luke/F10.x-short-name`, a PR, and screenshots in the PR description using synthetic data only.
+- **Related PR/commit:** PR #106, merged 2026-11-03 with all CI checks green.
 
 #### F09.11 — Full security check and hardening of the new sign-in code
 
@@ -1447,7 +1448,7 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 
 #### F10.22 — Live brain: see files stored, read, looked at, sorted and copied, from a real activity record
 
-- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F07.8, F10.16, F10.20
+- **Priority:** P0 · **Owner:** luke · **Status:** DONE · **Dependencies:** F07.8, F10.16, F10.20
 - **Description:** Luke: "There should be no mock-ups when it's creating files, looking through files, sorting it. You should visually see that and also visually see it happening inside of the 3D brain." One activity feed per collection records what VAULT actually does to files, and the Brain draws only that record, live.
 - **Implementation scope:**
   - Migration 11: `activity` table (`collection_id`, `ts`, `actor`, `action`, `document_id`, `run`, `detail`). Triggers copy in files stored (`stored`, `media_stored` for pictures and media) and per-document processing events (`read`, `reviewed`, `held`, `flagged`), so the import and processing code are unchanged. `backend/workers/activity.py` records and pages it.
@@ -1472,10 +1473,11 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
   - **e2e:** `5 passed (1.1m)` for `0585-live-brain`, `058-brain` and `025-ask` (desktop project, ports 8440/3440).
   - **Seen in a browser (Playwright screenshots, demo data):** Finder and Conflict checker craft at their documents, copies in green with their new paths after an approval, the ticker idle afterwards, the page at 390 px with no sideways scroll.
   - **Not verified:** the Sorter line-up was not caught on a screenshot (it lasts about 4 s); its order is checked by pytest against the recorded row. A run with Ollama answering was not tried.
+- **Related PR/commit:** PR #105, merged 2026-11-03 with all CI checks green.
 
 #### F10.21 — A sharper look and a better logo; face check set-up with a phone fallback
 
-- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F10.16, F09.19, F09.20
+- **Priority:** P0 · **Owner:** luke · **Status:** DONE · **Dependencies:** F10.16, F09.19, F09.20
 - **Description:** Luke's feedback: the app looked basic and the logo weak; face unlock set-up should look striking; it must work on phone, tablet and desktop; and when the webcam is not good enough, VAULT should suggest using the phone instead. Look only: behaviour, routes, API and accessible names are unchanged.
 - **Implementation scope:**
   - New logo: a keyhole framed by four trim marks on an ink tile (chosen from five concepts, sheet in `docs/screenshots/F10.21/logo-concepts.png`). `vault-mark.tsx` (`VaultMark`, `VaultLockup`), `app/icon.svg`, `app/favicon.ico` regenerated (16/32/48 px, Pillow), README banners' mark swapped, loader redrawn from the same marks.
@@ -1499,6 +1501,7 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 
 ## F11 — Synthetic Data & Evaluation
 - **Verification evidence (E-E2E-2, 2026-10-28):** covered by the Playwright suite in `tests/e2e/` (`02-investigate`); 13 of 13 tests passed in 5 consecutive fresh runs on Windows 11 (Chromium, desktop and Pixel 7 profiles).
+- **Related PR/commit:** PR #103, merged 2026-11-03 with all CI checks green.
 
 #### F10.11 — Easy start: sign-in, Demo and Real modes, Meta API key screen
 
@@ -1622,7 +1625,7 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 
 #### F11.8 — Photos, video and sound: stored, described, found and sorted (never read)
 
-- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F11.7, F06.7, F06.8
+- **Priority:** P1 · **Owner:** luke · **Status:** DONE · **Dependencies:** F11.7, F06.7, F06.8
 - **Description:** VAULT accepts video (MP4, MOV, WebM, AVI) and sound (WAV, MP3, M4A, OGG) as well as photos, reads only the details in each file's own header, and makes them findable and sortable by kind, length, date taken, size and name. Nothing inside them is read, and nothing is sent to a model. Adds a `--size demo` test set.
 - **Implementation scope:**
   - `backend/security/files.py`: magic bytes must match the extension (RIFF WAVE/AVI, ISO `ftyp` or a QuickTime first atom with `.mp4 .m4v .mov .m4a`, EBML with `webm`, `OggS`, ID3 or a legal MPEG Layer III frame header); same size limit.
@@ -1644,6 +1647,7 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
   - **Not checked:** the Investigate filters and badges were not looked at in a browser (the e2e Investigate specs pass); `media_info` is filled only for files uploaded after migration 11, so photos stored earlier show no details until uploaded again.
 
 ## F12 — Deployment & Submission
+- **Related PR/commit:** PR #104, merged 2026-11-03 with all CI checks green.
 
 #### F12.9 — One-command start and guided first run
 

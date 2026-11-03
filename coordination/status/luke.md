@@ -144,3 +144,11 @@ Last updated: 2026-11-03
 - F09.20 (PR #101): pick any mix of password, passkey, face check and spoken key phrase; camera and mic quality checks; a virtual USB security key in e2e as the second step. Not verified: a physical YubiKey, a real webcam, a real mic.
 - F10.20 (PR #102): `/chat` Ask VAULT page. The coordinator streams its plan and hands work to real helpers, two of them in parallel. Not verified: llama3 writing the answer live.
 - Waiting on Luke: try a real key, the webcam and the mic; record the video; submit by Nov 4, 9 PM ET.
+
+### 2026-11-03 (evening): F10.21, F11.8, F10.22, F09.21 merged
+- PR #103 new logo and look, animated face setup, phone passkey offered when the camera is poor.
+- PR #104 photos, videos and audio stored with real details, findable and sortable; `make_test_files.py --size demo` (126 files, 12 MB, in `data\testset-demo`).
+- PR #105 the Brain shows real file work live (chat helpers, approved copies, new files) with a ticker.
+- PR #106 invite wizard with roles, requested sign-in steps and a one-time link, code and QR.
+- `docs/TEST_WALKTHROUGH.md`: a 30-minute checklist. `docs/DEMO_SCRIPT.md` updated. Video rules are behind the Cerebral Valley login: Luke to check.
+- Not verified: real webcam, microphone, YubiKey, phone QR flows.
