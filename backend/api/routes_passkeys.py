@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 from backend.api.deps import get_conn, get_settings, require
 from backend.api.routes import _browser_origin_ok, _log_signin
 from backend.core.config import Settings
-from backend.security import audit, face, passkeys, signin_log, steps, voice
+from backend.security import audit, face, invites, passkeys, signin_log, steps, voice
 from backend.security import login as signin
 from backend.security.auth import Principal, hash_token
 from backend.storage.db import now
@@ -73,6 +73,7 @@ def register(
         audit.record(conn, p.username, "passkey.register", "denied", detail={"reason": str(exc)})
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     audit.record(conn, p.username, "passkey.register", "allowed", detail={"name": saved["name"]})
+    apply_requested(conn, p)
     return saved
 
 
@@ -178,6 +179,7 @@ def face_enroll(body: FaceEnroll, conn=Depends(get_conn), p: Principal = Depends
         audit.record(conn, p.username, "face.enroll", "denied", detail={"reason": str(exc)})
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     audit.record(conn, p.username, "face.enroll", "allowed", detail={"samples": n})
+    apply_requested(conn, p)
     return face.status(conn, p.user_id)
 
 
@@ -222,7 +224,28 @@ def set_up(conn, user_id: int) -> dict[str, bool]:
 
 def steps_status(conn, user_id: int) -> dict:
     row = signin.step_user(conn, user_id)
-    return {"required": steps.required(row) if row else [], "set_up": set_up(conn, user_id)}
+    return {
+        "required": steps.required(row) if row else [],
+        "set_up": set_up(conn, user_id),
+        # F09.21: steps an admin asked for that this person still has to set up.
+        "requested": invites.requested(conn, user_id),
+    }
+
+
+def apply_requested(conn, p: Principal) -> list[str]:
+    """F09.21: switch on each step an admin asked for as soon as the person has set it up."""
+    asked = invites.requested(conn, p.user_id)
+    ready = set_up(conn, p.user_id)
+    now_on = [s for s in asked if ready[s]]
+    if not now_on:
+        return []
+    row = signin.step_user(conn, p.user_id)
+    if row is None:
+        return []
+    apply_steps(conn, p.user_id, [*steps.required(row), *now_on])
+    invites.set_requested(conn, p.user_id, [s for s in asked if s not in now_on])
+    audit.record(conn, p.username, "signin.steps", "allowed", detail={"requested_by_admin": now_on})
+    return now_on
 
 
 def apply_steps(conn, user_id: int, wanted: list[str]) -> None:
@@ -270,6 +293,7 @@ def voice_enroll(body: VoiceEnroll, conn=Depends(get_conn), p: Principal = Depen
         audit.record(conn, p.username, "voice.enroll", "denied", detail={"reason": str(exc)})
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     audit.record(conn, p.username, "voice.enroll", "allowed")
+    apply_requested(conn, p)
     return saved
 
 

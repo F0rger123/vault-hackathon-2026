@@ -47,6 +47,50 @@ ROLE_PERMISSIONS: dict[str, set[str]] = {
 }
 
 
+# F09.21: what each permission means, in the words the invite wizard shows an admin. Every permission needs one.
+PERMISSION_LABELS: dict[str, str] = {
+    "documents:read": "Open and read documents",
+    "search": "Search the archive",
+    "findings:read": "See findings and conflicts between documents",
+    "jobs:read": "See reading jobs and their progress",
+    "system:read": "See which models and settings VAULT uses",
+    "documents:upload": "Add files",
+    "collections:create": "Create new collections",
+    "jobs:create": "Start reading documents",
+    "jobs:cancel": "Stop a reading job",
+    "proposals:create": "Suggest changes to records",
+    "proposals:read": "See suggested changes",
+    "corrections:create": "Correct what VAULT read",
+    "proposals:approve": "Approve or reject suggested changes",
+    "settings:write": "Change settings, models and whether anything may leave this computer",
+    "audit:read": "Read the audit trail and the sign-in log",
+    "users:manage": "Invite people, change roles and sign-in steps",
+}
+
+ROLE_SUMMARIES: dict[str, str] = {
+    "viewer": "Can look and search, but cannot change anything.",
+    "analyst": "Can add files, run reading jobs and suggest changes. Cannot approve them or change settings.",
+    "admin": "Can do everything, including approving changes and managing people.",
+}
+
+
+def role_catalog() -> list[dict]:
+    """Each role with the permissions it has and the ones it lacks, in plain words, least powerful first."""
+    every = list(PERMISSION_LABELS)
+    out = []
+    for role in sorted(ROLE_PERMISSIONS, key=lambda r: len(ROLE_PERMISSIONS[r])):
+        perms = ROLE_PERMISSIONS[role]
+        out.append(
+            {
+                "role": role,
+                "summary": ROLE_SUMMARIES.get(role, ""),
+                "allowed": [{"id": p, "label": PERMISSION_LABELS[p]} for p in every if p in perms],
+                "not_allowed": [{"id": p, "label": PERMISSION_LABELS[p]} for p in every if p not in perms],
+            }
+        )
+    return out
+
+
 @dataclass(frozen=True)
 class Principal:
     user_id: int

@@ -70,6 +70,7 @@ def test_steps_need_setting_up_first(client, tokens):
     assert client.get(f"{API}/auth/steps", headers=h).json() == {
         "required": [],
         "set_up": {"password": True, "passkey": False, "face": False, "voice": False},
+        "requested": [],
     }
     for wanted in (["voice"], ["passkey"], ["face"], ["fingerprint"]):
         assert client.put(f"{API}/auth/steps", headers=h, json={"steps": wanted}).status_code == 409

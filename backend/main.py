@@ -10,6 +10,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from backend.api.routes import VERSION, router
 from backend.api.routes_agents import router as agents_router
 from backend.api.routes_brain import router as brain_router
+from backend.api.routes_invites import router as invites_router
 from backend.api.routes_passkeys import router as passkey_router
 from backend.api.routes_share import router as share_router
 from backend.api.routes_users import router as users_router
@@ -82,6 +83,7 @@ def create_app(settings: Settings | None = None, resume_jobs: bool = True) -> Fa
     app.include_router(share_router)
     app.include_router(passkey_router)
     app.include_router(users_router)
+    app.include_router(invites_router)
     # Last on purpose: routes match in order, so the catch-all can never shadow the API.
     if settings.ui_dir:
         mount_ui(app, settings.ui_dir)

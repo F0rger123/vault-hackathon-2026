@@ -4,6 +4,7 @@ import { useState } from "react";
 import { errorText, vault, type ManagedUser } from "@/lib/api";
 import { dateTime } from "@/lib/format";
 import { useLoad } from "@/lib/use-load";
+import { InviteWizard, PendingInvites } from "./invite-wizard";
 import { useSession } from "./session";
 import { STEP_NAMES } from "./sign-in-steps";
 import { Button, Field, inputClass, Notice, Panel, Tag } from "./ui";
@@ -25,6 +26,7 @@ const METHOD: Record<string, string> = {
   "passkey+face": "Passkey and face check",
   demo: "Demo button",
   "first-setup": "First setup",
+  invite: "Invite link",
   "password-change": "Changed password",
   "sign-out": "Signed out",
 };
@@ -38,6 +40,8 @@ export function UsersPanel() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [inviting, setInviting] = useState(false);
+  const [invited, setInvited] = useState(0);
 
   const act = async (label: string, fn: () => Promise<unknown>) => {
     setBusy(label);
@@ -56,6 +60,24 @@ export function UsersPanel() {
 
   return (
     <Panel title="People" aside={users.data ? `${users.data.length} accounts` : undefined}>
+      {/* F09.21: the guided way to give someone access. The quick form below stays for admins who prefer it. */}
+      <div className="mb-4">
+        {inviting ? (
+          <InviteWizard
+            taken={users.data?.map((u) => u.username) ?? []}
+            onClose={() => setInviting(false)}
+            onCreated={() => {
+              users.reload();
+              setInvited((n) => n + 1);
+            }}
+          />
+        ) : (
+          <Button variant="primary" onClick={() => setInviting(true)}>
+            Invite someone
+          </Button>
+        )}
+      </div>
+      <PendingInvites version={invited} onChange={() => setInvited((n) => n + 1)} />
       <form
         className="mb-4 grid gap-2 sm:grid-cols-[1fr_auto_1fr_auto] sm:items-end"
         onSubmit={async (e) => {
@@ -145,6 +167,11 @@ function Person({
             );
           })}
         </span>
+        {user.requested_steps && user.requested_steps.length > 0 && (
+          <span className="mt-1 block text-xs text-amber">
+            Asked to set up {user.requested_steps.map((s) => STEP_NAMES[s].toLowerCase()).join(" and ")}; each switches on once they do.
+          </span>
+        )}
       </span>
       <select
         aria-label={`Role for ${user.username}`}

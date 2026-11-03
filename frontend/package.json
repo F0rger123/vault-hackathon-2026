@@ -9,7 +9,8 @@
     "prebuild": "node scripts/copy-face-models.mjs",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:qr": "node --test scripts/qr.test.mjs"
   },
   "dependencies": {
     "@vladmandic/human": "3.3.6",

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { atLeast, errorText, vault, type AuditEntry } from "@/lib/api";
 import { dateTime, formatNumber, humanize, providerLabel } from "@/lib/format";
 import { useLoad } from "@/lib/use-load";
+import { JoinedHint } from "../join-view";
 import { PasskeysPanel } from "../passkeys-panel";
 import { Quarantine, SecurityPosture } from "../security-posture";
 import { SigninLogPanel, UsersPanel } from "../users-panel";
@@ -21,6 +22,7 @@ export function SecurityView() {
         title="Security"
         description="Who signed in, what was blocked, and where documents may go."
       />
+      <JoinedHint />
       <div className="mb-6">
         <SecurityPosture />
       </div>

@@ -338,6 +338,25 @@ MIGRATIONS: list[str] = [
         FROM jobs j WHERE j.id = NEW.job_id AND j.collection_id IS NOT NULL;
     END;
     """,
+    # 13: F09.21, one-time invites an admin sends so a person picks their own password. Only a hash of the code
+    # is stored. `requested_steps` holds the sign-in steps the admin asked for that the person has not set up yet.
+    """
+    CREATE TABLE invites (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        code_hash TEXT NOT NULL UNIQUE,
+        username TEXT NOT NULL,
+        role TEXT NOT NULL,
+        note TEXT NOT NULL DEFAULT '',
+        steps TEXT NOT NULL DEFAULT '[]',
+        created_by TEXT NOT NULL,
+        created_at REAL NOT NULL,
+        expires_at REAL NOT NULL,
+        used_at REAL,
+        revoked_at REAL
+    );
+    CREATE INDEX invites_username ON invites(username);
+    ALTER TABLE users ADD COLUMN requested_steps TEXT NOT NULL DEFAULT '[]';
+    """,
 ]
 
 
