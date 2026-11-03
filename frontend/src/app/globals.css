@@ -24,7 +24,7 @@
   --green: #00e676;
   --grid: transparent;
   --glow: transparent;
-  --highlight: 0 0 0 0 transparent;
+  --highlight: inset 0 1px 0 rgb(255 255 255 / 0.045);
   --lift: 0 0 0 1px rgb(255 255 255 / 0.1), 0 24px 48px -16px rgb(0 0 0 / 0.8);
   color-scheme: dark;
 }
@@ -47,7 +47,7 @@
   --green: #007a3d;
   --grid: transparent;
   --glow: transparent;
-  --highlight: 0 0 0 0 transparent;
+  --highlight: 0 1px 2px rgb(0 0 0 / 0.05);
   --lift: 0 1px 2px rgb(0 0 0 / 0.08), 0 24px 48px -20px rgb(0 0 0 / 0.25);
   color-scheme: light;
 }
@@ -94,16 +94,26 @@ body {
 body {
   font-family: var(--font-ui), system-ui, sans-serif;
   font-size: 14px;
-  letter-spacing: -0.006em;
+  /* Archivo is set tight already; at reading sizes it wants a hair of air, not less. */
+  letter-spacing: 0.004em;
   line-height: 1.5;
   font-feature-settings: "tnum" 1;
 }
 
-/* Titles and big figures read like a terminal: mono, medium, tight. */
+/* F10.21: titles and big figures are widened Archivo, the lettering of a drawing's title block. */
 .display {
-  font-family: var(--font-data), ui-monospace, monospace;
-  font-weight: 500;
-  letter-spacing: -0.03em;
+  font-family: var(--font-ui), system-ui, sans-serif;
+  font-weight: 640;
+  font-stretch: 116%;
+  letter-spacing: -0.012em;
+}
+/* The wordmark: Archivo at its widest, spaced out like a stamped name plate. */
+.wordmark {
+  font-family: var(--font-ui), system-ui, sans-serif;
+  font-weight: 720;
+  font-stretch: 125%;
+  letter-spacing: 0.2em;
+  line-height: 1;
 }
 
 /* A faint light from above the work area: the only atmosphere on the page. */
@@ -290,53 +300,46 @@ progress {
   transform: scale(0.97);
 }
 
-/* The logo's dial turns a notch when you hover the wordmark, like a vault combination. */
-/* Logo: the ring draws itself, then the light comes on. On hover the light glows; while loading it breathes. */
-.vault-led {
-  transform-origin: 23.3px 8.7px;
-  transition: filter 0.3s, transform 0.3s var(--ease-out-soft);
+/* F10.21 logo: trim marks round a keyhole. On the sign-in screen the marks close in on the keyhole once; while VAULT
+   opens they breathe; hovering the wordmark lights the keyhole green. */
+.vault-keyhole * {
+  transition: fill 0.25s;
 }
-a:hover .vault-led {
-  filter: drop-shadow(0 0 2px var(--green));
-  transform: scale(1.15);
+a:hover .vault-keyhole * {
+  fill: var(--green);
 }
-.vault-mark-intro .vault-ring,
-.vault-dial-intro .vault-ring {
-  stroke-dasharray: 100;
-  animation: ring-draw 0.9s var(--ease-out-soft) both;
+.vault-mark-intro .vault-trim,
+.vault-dial-intro .vault-trim {
+  transform-origin: 16px 16px;
+  animation: trim-close 0.8s var(--ease-settle) both;
 }
-.vault-mark-intro .vault-led,
-.vault-dial-intro .vault-led {
-  animation: led-on 0.5s 0.75s ease-out both;
+.vault-mark-intro .vault-keyhole,
+.vault-dial-intro .vault-keyhole {
+  animation: key-in 0.5s 0.45s var(--ease-out-soft) both;
 }
-.vault-dial-spin .vault-ring {
-  stroke-dasharray: 100;
-  animation: ring-draw 1.4s var(--ease-out-soft) infinite alternate;
+.vault-dial-spin .vault-trim {
+  transform-origin: 16px 16px;
+  animation: trim-breathe 1.2s var(--ease-settle) infinite alternate;
 }
-.vault-dial-spin .vault-led {
-  animation: led-breathe 1.4s ease-in-out infinite;
-}
-@keyframes ring-draw {
-  from {
-    stroke-dashoffset: 100;
-  }
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-@keyframes led-on {
+@keyframes trim-close {
   from {
     opacity: 0;
-    transform: scale(0.2);
+    transform: scale(1.35);
   }
-  60% {
+  to {
     opacity: 1;
-    transform: scale(1.4);
+    transform: none;
   }
 }
-@keyframes led-breathe {
-  50% {
-    opacity: 0.35;
+@keyframes trim-breathe {
+  to {
+    transform: scale(0.86);
+  }
+}
+@keyframes key-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
   }
 }
 
@@ -675,20 +678,20 @@ section.rounded-card:hover {
   transform-origin: bottom left;
 }
 
-/* F10.18: loading dial. Bolts light in turn round the dial, the same eight as the logo. */
-.loader-dial rect {
-  fill: currentColor;
-  opacity: 0.18;
-  animation: bolt 0.8s linear infinite;
+/* F10.21: loading mark. The logo's four trim marks light in turn round its keyhole. */
+.loader-dial path[fill="none"] {
+  stroke: currentColor;
+  opacity: 0.22;
+  animation: bolt 0.72s linear infinite;
 }
 @keyframes bolt {
   0% {
     opacity: 1;
-    fill: var(--green);
+    stroke: var(--green);
   }
-  60%,
+  70%,
   100% {
-    opacity: 0.18;
+    opacity: 0.22;
   }
 }
 .loader-label {
@@ -743,10 +746,161 @@ section.rounded-card:hover {
   }
 }
 
+/* ---------- F10.21: drawing-sheet details and the face check ---------- */
+
+/* Trim marks: the logo's four corners, set just outside a panel like the crop marks on a drawing sheet. Static. */
+.trim {
+  position: relative;
+}
+.trim::after {
+  --t: var(--line-strong);
+  --l: 7px;
+  content: "";
+  position: absolute;
+  inset: -5px;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--t), var(--t)) top left / var(--l) 1px,
+    linear-gradient(var(--t), var(--t)) top left / 1px var(--l),
+    linear-gradient(var(--t), var(--t)) top right / var(--l) 1px,
+    linear-gradient(var(--t), var(--t)) top right / 1px var(--l),
+    linear-gradient(var(--t), var(--t)) bottom left / var(--l) 1px,
+    linear-gradient(var(--t), var(--t)) bottom left / 1px var(--l),
+    linear-gradient(var(--t), var(--t)) bottom right / var(--l) 1px,
+    linear-gradient(var(--t), var(--t)) bottom right / 1px var(--l);
+  background-repeat: no-repeat;
+}
+.trim-ink::after {
+  --t: var(--ink);
+  --l: 10px;
+  inset: -7px;
+}
+
+/* An engineer's scale under each page title: minor ticks every 8 px, a major one every 48 px, fading out. */
+.ruler {
+  height: 10px;
+  background:
+    linear-gradient(var(--line-strong), var(--line-strong)) bottom / 100% 1px no-repeat,
+    repeating-linear-gradient(90deg, var(--muted) 0 1px, transparent 1px 48px) bottom left / 100% 10px no-repeat,
+    repeating-linear-gradient(90deg, var(--line-strong) 0 1px, transparent 1px 8px) bottom left / 100% 5px no-repeat;
+  -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 35%, transparent 92%);
+  mask-image: linear-gradient(90deg, #000 0%, #000 35%, transparent 92%);
+  opacity: 0.8;
+}
+
+/* Rail: the current page carries a solid bar on its left edge, like the active row of a ledger. */
+.nav-pill::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 7px;
+  bottom: 7px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--ink);
+}
+
+/* Sign-in: a drafting grid behind the title block, fading toward the edges. */
+.sheet-grid {
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--ink) 5%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--ink) 5%, transparent) 1px, transparent 1px);
+  background-size: 32px 32px;
+  -webkit-mask-image: radial-gradient(ellipse at 30% 40%, #000 20%, transparent 75%);
+  mask-image: radial-gradient(ellipse at 30% 40%, #000 20%, transparent 75%);
+}
+
+/* Face check. Every moving part answers a real reading: the reticle follows the box the face model returned, a
+   segment fills and the frame flashes once per accepted reading, and the check mark draws when the server accepts. */
+.scan-stage {
+  background: #000;
+  isolation: isolate;
+}
+.scan-track {
+  transition: transform 90ms linear;
+}
+.scan-seg {
+  transition: stroke 0.3s, opacity 0.3s;
+}
+.scan-seg-new {
+  animation: seg-in 0.6s var(--ease-out-soft) both;
+}
+@keyframes seg-in {
+  from {
+    stroke: #ffffff;
+    stroke-width: 9;
+  }
+}
+.scan-flash {
+  animation: scan-flash 0.55s ease-out both;
+}
+@keyframes scan-flash {
+  from {
+    opacity: 0.5;
+  }
+  to {
+    opacity: 0;
+  }
+}
+.scan-accepted-ring {
+  animation: accepted-ring 0.7s var(--ease-settle) both;
+}
+@keyframes accepted-ring {
+  from {
+    transform: scale(1.08);
+    opacity: 0.4;
+  }
+}
+.scan-check {
+  stroke-dasharray: 60;
+  animation: check-draw 0.5s 0.15s var(--ease-out-soft) both;
+}
+@keyframes check-draw {
+  from {
+    stroke-dashoffset: 60;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+/* A key-phrase take that passed its checks: its segment flashes white, then settles green. */
+.take-new {
+  animation: take-new 0.6s var(--ease-out-soft) both;
+}
+@keyframes take-new {
+  from {
+    background-color: #ffffff;
+    transform: scaleY(2.4);
+  }
+}
+/* A reading meter cell: the bar under each figure fills to the real value. */
+.meter-cell {
+  position: relative;
+  overflow: hidden;
+}
+.meter-cell > i {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 2px;
+  background: currentColor;
+  transition: width 0.25s linear;
+}
+
+/* The phone offer: a quiet panel with a drawn phone and QR, shown only when the camera failed its checks. */
+.phone-offer {
+  animation: rise 0.4s var(--ease-settle) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .loader-dial rect {
+  .loader-dial path[fill="none"] {
     animation: none;
     opacity: 0.6;
+  }
+  /* A capture still shows (the segment fills), without the flash of light. */
+  .scan-flash {
+    animation: none !important;
+    opacity: 0;
   }
   *,
   *::before,

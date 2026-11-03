@@ -8,6 +8,7 @@ import { MatrixRain } from "./matrix-rain";
 import { ModelInstaller } from "./model-installer";
 import { PasskeysPanel } from "./passkeys-panel";
 import { Button, cx, Field, inputClass, Notice } from "./ui";
+import { VaultLockup } from "./vault-mark";
 
 type Step = "welcome" | "owner" | "unlock" | "scan" | "models" | "start" | "open";
 
@@ -84,7 +85,7 @@ function Actions({ onNext, next, ready = true, skip }: { onNext: () => void; nex
 function Pane({ title, text, children }: { title: string; text: string; children: ReactNode }) {
   return (
     <section className="wizard-pane">
-      <h1 className="display text-3xl">{title}</h1>
+      <h1 className="display text-balance text-[28px] leading-[1.08] sm:text-[34px]">{title}</h1>
       <p className="mt-2 max-w-xl text-[15px] text-muted">{text}</p>
       <div className="mt-6">{children}</div>
     </section>
@@ -205,7 +206,9 @@ export function SetupWizard({ createOwner, onFinish }: { createOwner: boolean; o
   return (
     <div className="wizard-backdrop relative grid min-h-dvh lg:grid-cols-[minmax(320px,0.8fr)_minmax(0,1.2fr)]">
       <MatrixRain className="rain-backdrop" />
-      <aside className="flex flex-col items-center justify-center gap-8 border-b border-line px-8 py-10 lg:border-b-0 lg:border-r">
+      <aside className="relative isolate flex flex-col items-center justify-center gap-8 border-b border-line px-8 py-10 lg:border-b-0 lg:border-r">
+        <div aria-hidden className="sheet-grid absolute inset-0 -z-10" />
+        <VaultLockup intro />
         <VaultDoor turn={step === "open" ? order.length : index} open={step === "open"} />
         {step !== "open" && (
           <ol className="hidden w-full max-w-[220px] flex-col gap-2 lg:flex" aria-label="Setup steps">
