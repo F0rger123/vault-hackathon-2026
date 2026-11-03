@@ -733,6 +733,15 @@ section.rounded-card:hover {
 .chat-row {
   animation: fade-in 0.25s ease-out both;
 }
+/* F10.20: a helper card lights up once, when its real "started" event arrives. */
+.helper-lit {
+  animation: helper-lit 0.45s var(--ease-out-soft) both;
+}
+@keyframes helper-lit {
+  from {
+    background: color-mix(in srgb, var(--green) 14%, transparent);
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .loader-dial rect {

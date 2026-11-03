@@ -1,8 +1,12 @@
 """HTTP API v1, part 2: agent activity, capacity planning and teach-by-example."""
 
+import json
+
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
+from backend.agents import ask_team as ask_team_mod
 from backend.agents import run_chat
 from backend.api.deps import effective_settings, get_conn, get_settings, require
 from backend.api.routes import _provider, _row
@@ -10,6 +14,7 @@ from backend.api.schemas import CalibrateRequest, ExampleCreate
 from backend.core.capacity import CapacityPlan, calibrate, static_ceiling
 from backend.core.config import Settings
 from backend.core.hardware import profile_hardware
+from backend.indexing import assistant
 from backend.providers import get_provider
 from backend.providers.base import ProviderError
 from backend.security import audit
@@ -250,3 +255,55 @@ def security_summary(conn=Depends(get_conn), _: Principal = Depends(require("sys
         "denied_actions": denied,
         "review": {r["review_status"]: r["n"] for r in review},
     }
+
+
+# ---------- Ask VAULT (F10.20) ----------
+
+
+class AgentMessage(BaseModel):
+    message: str = Field(min_length=1, max_length=300)
+    previous: assistant.Command | None = None
+    use_model: bool = True
+    provider: str | None = Field(None, max_length=20)
+    confirm_remote: bool = False
+
+
+@router.post("/collections/{collection_id}/agent")
+def ask_team(
+    collection_id: int,
+    body: AgentMessage,
+    conn=Depends(get_conn),
+    settings: Settings = Depends(get_settings),
+    p: Principal = Depends(require("search")),
+) -> StreamingResponse:
+    """F10.20: one message, answered by a coordinator and its helpers. Streams one JSON event per line."""
+    _row(conn.execute("SELECT id FROM collections WHERE id = ?", (collection_id,)).fetchone())
+
+    def resolve(stream_conn):
+        # The same rules as /investigations: remote only when the administrator allows it, the person confirmed
+        # it, and their role may send text off this machine.
+        note = None
+        try:
+            provider, info = _provider(stream_conn, settings, body.provider, body.confirm_remote, p.username)
+        except HTTPException as exc:
+            if body.provider is not None or exc.status_code != 503:
+                raise ask_team_mod.HelperFailed(str(exc.detail), exc.status_code) from exc
+            # The default local model is not running. Fall back to the rules (never to a remote model) and say so.
+            provider, info = _provider(stream_conn, settings, "heuristic", False, p.username)
+            note = "The local model is not running, so the Answer writer uses VAULT's rules instead."
+        if info.locality == "remote" and not p.can("jobs:create"):
+            audit.record(stream_conn, p.username, "ask.run", "denied", detail={"reason": "remote needs analyst"})
+            raise ask_team_mod.HelperFailed("asking a remote model needs an analyst or admin", 403)
+        return provider, info, note
+
+    team = ask_team_mod.Team(
+        settings=settings,
+        collection_id=collection_id,
+        message=body.message,
+        previous=body.previous,
+        use_model=body.use_model,
+        principal=p,
+        resolve_provider=resolve,
+    )
+    lines = (json.dumps(ev, default=str) + "\n" for ev in team.events())
+    return StreamingResponse(lines, media_type="application/x-ndjson", headers={"X-Accel-Buffering": "no"})
