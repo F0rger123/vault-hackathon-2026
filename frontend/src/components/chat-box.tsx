@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { errorText, vault, type ChatCommand, type ChatReply, type Investigation } from "@/lib/api";
 import { humanize } from "@/lib/format";
+import { KindBadge, mediaLine } from "@/lib/media";
 import { DocumentDrawer } from "./document-drawer";
 import { Loader } from "./loader";
 import { useSession } from "./session";
@@ -218,9 +219,14 @@ function VaultReply({ entry, onOpen }: { entry: Extract<Entry, { who: "vault" }>
                 onClick={() => onOpen(r.document_id)}
                 className="flex w-full flex-col px-3 py-1.5 text-left hover:bg-raised"
               >
-                <span className="truncate font-mono text-[12.5px]">{r.filename}</span>
+                <span className="truncate font-mono text-[12.5px]">
+                  <KindBadge kind={r.kind} />
+                  {r.filename}
+                </span>
                 <span className="text-xs text-muted">
-                  {[humanize(r.doc_type), r.project, r.doc_date].filter(Boolean).join(" · ")}
+                  {r.kind && r.kind !== "document"
+                    ? mediaLine(r.media_info, r.kind)
+                    : [humanize(r.doc_type), r.project, r.doc_date].filter(Boolean).join(" · ")}
                 </span>
               </button>
             </li>

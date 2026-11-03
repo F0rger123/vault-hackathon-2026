@@ -15,7 +15,7 @@ const END_SILENCE_MS = 900;
 const MAX_MS = 7000;
 const BARS = 28;
 
-type Stage = "opening" | "ready" | "listening" | "checking" | "done" | "error";
+type Stage = "opening" | "ready" | "listening" | "checking" | "done" | "accepted" | "error";
 
 /**
  * F09.20: the spoken key phrase. A real microphone level meter, quality checks on every take, and three takes to set
@@ -27,7 +27,8 @@ export function VoiceCapture({
   onCancel,
 }: {
   mode: "enroll" | "verify";
-  onDone: (takes: PhraseFeatures[]) => void | Promise<void>;
+  /** Resolve `true` when the server accepted, to show the success moment. */
+  onDone: (takes: PhraseFeatures[]) => void | boolean | Promise<void | boolean>;
   onCancel: () => void;
 }) {
   const mic = useRef<Microphone | null>(null);
@@ -132,7 +133,7 @@ export function VoiceCapture({
       if (takes.current.length >= NEED[mode]) {
         setStage("done");
         mic.current?.close();
-        await done.current(takes.current);
+        if ((await done.current(takes.current)) === true) setStage("accepted");
         return;
       }
       setStage("ready");
@@ -143,19 +144,44 @@ export function VoiceCapture({
   };
 
   return (
-    <div className="flex flex-col items-center gap-3">
-      <div className="w-full max-w-[420px] rounded-card border border-line-strong bg-black p-4">
-        <div ref={bars} className="flex h-20 items-center justify-between gap-[3px]" aria-hidden>
-          {Array.from({ length: BARS }, (_, i) => (
-            <div
-              key={i}
-              className={cx("h-full w-full origin-center rounded-full transition-colors", stage === "listening" ? "bg-green" : "bg-ink/50")}
-              style={{ transform: "scaleY(0.06)" }}
-            />
-          ))}
+    <div className="flex w-full flex-col items-center gap-3">
+      <div className="scan-stage relative w-full max-w-[440px] overflow-hidden rounded-card border border-line-strong p-4 sm:p-5">
+        <div className="mb-3 flex items-center justify-between font-mono text-[11px] text-white/70">
+          <span className="flex items-center gap-1.5">
+            <span aria-hidden className={cx("h-1.5 w-1.5 rounded-full", stage === "listening" ? "live-dot bg-green text-green" : "bg-white/30")} />
+            {stage === "listening" ? "Recording" : "Microphone"}
+          </span>
+          <span>
+            Take {Math.min(count + (stage === "listening" || stage === "checking" ? 1 : 0), NEED[mode])} of {NEED[mode]}
+          </span>
         </div>
-        <p className="mt-3 text-center text-sm font-medium text-white" aria-live="polite">
-          {stage === "opening"
+        {/* A level line through the middle, like the trace on a recorder. */}
+        <div className="relative">
+          <span aria-hidden className="absolute inset-x-0 top-1/2 h-px bg-white/10" />
+          <div ref={bars} className="relative flex h-20 items-center justify-between gap-[3px]" aria-hidden>
+            {Array.from({ length: BARS }, (_, i) => (
+              <div
+                key={i}
+                className={cx("h-full w-full origin-center rounded-full transition-colors", stage === "listening" ? "bg-green" : "bg-white/45")}
+                style={{ transform: "scaleY(0.06)" }}
+              />
+            ))}
+          </div>
+          {stage === "accepted" && (
+            <div className="absolute inset-0 grid place-items-center">
+              <svg viewBox="0 0 64 64" className="h-14 w-14" aria-hidden>
+                <circle cx="32" cy="32" r="30" fill="rgb(0 0 0 / 0.7)" stroke="var(--green)" strokeWidth="2" />
+                <path className="scan-check" d="M19 33l9 9 17-19" fill="none" stroke="var(--green)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+          )}
+        </div>
+        <p className={cx("mt-3 text-center text-sm font-medium", stage === "accepted" ? "text-green" : "text-white")} aria-live="polite">
+          {stage === "accepted"
+            ? mode === "enroll"
+              ? "Key phrase saved"
+              : "Key phrase accepted"
+            : stage === "opening"
             ? "Starting the microphone"
             : stage === "listening"
               ? "Listening. Say your phrase, then pause"
@@ -190,9 +216,17 @@ export function VoiceCapture({
       )}
 
       {mode === "enroll" && stage !== "error" && (
-        <div className="flex gap-2" aria-label={`Take ${count} of ${NEED.enroll}`}>
+        <div className="flex gap-1.5" aria-label={`Take ${count} of ${NEED.enroll}`}>
           {Array.from({ length: NEED.enroll }, (_, i) => (
-            <span key={i} className={cx("h-2 w-10 rounded-full transition-colors duration-300", i < count ? "bg-green" : "bg-raised")} />
+            // A take lights (and flashes once) only after it passed the quality checks.
+            <span
+              key={i === count - 1 ? `${i}-new` : i}
+              className={cx(
+                "h-1.5 w-12 rounded-full transition-colors duration-300",
+                i < count || stage === "accepted" ? "bg-green" : "bg-line-strong",
+                i === count - 1 && "take-new",
+              )}
+            />
           ))}
         </div>
       )}
@@ -213,17 +247,29 @@ export function VoiceCapture({
       <div className="flex gap-2">
         {(stage === "ready" || stage === "listening" || stage === "checking") && (
           <Button variant="primary" busy={stage !== "ready"} onClick={listen}>
+            <MicIcon />
             {stage === "ready" ? "Speak" : "Listening"}
           </Button>
         )}
-        <Button variant="secondary" onClick={onCancel}>
-          Cancel
-        </Button>
+        {stage !== "accepted" && (
+          <Button variant="secondary" onClick={onCancel}>
+            Cancel
+          </Button>
+        )}
       </div>
       <p className="max-w-[420px] text-center text-xs text-muted">
         Only numbers describing how the phrase sounds are sent to VAULT. The recording stays on this page.
       </p>
     </div>
+  );
+}
+
+function MicIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+      <rect x="9" y="3" width="6" height="11" rx="3" />
+      <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
+    </svg>
   );
 }
 

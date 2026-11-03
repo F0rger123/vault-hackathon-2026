@@ -8,9 +8,28 @@ import re
 import sqlite3
 
 from backend.indexing.findings import LATEST_EXTRACTION
+from backend.ingest.media import kind_of
 from backend.storage.db import loads
 
 _TERM = re.compile(r"[\w.-]+", re.UNICODE)
+KIND_PREFIX = {"image": "image/", "photo": "image/", "video": "video/", "audio": "audio/"}
+DATE_SQL = "COALESCE(x.doc_date, substr(json_extract(d.media_info, '$.taken'), 1, 10))"
+# Each sort is a fixed piece of SQL picked by name, never built from what the person typed.
+_SORTS = {
+    "name": ("d.filename COLLATE NOCASE", "asc"),
+    "size": ("d.size_bytes", "desc"),
+    "duration": ("json_extract(d.media_info, '$.duration_s')", "desc"),
+    "date": (DATE_SQL, "desc"),
+    "taken": ("json_extract(d.media_info, '$.taken')", "desc"),
+}
+
+
+def _order_by(sort: str, order: str) -> str:
+    if sort not in _SORTS:
+        return "rank, d.id"
+    column, default = _SORTS[sort]
+    direction = "DESC" if (order or default) == "desc" else "ASC"
+    return f"{column} IS NULL, {column} {direction}, d.id"
 
 
 def to_fts_query(q: str) -> str:
@@ -31,11 +50,13 @@ def search(
     exclude: str = "",
     year: str | None = None,
     media: str | None = None,
+    sort: str = "relevance",
+    order: str = "",
 ) -> list[dict]:
     where, args = [], []
     fts = to_fts_query(q)
     base = f"""
-        SELECT d.id AS document_id, d.filename, d.media_type, d.collection_id,
+        SELECT d.id AS document_id, d.filename, d.media_type, d.collection_id, d.size_bytes, d.media_info,
                x.doc_type, x.project, x.doc_date, x.title, x.data, x.provider, x.model{{extra}}
         FROM documents d
         LEFT JOIN ({LATEST_EXTRACTION}) x ON x.document_id = d.id
@@ -67,12 +88,17 @@ def search(
         args.append(date_to)
     # F06.7: narrowing step by step: a year, pictures or documents only, and words the result must not contain.
     if year and re.fullmatch(r"\d{4}", year):
-        where.append("x.doc_date LIKE ?")
+        # A photo or video has no document date, but its file may say when it was taken (F11.8).
+        where.append(f"{DATE_SQL} LIKE ?")
         args.append(f"{year}-%")
-    if media == "image":
-        where.append("d.media_type LIKE 'image/%'")
+    # F11.8: one kind of file only. "image" is the older word for photos and still works.
+    if media in KIND_PREFIX:
+        where.append("substr(d.media_type, 1, 6) = ?")
+        args.append(KIND_PREFIX[media])
     elif media == "document":
-        where.append("d.media_type NOT LIKE 'image/%'")
+        where.append("substr(d.media_type, 1, 6) NOT IN ('image/', 'video/', 'audio/')")
+    elif media == "media":
+        where.append("substr(d.media_type, 1, 6) IN ('image/', 'video/', 'audio/')")
     if banned := to_fts_query(exclude):
         where.append(
             "NOT EXISTS (SELECT 1 FROM pages xp WHERE xp.document_id = d.id "
@@ -82,7 +108,7 @@ def search(
         args.append(" OR ".join(banned.split(" ")))
     if where:
         sql += " WHERE " + " AND ".join(where)
-    sql += " ORDER BY rank, d.id LIMIT ?"
+    sql += f" ORDER BY {_order_by(sort, order)} LIMIT ?"
     args.append(max(1, min(limit, 200)) * (4 if part_number else 1))
 
     results, seen = [], set()
@@ -109,6 +135,9 @@ def search(
                 "snippet": r["snippet"],
                 "part_numbers": parts,
                 "extracted_by": f"{r['provider']}:{r['model']}" if r["provider"] else None,
+                "kind": kind_of(r["media_type"]),
+                "size_bytes": r["size_bytes"],
+                "media_info": loads(r["media_info"], None),
             }
         )
         if len(results) >= limit:

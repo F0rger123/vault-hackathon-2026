@@ -28,21 +28,36 @@ section 3; never real documents or real people's data.
 | **Models** | Which models are downloaded, which is in use, and downloads for more. | Download a small one (Llama 3.2 1B, 1.3 GB) and switch to it. |
 
 **What VAULT does not do yet (so you are not surprised):**
-- It does not read text inside pictures, or video or sound files. Pictures are stored and listed by name, marked "not read: picture". Video and audio files are refused.
+- It does not look inside photos, video or sound. They are stored with the details in the file itself: size in pixels, length, sample rate, and for photos the date taken and camera. They are marked "not read: photo", "not read: video" or "not read: audio" and never go to a model. Find and sort them by name, date and those details: "find videos", "photos from 2024 sorted by date", "longest audio first", "show me pictures". A word search finds them by name and details, not by what is in them.
+- Video accepted: MP4, MOV, WebM, AVI. Sound accepted: WAV, MP3, M4A, OGG. The file's first bytes must match its extension, so text named `.mp4` or a program named `.mov` is refused.
 - It reads only when you start a run. It does not watch folders.
 
 ## 3. The fictional test file set
 
-Make 427 files (136 MB): PDFs, Word, Excel, PowerPoint, CSV, text, Markdown, JSON, photos, videos, sound files and
-edge cases.
+For a demo, make the small set: 126 files (about 12 MB) that is quick to read. It has stamped inspection
+reports (APPROVED, QC PASSED and REJECTED seals), drawings with revision clouds and numbered callouts, site photos
+dated 2023 to 2025 with markers, arrows, tape measures and stickers, short gauge videos and voice-memo stand-ins.
+
+```powershell
+.venv\Scripts\python scripts\make_test_files.py --size demo --out data\testset-demo
+```
+
+The full set is 482 files (139 MB): PDFs, Word, Excel, PowerPoint, CSV, text, Markdown, JSON, photos, videos, sound
+files and edge cases, including files at and over the 50 MB limit.
 
 ```powershell
 .venv\Scripts\python scripts\make_test_files.py --out data\testset --count 400 --seed 7
 ```
 
-- `data\testset\README.txt` explains the folders, and `manifest.json` lists every file with the result VAULT should give:
+Videos are hand-made Photo-JPEG MOV and Motion-JPEG AVI. When `ffmpeg` is installed the set also gets H.264 MP4 and
+WebM clips (`--no-ffmpeg` keeps every byte the same on every computer). Sound is synthesized tones (WAV) and silent
+MP3 frames, with no speech.
+
+- `data\testset\README.txt` explains the folders, and `manifest.json` lists every file with the result VAULT should give
+  (`outcome` is one of `read`, `stored-with-metadata`, `refused`, `held`):
   - read;
-  - stored but not read;
+  - stored with details: photos, video and sound, with `media` giving the length, size in pixels and date taken VAULT
+    should show;
   - refused, with the reason;
   - held for review.
 - 26 conflicts are planted on purpose, for example the same part with different pressure ratings in two documents. After a run, Overview's findings should include them, except the ones that exist only inside a photo.

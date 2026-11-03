@@ -24,6 +24,7 @@ import re
 import sqlite3
 from collections import Counter
 
+from backend.ingest.media import is_media
 from backend.providers.schema import DOC_TYPES
 from backend.storage.db import dumps, loads, now
 from backend.workers.corrections import record_correction
@@ -252,7 +253,7 @@ def gaps(conn: sqlite3.Connection, collection_id: int, limit: int = 12) -> list[
 
     # Documents VAULT could not place, or placed without a project.
     for r in rows:
-        if (r["doc_type"] or "other") == "other" and not r["media_type"].startswith("image/"):
+        if (r["doc_type"] or "other") == "other" and not is_media(r["media_type"]):
             out.append(
                 _gap("doc_type", r["filename"], f'What kind of document is "{r["filename"]}"?', 2, r["id"], DOC_TYPES)
             )

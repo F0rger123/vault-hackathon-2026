@@ -18,10 +18,13 @@ from pydantic import BaseModel, Field, ValidationError
 
 from backend.indexing.investigate import DOC_TYPE_WORDS, PART_RE, YEAR_RE, _known_values
 from backend.indexing.search import search
+from backend.ingest.media import NOT_READ_NOTE
+from backend.ingest.media import PLURAL as MEDIA_PLURAL
 from backend.providers.base import Provider, ProviderError
 
 Kind = Literal["find", "ask", "open", "models", "help"]
-SortKey = Literal["relevance", "date", "name", "type", "project"]
+SortKey = Literal["relevance", "date", "name", "type", "project", "duration", "size"]
+MediaKind = Literal["image", "photo", "video", "audio", "document"]
 DOC_TYPES = ("engineering_drawing", "inspection_report", "contract", "parts_list", "revision_history", "project_memo")
 PLURAL = {
     "engineering_drawing": "drawings",
@@ -65,6 +68,17 @@ _SORT = [
     (re.compile(r"\bby\s+(?:document\s+)?(?:type|kind)\b", re.I), ("type", "asc")),
     (re.compile(r"\bby\s+project\b", re.I), ("project", "asc")),
     (re.compile(r"\bby\s+relevance\b|\bbest\s+match", re.I), ("relevance", "asc")),
+    # F11.8: photos, video and sound sort by their own details.
+    (re.compile(r"\b(?:longest|by\s+(?:the\s+)?(?:length|duration|running\s+time))\b", re.I), ("duration", "desc")),
+    (re.compile(r"\bshortest\b", re.I), ("duration", "asc")),
+    (re.compile(r"\b(?:biggest|largest|by\s+(?:file\s+)?size)\b", re.I), ("size", "desc")),
+    (re.compile(r"\bsmallest\b", re.I), ("size", "asc")),
+]
+# Everyday words for each kind of file. Checked in this order, so "voice memos" is sound, not a project memo.
+_MEDIA_WORDS = [
+    ("audio", re.compile(r"\b(?:audio|sounds?|voice\s+(?:memos?|notes?|recordings?)|recordings?|wavs?|mp3s?)\b", re.I)),
+    ("video", re.compile(r"\b(?:videos?|clips?|footage|movies?|films?)\b", re.I)),
+    ("photo", re.compile(r"\b(?:photos?|pictures?|images?|pics?|snapshots?)\b", re.I)),
 ]
 _FILLER = set(
     """hey hi hello vault please can could would you me my i we find search look for up show list get pull all any
@@ -74,7 +88,10 @@ _FILLER = set(
     types kind project projects document documents file files doc docs result results thing things one ones
     alphabetical alphabetically reverse relevance best match filter which what where are is there some about give
     need want see z without except excluding not containing but photo photos picture pictures image images gimme hmm
-    um uh so well okay ok top bottom everyone anyone everybody somebody really maybe put place up down""".split()
+    um uh so well okay ok top bottom everyone anyone everybody somebody really maybe put place up down video videos
+    clip clips footage movie movies film films audio sound sounds recording recordings voice wav wavs mp3 mp3s pic
+    pics snapshot snapshots longest shortest biggest largest smallest length duration size taken
+    sorted""".split()
 )
 # Everyday words for document types.
 TYPE_WORDS = {
@@ -93,7 +110,7 @@ class Command(BaseModel):
     project: str | None = Field(None, max_length=80)
     year: str | None = Field(None, pattern=r"^\d{4}$")
     part_number: str | None = Field(None, max_length=40)
-    media: Literal["image", "document"] | None = None
+    media: MediaKind | None = None
     exclude: str = Field("", max_length=100)
     sort: SortKey = "relevance"
     order: Literal["asc", "desc"] = "asc"
@@ -138,7 +155,9 @@ def interpret(conn: sqlite3.Connection, collection_id: int, message: str, previo
     if re.search(r"parts? lists?|bills? of materials?|\bboms?\b", low):
         doc_type = "parts_list"
     year = YEAR_RE.search(text)
-    media = "image" if re.search(r"\b(?:photos?|pictures?|images?)\b", low) else None
+    media = next((kind for kind, rx in _MEDIA_WORDS if rx.search(low)), None)
+    if media == "audio" and doc_type == "project_memo" and re.search(r"\bvoice\s+(?:memos?|notes?)\b", low):
+        doc_type = None  # "voice memos" are recordings, not written project memos
     excluded = [m.group(1) for m in _EXCLUDE.finditer(text)]
     used = {*(project.casefold().split() if project else ()), (part or "").casefold()}
     used |= {e.casefold() for e in excluded}
@@ -234,9 +253,20 @@ def model_command(provider: Provider, conn: sqlite3.Connection, collection_id: i
     return cmd
 
 
+def _info(r: dict) -> dict:
+    return r.get("media_info") or {}
+
+
 def _sort_key(cmd: Command):
     if cmd.sort == "date":
-        return lambda r: r["doc_date"] or ("" if cmd.order == "asc" else "0")
+        # A photo or video has no document date; when it was taken stands in for it.
+        return lambda r: r["doc_date"] or (_info(r).get("taken") or "")[:10] or ("" if cmd.order == "asc" else "0")
+    if cmd.sort == "duration":
+        # Files with no length (documents, or a header VAULT could not read) go last either way.
+        missing = float("inf") if cmd.order == "asc" else -1.0
+        return lambda r: _info(r).get("duration_s", missing)
+    if cmd.sort == "size":
+        return lambda r: r.get("size_bytes") or 0
     if cmd.sort == "name":
         return lambda r: r["filename"].casefold()
     if cmd.sort == "type":
@@ -296,7 +326,8 @@ def describe(cmd: Command, total: int, dropped: bool = False) -> str:
     if dropped:
         text = describe(cmd.model_copy(update={"q": ""}), total)
         return f"Nothing matched “{cmd.q}”, so here is everything else you asked for. {text}"
-    noun = PLURAL.get(cmd.doc_type or "", "pictures" if cmd.media == "image" else "documents")
+    media = "photo" if cmd.media == "image" else cmd.media
+    noun = PLURAL.get(cmd.doc_type or "", MEDIA_PLURAL.get(media or "", "documents"))
     if total == 1:
         noun = noun[:-1] if noun.endswith("s") else noun
         noun = "revision history" if noun == "revision historie" else noun
@@ -321,15 +352,23 @@ def describe(cmd: Command, total: int, dropped: bool = False) -> str:
         ("type", "desc"): "grouped by type",
         ("project", "asc"): "grouped by project",
         ("project", "desc"): "grouped by project",
+        ("duration", "desc"): "longest first",
+        ("duration", "asc"): "shortest first",
+        ("size", "desc"): "largest first",
+        ("size", "asc"): "smallest first",
     }.get((cmd.sort, cmd.order))
     if total and order:
         text += f", {order}"
     if not total:
         return text + ". Try fewer words, or ask it as a question."
-    return text + ("." if total <= SHOWN else f". Showing the first {SHOWN}.")
+    text += "." if total <= SHOWN else f". Showing the first {SHOWN}."
+    if media in ("photo", "video", "audio") and cmd.q:
+        text += " " + NOT_READ_NOTE
+    return text
 
 
 HELP = (
     "Try “find drawings for Project Alpha”, “only 2024, newest first”, “sort by name”, "
-    "“which parts have conflicting ratings?”, “are my models downloaded?” or “open approvals”."
+    "“which parts have conflicting ratings?”, “find videos”, “longest audio first”, “are my models downloaded?” "
+    "or “open approvals”."
 )

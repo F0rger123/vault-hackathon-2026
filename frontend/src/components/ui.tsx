@@ -9,8 +9,9 @@ export function cx(...parts: (string | false | null | undefined)[]): string {
 type Variant = "primary" | "secondary" | "danger" | "quiet";
 
 const VARIANTS: Record<Variant, string> = {
-  primary: "bg-accent text-on-accent border-accent font-semibold hover:brightness-110 active:brightness-95",
-  secondary: "bg-raised text-ink border-line-strong hover:border-muted hover:bg-panel",
+  primary:
+    "bg-accent text-on-accent border-accent font-semibold shadow-[inset_0_-1px_0_rgb(0_0_0/0.18)] hover:brightness-[1.08] active:brightness-95",
+  secondary: "bg-raised text-ink border-line-strong shadow-panel hover:border-muted hover:bg-panel",
   danger: "bg-redline/10 text-redline border-redline/50 hover:bg-redline/20",
   quiet: "bg-transparent text-blue border-transparent hover:underline underline-offset-4 px-1",
 };
@@ -55,14 +56,14 @@ export function Panel({
   id?: string;
 }) {
   return (
-    <section id={id} className={cx("min-w-0 rounded-card border border-line bg-panel shadow-panel", className)}>
+    <section id={id} className={cx("trim min-w-0 rounded-card border border-line bg-panel shadow-panel", className)}>
       {title !== undefined && (
-        <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-line px-5 py-3.5">
-          <h2 className="text-[15px] font-semibold tracking-[-0.005em]">{title}</h2>
+        <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-line px-4 py-3 sm:px-5 sm:py-3.5">
+          <h2 className="display text-[15px] leading-snug">{title}</h2>
           {aside && <div className="text-sm text-muted">{aside}</div>}
         </header>
       )}
-      <div className={cx("p-5", bodyClassName)}>{children}</div>
+      <div className={cx("p-4 sm:p-5", bodyClassName)}>{children}</div>
     </section>
   );
 }
@@ -144,8 +145,16 @@ export function LoadError({ error, status, what }: { error: string | null; statu
   );
 }
 
+/** Nothing here yet: the logo's empty frame, then what to do about it. */
 export function Empty({ children }: { children: ReactNode }) {
-  return <p className="rounded-card border border-dashed border-line-strong px-5 py-8 text-center text-sm text-muted">{children}</p>;
+  return (
+    <p className="flex flex-col items-center gap-3 rounded-card border border-dashed border-line-strong px-5 py-8 text-center text-sm text-muted">
+      <svg aria-hidden viewBox="0 0 24 24" className="h-6 w-6 text-line-strong" fill="none" stroke="currentColor" strokeWidth="1.6">
+        <path d="M2 8V2h6M16 2h6v6M22 16v6h-6M8 22H2v-6" />
+      </svg>
+      <span className="max-w-prose text-balance">{children}</span>
+    </p>
+  );
 }
 
 export function Meter({
@@ -226,10 +235,10 @@ function CountUp({ text }: { text: string }) {
 export function Figure({ label, value, tone }: { label: string; value: ReactNode; tone?: "red" | "amber" | "green" }) {
   return (
     <div className="min-w-0">
-      <div className="text-[13px] text-muted">{label}</div>
+      <div className="text-[12.5px] text-muted">{label}</div>
       <div
         className={cx(
-          "display mt-1 whitespace-nowrap text-[26px] leading-none tabular-nums",
+          "display mt-1.5 whitespace-nowrap text-[26px] leading-none tabular-nums",
           tone === "red" && "text-redline",
           tone === "amber" && "text-amber",
           tone === "green" && "text-green",

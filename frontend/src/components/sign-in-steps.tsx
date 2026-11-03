@@ -28,10 +28,10 @@ export function StepTrail({ steps, done, current }: { steps: SignInStep[]; done:
   const progress = steps.length > 1 ? done.length / (steps.length - 1) : 1;
   return (
     <ol className="relative flex items-start justify-between" aria-label="Sign-in steps">
-      <span className="absolute left-4 right-4 top-4 h-px bg-line" aria-hidden />
+      <span className="absolute left-8 right-8 top-4 border-t border-dashed border-line-strong" aria-hidden />
       <span
-        className="absolute left-4 top-4 h-px bg-green transition-[width] duration-500 ease-out"
-        style={{ width: `calc((100% - 2rem) * ${Math.min(1, progress)})` }}
+        className="absolute left-8 top-4 h-0.5 -translate-y-px bg-green transition-[width] duration-500 ease-out"
+        style={{ width: `calc((100% - 4rem) * ${Math.min(1, progress)})` }}
         aria-hidden
       />
       {steps.map((s) => {
@@ -41,8 +41,8 @@ export function StepTrail({ steps, done, current }: { steps: SignInStep[]; done:
           <li key={s} className="relative z-10 flex w-16 flex-col items-center gap-1.5 text-center" aria-current={isNow ? "step" : undefined}>
             <span
               className={cx(
-                "grid h-8 w-8 place-items-center rounded-full border bg-panel transition-colors duration-300",
-                isDone ? "border-green bg-green text-black" : isNow ? "live-dot border-green text-green" : "border-line text-muted",
+                "grid h-8 w-8 place-items-center rounded-[9px] border bg-panel transition-colors duration-300",
+                isDone ? "border-green bg-green text-black" : isNow ? "border-green text-green ring-4 ring-green/15" : "border-line-strong text-muted",
               )}
             >
               {isDone ? <Tick /> : <StepIcon step={s} />}
@@ -95,6 +95,36 @@ export function StepIcon({ step, className = "h-4 w-4" }: { step: SignInStep; cl
 }
 
 /**
+ * F10.21: the camera failed its checks during a sign-in face step. The account's steps are set on the server
+ * (backend/security/steps.py), and a face step cannot be swapped for another one mid-sign-in, so this only says
+ * what to do; it never offers a way round the step.
+ */
+function FaceRequired({ problems, username }: { problems: string[]; username: string }) {
+  return (
+    <div role="alert" className="rounded-card border border-line-strong bg-raised p-4 text-sm">
+      <p className="display text-[15px] leading-snug">Your camera isn&apos;t good enough for the face check</p>
+      <ul className="mt-1.5 list-disc pl-4 text-xs text-muted">
+        {problems.map((p) => (
+          <li key={p}>{p}</li>
+        ))}
+      </ul>
+      <p className="mt-3">
+        {username}&apos;s account requires a face check, so VAULT can&apos;t skip it or accept another step instead. What
+        you can do:
+      </p>
+      <ul className="mt-1.5 flex list-disc flex-col gap-1 pl-5 text-muted">
+        <li>Fix the light or lens, or use a better webcam, then press Cancel and sign in again.</li>
+        <li>Ask an administrator to change your sign-in steps.</li>
+        <li>
+          Once you are in, add your phone as a passkey under Security, How you sign in, and swap Face check for Passkey.
+          Your phone then does its own Face ID or fingerprint check.
+        </li>
+      </ul>
+    </div>
+  );
+}
+
+/**
  * F09.20: the rest of a sign-in after the first step was right. Shows every step this account chose and asks for the
  * next one. A session is stored only when the server issues one, after the last step.
  */
@@ -115,19 +145,26 @@ export function SignInSteps({
   const [ended, setEnded] = useState(false);
   const all = [...step.done, ...step.remaining];
 
-  const answer = async (fn: () => Promise<SignInResult>) => {
+  // `hold` keeps the accepted face or key phrase on screen for a moment (its check mark) before moving on.
+  const answer = async (fn: () => Promise<SignInResult>, hold = 0): Promise<boolean> => {
     setBusy(true);
     setError(null);
     try {
       const r = await fn();
       setPassword("");
-      if (needsStep(r)) setStep(r);
-      else await onSignedIn(r);
+      const apply = async () => {
+        if (needsStep(r)) setStep(r);
+        else await onSignedIn(r);
+      };
+      if (hold) window.setTimeout(() => void apply(), hold);
+      else await apply();
+      return true;
     } catch (e) {
       const text = e instanceof DOMException ? "The passkey was cancelled or not allowed on this device." : errorText(e);
       setError(text);
       if (/start again|took too long/.test(text)) setEnded(true);
       else setAttempt((n) => n + 1);
+      return false;
     } finally {
       setBusy(false);
     }
@@ -157,9 +194,15 @@ export function SignInSteps({
             Start again
           </Button>
         ) : step.step === "face" ? (
-          <FaceCapture key={attempt} mode="verify" onCancel={onCancel} onDone={(s) => answer(() => faceStep(step.handle, s))} />
+          <FaceCapture
+            key={attempt}
+            mode="verify"
+            onCancel={onCancel}
+            onDone={(s) => answer(() => faceStep(step.handle, s), 900)}
+            poorCamera={(problems) => <FaceRequired problems={problems} username={step.username} />}
+          />
         ) : step.step === "voice" ? (
-          <VoiceCapture key={attempt} mode="verify" onCancel={onCancel} onDone={(t) => answer(() => voiceStep(step.handle, t[0]))} />
+          <VoiceCapture key={attempt} mode="verify" onCancel={onCancel} onDone={(t) => answer(() => voiceStep(step.handle, t[0]), 900)} />
         ) : step.step === "password" ? (
           <form
             className="flex flex-col gap-2"

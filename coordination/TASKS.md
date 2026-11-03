@@ -1176,7 +1176,7 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 - **Acceptance criteria:** every new admin route needs `users:manage` with a denied-case test; public routes have the own-origin check and the login-style rate limit; one answer for unknown, used, withdrawn and expired codes; nothing secret in errors or the audit trail; keyboard and phone width work.
 - **Required tests:** `tests/security/test_invites.py`, `frontend/scripts/qr.test.mjs` (`npm run test:qr`), e2e `tests/e2e/specs/0595-invite.spec.ts`.
 - **Blockers:** none
-- **Related PR/commit:** branch `luke/F09.21-invite-wizard` (not pushed yet). Migration 11 adds `invites` and `users.requested_steps`.
+- **Related PR/commit:** branch `luke/F09.21-invite-wizard` (not pushed yet). Migration 12 (after F11.8's migration 11) adds `invites` and `users.requested_steps`.
 - **Verification evidence (2026-11-03):** `test_invites.py` 8 passed (roles from the enforced table, admins only, accept once and signed in, expired/withdrawn/unknown answer alike, other origin 403, rate limit 429, requested steps switch on through the real key-phrase route, temporary password with requested steps). Full pytest, ruff, eslint, `tsc --noEmit` and `next build` pass. QR encoder: 5 tests pass, including the standard's Reed-Solomon and format/version examples and a round trip through a separate reader for every mask and lengths up to 213 bytes. e2e `0595-invite.spec.ts` passed (Chromium, ports 8410/3410): wizard, copy link, fresh browser joins, signed in as the new analyst, link refused the second time. Checked by eye at 1280 and 390 px wide. **Not verified:** scanning the QR code with a real phone camera (no QR reader is available here; the round-trip test reads the code back in software).
 
 ## F10 — User Interface
@@ -1445,6 +1445,30 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
   - **e2e:** `26 passed (2.2m)` (full suite, including `025-ask` on desktop and at 390 px).
   - **Not verified:** a run with Ollama and llama3 answering. Tests and e2e use the rules.
 
+#### F10.21 — A sharper look and a better logo; face check set-up with a phone fallback
+
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F10.16, F09.19, F09.20
+- **Description:** Luke's feedback: the app looked basic and the logo weak; face unlock set-up should look striking; it must work on phone, tablet and desktop; and when the webcam is not good enough, VAULT should suggest using the phone instead. Look only: behaviour, routes, API and accessible names are unchanged.
+- **Implementation scope:**
+  - New logo: a keyhole framed by four trim marks on an ink tile (chosen from five concepts, sheet in `docs/screenshots/F10.21/logo-concepts.png`). `vault-mark.tsx` (`VaultMark`, `VaultLockup`), `app/icon.svg`, `app/favicon.ico` regenerated (16/32/48 px, Pillow), README banners' mark swapped, loader redrawn from the same marks.
+  - Type: Archivo with its width axis (wide for titles and the wordmark) and IBM Plex Mono for data, replacing Inter and JetBrains Mono.
+  - Tokens and primitives first: panel highlight, `Panel` trim marks and wider titles, `Button` depth, `Empty` with the empty frame, `Figure` spacing; `TitleBlock` gets an engineer's-scale ruler; rail active bar.
+  - Sign-in: split screen with the lockup, one plain statement, and a ruled title block; the steps screen gets the lockup and trim. Setup wizard gets the lockup and drafting grid. Ask VAULT empty state restyled.
+  - Face check (`face-capture.tsx`): reticle following the detected face box, a segmented ring filling one segment per accepted reading with a capture flash, quality cells with real-value bars, an on-video hint, and a check mark only when the server accepts (`onDone` resolving `true`). Key phrase (`voice-capture.tsx`) gets the same stage, take segments that flash on accepted takes, and the same success moment. Sign-in step trail restyled; it still moves only on real answers.
+  - Poor camera: below-minimum resolution or frame rate at start, or light/focus failing for 5 s with a face in view, shows "Your camera isn't good enough. Use your phone instead". On set-up this adds a phone passkey (`addPasskey("Phone", "phone")`, the browser's QR code) and says honestly that the phone's own Face ID or fingerprint replaces VAULT's webcam check. At sign-in it only explains what to do (better light or camera, ask an admin, or swap Face check for a phone passkey once signed in): `backend/security/steps.py` never lets another step stand in for a required face step, and that is unchanged.
+- **Acceptance criteria:**
+  - Lint, types and build clean; full e2e suite passes with no spec changes.
+  - No sideways scroll at 390 px on sign-in, Overview, Add files, Progress, Investigate, Ask VAULT, Brain and Security.
+  - Every new animation on the face and key-phrase screens is tied to a real reading, take or server answer, and respects `prefers-reduced-motion`.
+- **Required tests:** existing e2e suite (names unchanged).
+- **Blockers:** none
+- **Related PR/commit:** branch `luke/F10.21-look-and-logo`
+- **Verification evidence (2026-11-03, Windows 11):**
+  - **frontend:** `npm run lint` clean, `npx tsc --noEmit` clean, `npm run build` compiled all 13 routes.
+  - **e2e:** `27 passed (2.0m)` (full suite, desktop and Pixel 7, ports 8430/3430).
+  - **Screenshots:** `docs/screenshots/F10.21/` before and after at 1440, 820 and 390 px (fictional demo data), the face check with Chromium's fake camera, the poor-camera phone offer (fake camera forced to 8 fps) and the key-phrase recorder. The page script reported no sideways scroll at any size.
+  - **Not verified:** the reticle following a real face, a capture flash and the accepted check mark (no camera or real face in the test environment; Chromium's fake camera shows a test pattern, so no face is detected); the phone passkey QR flow with a real phone; the light/focus 5 s trigger (only the frame-rate trigger was exercised).
+
 ## F11 — Synthetic Data & Evaluation
 - **Verification evidence (E-E2E-2, 2026-10-28):** covered by the Playwright suite in `tests/e2e/` (`02-investigate`); 13 of 13 tests passed in 5 consecutive fresh runs on Windows 11 (Chromium, desktop and Pixel 7 profiles).
 
@@ -1567,6 +1591,29 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 
 - **Priority:** P1 · **Owner:** luke · **Status:** DONE · **Dependencies:** F11.1
 - **Description:** Luke asked (2026-11-03) for a large set of fake files, photos, videos and sound to test with. `scripts/make_test_files.py` writes 427 deterministic files (136 MB) with a manifest of the expected result for each and 26 planted conflicts. It found a real bug: names over 180 characters lost their extension and were refused; fixed in `sanitize_filename`.
+
+#### F11.8 — Photos, video and sound: stored, described, found and sorted (never read)
+
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F11.7, F06.7, F06.8
+- **Description:** VAULT accepts video (MP4, MOV, WebM, AVI) and sound (WAV, MP3, M4A, OGG) as well as photos, reads only the details in each file's own header, and makes them findable and sortable by kind, length, date taken, size and name. Nothing inside them is read, and nothing is sent to a model. Adds a `--size demo` test set.
+- **Implementation scope:**
+  - `backend/security/files.py`: magic bytes must match the extension (RIFF WAVE/AVI, ISO `ftyp` or a QuickTime first atom with `.mp4 .m4v .mov .m4a`, EBML with `webm`, `OggS`, ID3 or a legal MPEG Layer III frame header); same size limit.
+  - `backend/ingest/media.py`: bounded parsers with the standard library and Pillow only (photo size, EXIF date taken and camera; WAV via `wave` with a RIFF fallback; MP3 frame header and Xing; MP4/MOV `mvhd`, `tkhd`, `hdlr`, `mdhd`; AVI `avih`; WebM EBML Info and Tracks; Ogg Vorbis/Opus granule). They return fewer details, never an error, on a bad header.
+  - Migration 11: `documents.media_info` (JSON). The extraction is provider `none`, model `not read: photo|video|audio`, `doc_date` = date taken, so runs never queue them again.
+  - Search: `media` = `photo | video | audio | document | media` (`image` still works), `sort` = `name | size | duration | date | taken`, `year` also matches the date taken; rows add `kind`, `size_bytes`, `media_info`; a `note` says media are found by name, date and details only.
+  - Chat rules: "find videos", "photos from 2024 sorted by date", "longest audio first", "show me pictures", "voice memos", "biggest videos", "shortest first".
+  - Investigate: "Kind of file" and "Sort by" filters, kind chips in Narrow down, a type badge and a details line ("Video · 0:42 · 1280×720") in results, chat rows and the document drawer.
+  - `scripts/make_test_files.py --size demo|full`: stamped inspection PDFs (APPROVED, QC PASSED, REJECTED seals and sticker badges), drawings with revision clouds, revision triangles and numbered callouts, Pillow site photos with tape measures, arrows, markers, stickers, EXIF dates 2023–2025 and fictional cameras, hand-written Photo-JPEG MOV and MJPEG AVI (H.264 MP4 and WebM too when ffmpeg exists), WAV voice-memo stand-ins and silent MP3; every manifest entry has `outcome` (`read | stored-with-metadata | refused | held`) and the expected `media` details.
+- **Acceptance criteria:** media upload accepted with matching magic bytes and refused otherwise; details stored and shown; media never re-queued or sent to a model; find and sort by kind, duration, date taken, size and name in search and chat; demo set about 120 files under 60 MB.
+- **Required tests:** `tests/unit/test_media.py`, `tests/integration/test_media_files.py`, `tests/unit/test_make_test_files.py`, `tests/integration/test_narrow_search.py`.
+- **Blockers:** none
+- **Related PR/commit:** branch `luke/F11.8-media-files`
+- **Verification evidence (2026-11-03):**
+  - **pytest:** 320 passed (full suite), including `test_media.py` (parsers on tiny built files, junk never raises, upload gate refuses text named `.mp4`, WAV named `.mp4`, MP4 named `.wav`, a program named `.mov`), `test_media_files.py` (upload, details on the document, `not read: video|audio|photo`, second run queues 0 of 9, search and chat sorts) and `test_make_test_files.py` (every manifest outcome and media detail matches what VAULT reads).
+  - **ruff check / format --check, bandit -ll:** clean. **Frontend:** lint, typegen + tsc, production build pass. **e2e:** 27 of 27 (ports 8420/3420).
+  - **Demo set:** `--size demo` wrote 126 files, 11.9 MB, in about 7 s (outcomes: 69 read, 37 stored-with-metadata, 18 refused, 2 held). Ingested with the CLI and read with `heuristic`: 109 added, 1 duplicate, 18 refused with the expected reasons, 107 read in 2 s, 2 held; media extractions are `none / not read: photo` 25, `video` 6, `audio` 6. Full set: 482 files, 139.0 MB, every file agrees with its manifest entry.
+  - **Real files:** ffmpeg decodes the hand-made Photo-JPEG MOV (60 frames, 6.0 s) and silent MP3 without errors; VAULT's parser gives the same length and size for ffmpeg-made H.264 MP4 and VP8 WebM.
+  - **Not checked:** the Investigate filters and badges were not looked at in a browser (the e2e Investigate specs pass); `media_info` is filled only for files uploaded after migration 11, so photos stored earlier show no details until uploaded again.
 
 ## F12 — Deployment & Submission
 

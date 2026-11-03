@@ -9,6 +9,7 @@ and fictional suppliers. The same seed always gives the same files and the same 
 external ffmpeg may differ between ffmpeg builds; pass --no-ffmpeg for byte-identical output).
 
     python scripts/make_test_files.py --out data/testset --count 400 --seed 7
+    python scripts/make_test_files.py --size demo --out data/testset-demo     # about 120 files, under 60 MB
 
 Only the standard library, Pillow and reportlab are used. DOCX/XLSX/PPTX are written as minimal Office Open XML
 with zipfile, which is all VAULT's own reader needs (python-docx, openpyxl and python-pptx are not installed).
@@ -19,6 +20,7 @@ with zipfile, which is all VAULT's own reader needs (python-docx, openpyxl and p
 from __future__ import annotations
 
 import argparse
+import calendar
 import hashlib
 import io
 import json
@@ -27,12 +29,13 @@ import shutil
 import struct
 import subprocess
 import sys
+import tempfile
 import time
 import wave
 import zipfile
 from array import array
 from dataclasses import dataclass, field
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from random import Random
 from xml.sax.saxutils import escape
@@ -98,12 +101,25 @@ KIND_SHARES = {
     "photos_jpg": 0.12,
     "video": 0.02,
     "audio": 0.02,
+    # F11.8
+    "pdf_stamped": 0.04,
+    "pdf_marked_drawings": 0.03,
+    "photos_site": 0.06,
 }
+# --size demo: about 120 files, under 60 MB, quick to process, with plenty of photos, video and sound to show.
+SIZES = {"demo": {"count": 64, "large": False}, "full": {"count": 400, "large": True}}
+DEMO_AT_LEAST = {"video": 6, "audio": 6, "photos_site": 12, "pdf_stamped": 6, "pdf_marked_drawings": 4}
 
 ACCEPTED = "accepted"
-IMAGE = "accepted as an image: VAULT stores it but only records its size; text in the picture needs OCR or vision"
-BINARY = "rejected: unsupported or binary file type (VAULT does not take audio or video)"
+IMAGE = (
+    "stored with details: VAULT records the size in pixels, and the date taken and camera when the file has them;"
+    " nothing in the picture is read"
+)
+VIDEO = "stored with details: VAULT records the length and size in pixels; the video is never watched or sent anywhere"
+AUDIO = "stored with details: VAULT records the length, sample rate and channels; the sound is never listened to"
 HELD = "accepted but held in quarantine for admin review (active content)"
+# One word per file for a quick check: read (text is read), stored-with-metadata, refused or held.
+OUTCOMES = ("read", "stored-with-metadata", "refused", "held")
 ZIP_TIME = (2026, 1, 1, 0, 0, 0)
 
 
@@ -148,6 +164,8 @@ class Entry:
     planted: list[str] = field(default_factory=list)
     size_bytes: int = 0
     sha256: str = ""
+    outcome: str = ""
+    media: dict = field(default_factory=dict)
 
 
 # ---------- shared content ----------
@@ -509,12 +527,17 @@ def ffmpeg_encode(ffmpeg: str, frames: list[bytes], fps: int, fmt: str) -> bytes
     codec = ["-c:v", "libx264", "-pix_fmt", "yuv420p"] if fmt == "mp4" else ["-c:v", "libvpx", "-b:v", "400k"]
     cmd = [ffmpeg, "-hide_banner", "-loglevel", "error", "-f", "image2pipe", "-framerate", str(fps), "-c:v", "mjpeg"]
     cmd += ["-i", "-", *codec, "-threads", "1", "-fflags", "+bitexact", "-flags", "+bitexact", "-map_metadata", "-1"]
-    cmd += ["-f", fmt, "-movflags", "+frag_keyframe+empty_moov"] if fmt == "mp4" else ["-f", fmt]
-    try:
-        result = subprocess.run([*cmd, "-"], input=b"".join(frames), capture_output=True, check=True, timeout=120)  # noqa: S603
-    except (OSError, subprocess.SubprocessError):
-        return None
-    return result.stdout or None
+    # A real file, not a pipe: MP4 then gets an ordinary header with its length (a piped MP4 is fragmented and its
+    # header says 0 seconds). +faststart puts that header first, as players and VAULT's reader expect.
+    cmd += ["-f", fmt, "-movflags", "+faststart"] if fmt == "mp4" else ["-f", fmt]
+    with tempfile.TemporaryDirectory() as tmp:
+        target = Path(tmp) / f"clip.{fmt}"
+        try:
+            run = [*cmd, "-y", str(target)]
+            subprocess.run(run, input=b"".join(frames), capture_output=True, check=True, timeout=120)  # noqa: S603
+            return target.read_bytes() or None
+        except (OSError, subprocess.SubprocessError):
+            return None
 
 
 def wav(rng: Random, segments: list[tuple[float, float, float]], hiss: float, rate: int = 16000) -> bytes:
@@ -535,12 +558,305 @@ def wav(rng: Random, segments: list[tuple[float, float, float]], hiss: float, ra
     return buf.getvalue()
 
 
+# ---------- F11.8: stamps, marked-up drawings, site photos, hand-made video and sound ----------
+
+INK = {"APPROVED": (0.05, 0.45, 0.15), "QC PASSED": (0.05, 0.35, 0.65), "REJECTED": (0.75, 0.08, 0.08)}
+CAMERAS = [("FictionCam", "FC-2 Site"), ("Nonesuch Optics", "NX-40 (fictional)"), ("FictionCam", "FC-1")]
+
+
+def seal(c: canvas.Canvas, x: float, y: float, word: str, d: str, angle: float) -> None:
+    """A rubber-stamp seal: a double ring for APPROVED and QC PASSED, a boxed stamp for REJECTED."""
+    r, g, b = INK[word]
+    c.saveState()
+    c.translate(x, y)
+    c.rotate(angle)
+    c.setStrokeColorRGB(r, g, b)
+    c.setFillColorRGB(r, g, b)
+    if word == "REJECTED":
+        c.setLineWidth(3)
+        c.roundRect(-78, -26, 156, 52, 6)
+        c.setLineWidth(1)
+        c.roundRect(-72, -20, 144, 40, 4)
+        c.setFont("Helvetica-Bold", 20)
+        c.drawCentredString(0, -7, word)
+    else:
+        c.setLineWidth(3)
+        c.circle(0, 0, 54)
+        c.setLineWidth(1)
+        c.circle(0, 0, 46)
+        c.setFont("Helvetica-Bold", 14 if len(word) > 8 else 16)
+        c.drawCentredString(0, -4, word)
+        c.setFont("Helvetica", 7)
+        c.drawCentredString(0, 24, "HALVERN QA")
+        c.drawCentredString(0, -20, d)
+    c.restoreState()
+
+
+def badge(c: canvas.Canvas, x: float, y: float, text: str, ok: bool) -> None:
+    """A small sticker badge with a tick or a cross."""
+    c.saveState()
+    c.setFillColorRGB(*((0.1, 0.55, 0.25) if ok else (0.8, 0.15, 0.1)))
+    c.roundRect(x, y, 112, 24, 12, stroke=0, fill=1)
+    c.setFillColorRGB(1, 1, 1)
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(x + 26, y + 8, text)
+    c.setStrokeColorRGB(1, 1, 1)
+    c.setLineWidth(2)
+    if ok:
+        c.line(x + 9, y + 12, x + 13, y + 7)
+        c.line(x + 13, y + 7, x + 20, y + 17)
+    else:
+        c.line(x + 9, y + 7, x + 19, y + 17)
+        c.line(x + 9, y + 17, x + 19, y + 7)
+    c.restoreState()
+
+
+def pdf_stamped(title: str, header: list[str], lines: list[str], word: str, d: str, rng: Random) -> bytes:
+    """An inspection report with a result seal and a sticker badge. The seal words are real text VAULT can read."""
+    buf = io.BytesIO()
+    c = canvas.Canvas(buf, pagesize=letter, invariant=1)
+    w, h = letter
+    c.setFont("Helvetica-Bold", 13)
+    c.drawString(50, h - 55, title)
+    c.setFont("Helvetica", 9)
+    y = h - 75
+    for line in header:
+        c.drawString(50, y, line)
+        y -= 13
+    y -= 8
+    for line in lines:
+        c.drawString(50, y, line[:110])
+        y -= 13
+    c.drawString(50, y - 10, f"Result: {word}")
+    seal(c, w - 130, 150 + rng.uniform(-20, 40), word, d, rng.uniform(-20, 20))
+    badge(c, 50, 90, "QC PASSED" if word != "REJECTED" else "ON HOLD", word != "REJECTED")
+    c.setFont("Helvetica-Oblique", 7)
+    c.drawString(50, 30, FOOTER)
+    c.showPage()
+    c.save()
+    return buf.getvalue()
+
+
+def revision_cloud(c: canvas.Canvas, x: float, y: float, w: float, h: float, bump: float = 9) -> None:
+    """The scalloped outline drafters draw around a change."""
+    nx, ny = max(2, int(w / (2 * bump))), max(2, int(h / (2 * bump)))
+    sx, sy = w / nx, h / ny
+    for i in range(nx):
+        c.arc(x + i * sx, y + h - sy / 2, x + (i + 1) * sx, y + h + sy / 2, 0, 180)
+        c.arc(x + i * sx, y - sy / 2, x + (i + 1) * sx, y + sy / 2, 180, 180)
+    for j in range(ny):
+        c.arc(x - sx / 2, y + j * sy, x + sx / 2, y + (j + 1) * sy, 90, 180)
+        c.arc(x + w - sx / 2, y + j * sy, x + w + sx / 2, y + (j + 1) * sy, 270, 180)
+
+
+def pdf_marked_drawing(number: str, project: Project, d: str, rev: int, rng: Random) -> bytes:
+    """A drawing with revision clouds, revision triangles, numbered callout balloons and a revision block."""
+    buf = io.BytesIO()
+    c = canvas.Canvas(buf, pagesize=landscape(letter), invariant=1)
+    w, h = landscape(letter)
+    c.setLineWidth(1.5)
+    c.rect(20, 20, w - 40, h - 40)
+    y = h - 150
+    c.setLineWidth(2)
+    c.line(60, y, w - 60, y)
+    step = (w - 160) / len(project.parts)
+    xs = []
+    c.setFont("Helvetica", 6)
+    for i, p in enumerate(project.parts):
+        x = 90 + i * step
+        xs.append(x)
+        c.setLineWidth(1)
+        c.circle(x, y, 9) if i % 2 else c.rect(x - 9, y - 9, 18, 18)
+        c.drawString(x - 16, y + 18, p.number)
+    changed = rng.sample(range(len(project.parts)), 2)
+    c.setStrokeColorRGB(0.8, 0.1, 0.1)
+    c.setFillColorRGB(0.8, 0.1, 0.1)
+    c.setLineWidth(0.9)
+    for k, idx in enumerate(changed, start=1):
+        cx = xs[idx]
+        revision_cloud(c, cx - 30, y - 28, 60, 64)
+        tri = c.beginPath()
+        tri.moveTo(cx + 34, y + 44)
+        tri.lineTo(cx + 46, y + 44)
+        tri.lineTo(cx + 40, y + 55)
+        tri.close()
+        c.drawPath(tri)
+        c.setFont("Helvetica-Bold", 6)
+        c.drawCentredString(cx + 40, y + 46, str(rev))
+        # A numbered balloon with a leader line to the changed part.
+        bx, by = cx + rng.uniform(-40, 40), y - 90 - 18 * k
+        c.circle(bx, by, 9)
+        c.drawCentredString(bx, by - 2, str(k))
+        c.line(bx, by + 9, cx, y - 28)
+        c.setFont("Helvetica", 7)
+        c.drawString(
+            bx + 14, by - 3, f"{project.parts[idx].number}: {rng.choice(['FIELD VERIFY', 'SEE NOTE 3', 'RELOCATED'])}"
+        )
+    c.setStrokeColorRGB(0, 0, 0)
+    c.setFillColorRGB(0, 0, 0)
+    c.setFont("Helvetica-Bold", 11)
+    c.drawString(40, 270, f"DRAWING NO. {number}   REV {rev}")
+    c.setFont("Helvetica", 9)
+    c.drawString(40, 256, f"Project: {project.name}    Date: {d}    SHEET 1 OF 1")
+    c.setFont("Helvetica-Bold", 9)
+    c.drawString(40, 236, "PARTS LIST")
+    c.setFont("Helvetica", 8)
+    for i, p in enumerate(project.parts):
+        c.drawString(40, 224 - 12 * i, part_line(p))
+    bx, by = w - 290, 40
+    c.rect(bx, by, 250, 16 * (rev + 1))
+    c.setFont("Helvetica-Bold", 7)
+    c.drawString(bx + 6, by + 16 * rev + 5, "REV   DESCRIPTION                          DATE          BY")
+    c.setFont("Helvetica", 7)
+    for r in range(1, rev + 1):
+        what = "CLOUDED ITEMS REVISED" if r == rev else rng.choice(["ISSUED FOR REVIEW", "NOTES UPDATED"])
+        c.drawString(bx + 6, by + 16 * (rev - r) + 5, f"{r:<5} {what:<36} {d:<13} {rng.choice(PEOPLE)}")
+    c.setFont("Helvetica-Oblique", 7)
+    c.drawString(40, 28, FOOTER)
+    c.showPage()
+    c.save()
+    return buf.getvalue()
+
+
+def site_photo(
+    rng: Random, part: Part, project: Project, size: tuple[int, int], caption: str, sticker: str
+) -> Image.Image:
+    """A fake site photo: wall, slab and pipe, a tape measure, arrows, numbered markers, labels and a sticker."""
+    w, h = size
+    k = w / 1024
+    img = Image.new("RGB", size, (150, 160, 170))
+    draw = ImageDraw.Draw(img)
+    horizon = int(h * rng.uniform(0.55, 0.65))
+    draw.rectangle((0, 0, w, horizon), fill=tuple(rng.randint(150, 190) for _ in range(3)))
+    for x in range(0, w, int(90 * k)):  # block wall joints
+        draw.line((x, 0, x, horizon), fill=(130, 130, 130), width=max(1, int(2 * k)))
+    draw.rectangle((0, horizon, w, h), fill=(118, 112, 104))
+    py = int(horizon - 110 * k)
+    draw.rectangle((0, py - int(26 * k), w, py + int(26 * k)), fill=(95, 105, 120), outline=(50, 50, 60))
+    fx = int(w * rng.uniform(0.35, 0.6))
+    draw.rectangle((fx - int(14 * k), py - int(46 * k), fx + int(14 * k), py + int(46 * k)), fill=(80, 85, 95))
+    # Tape measure along the slab edge, with inch ticks and numbers.
+    ty = int(horizon + 40 * k)
+    draw.rectangle((int(40 * k), ty, w - int(40 * k), ty + int(34 * k)), fill=(240, 200, 40), outline=(90, 70, 0))
+    small = ImageFont.load_default(size=max(9, int(13 * k)))
+    font = ImageFont.load_default(size=max(11, int(20 * k)))
+    inch = 28 * k
+    n = 0
+    while int(40 * k + n * inch) < w - int(44 * k):
+        x = int(40 * k + n * inch)
+        draw.line((x, ty, x, ty + int((18 if n % 4 == 0 else 9) * k)), fill=(20, 20, 20), width=1)
+        if n % 4 == 0:
+            draw.text((x + 2, ty + int(16 * k)), str(n), fill=(20, 20, 20), font=small)
+        n += 1
+    # Red arrows to the joint and the flange, each with a label.
+    labels = [f"{part.number} flange", rng.choice(["weld seam", "hairline crack", "missing bolt", "paint damage"])]
+    for i, text in enumerate(labels):
+        tx, ty2 = int(w * (0.12 + 0.5 * i)), int(h * 0.12 + i * 50 * k)
+        hx, hy = (fx, py - int(46 * k)) if i == 0 else (int(w * rng.uniform(0.2, 0.8)), horizon - int(8 * k))
+        draw.line((tx + int(60 * k), ty2 + int(30 * k), hx, hy), fill=(220, 20, 20), width=max(2, int(5 * k)))
+        draw.polygon(
+            [(hx, hy), (hx - int(12 * k), hy - int(22 * k)), (hx + int(12 * k), hy - int(22 * k))], fill=(220, 20, 20)
+        )
+        draw.rectangle(
+            (tx, ty2, tx + int(230 * k), ty2 + int(30 * k)), fill=(255, 255, 255), outline=(220, 20, 20), width=2
+        )
+        draw.text((tx + int(8 * k), ty2 + int(5 * k)), text.upper(), fill=(20, 20, 20), font=font)
+        mx, my = hx + int(30 * k), hy - int(40 * k)
+        draw.ellipse(
+            (mx - int(16 * k), my - int(16 * k), mx + int(16 * k), my + int(16 * k)),
+            outline=(255, 230, 0),
+            width=max(2, int(4 * k)),
+        )
+        draw.text((mx - int(5 * k), my - int(10 * k)), str(i + 1), fill=(255, 230, 0), font=font)
+    # Inspection sticker.
+    sx, sy, sr = int(w * 0.84), int(h * 0.2), int(64 * k)
+    color = (30, 140, 60) if sticker != "HOLD" else (200, 40, 30)
+    draw.ellipse((sx - sr, sy - sr, sx + sr, sy + sr), fill=color, outline=(255, 255, 255), width=max(2, int(4 * k)))
+    draw.text((sx - int(48 * k), sy - int(10 * k)), sticker, fill=(255, 255, 255), font=font)
+    # Caption bar, as a site camera would stamp it.
+    draw.rectangle((0, h - int(34 * k), w, h), fill=(0, 0, 0))
+    draw.text((int(10 * k), h - int(28 * k)), caption, fill=(255, 255, 255), font=font)
+    draw.text((w - int(250 * k), h - int(28 * k)), "FICTIONAL TEST PHOTO", fill=(255, 120, 120), font=font)
+    gray = noise(rng, size, rng.choice([16, 30]))
+    return Image.blend(img, Image.merge("RGB", (gray, gray, gray)), 0.12)
+
+
+def exif_bytes(taken: datetime, camera: tuple[str, str]) -> bytes:
+    exif = Image.Exif()
+    exif[0x010F], exif[0x0110] = camera
+    exif[0x0132] = taken.strftime("%Y:%m:%d %H:%M:%S")
+    exif.get_ifd(0x8769)[0x9003] = taken.strftime("%Y:%m:%d %H:%M:%S")
+    return exif.tobytes()
+
+
+def _box(kind: bytes, *body: bytes) -> bytes:
+    data = b"".join(body)
+    return struct.pack(">I", 8 + len(data)) + kind + data
+
+
+def _full(kind: bytes, flags: int, *body: bytes) -> bytes:
+    return _box(kind, struct.pack(">I", flags), *body)
+
+
+def photo_jpeg_mov(frames: list[bytes], w: int, h: int, fps: int, created: datetime) -> bytes:
+    """A QuickTime movie of JPEG frames ("Photo - JPEG"), written box by box. QuickTime and VLC play it."""
+    scale, delta, n = 600, 600 // fps, len(frames)
+    duration = n * delta
+    mac = calendar.timegm(created.timetuple()) + 2_082_844_800
+    matrix = struct.pack(">9I", 0x10000, 0, 0, 0, 0x10000, 0, 0, 0, 0x40000000)
+    ftyp = _box(b"ftyp", b"qt  ", struct.pack(">I", 0x20050300), b"qt  ")
+    mdat = _box(b"mdat", *frames)
+    first = len(ftyp) + 8
+    offsets, pos = [], first
+    for f in frames:
+        offsets.append(pos)
+        pos += len(f)
+    mvhd = _full(
+        b"mvhd", 0, struct.pack(">IIIIIH", mac, mac, scale, duration, 0x10000, 0x100), b"\0" * 10, matrix,
+        b"\0" * 24, struct.pack(">I", 2),
+    )  # fmt: skip
+    tkhd = _full(
+        b"tkhd", 3, struct.pack(">IIIII", mac, mac, 1, 0, duration), b"\0" * 8, struct.pack(">hhhH", 0, 0, 0, 0),
+        matrix, struct.pack(">II", w << 16, h << 16),
+    )  # fmt: skip
+    mdhd = _full(b"mdhd", 0, struct.pack(">IIIIHH", mac, mac, scale, duration, 0x7FFF, 0))
+    hdlr = _full(b"hdlr", 0, b"mhlr", b"vide", b"\0" * 12, b"\x0cVideoHandler")
+    name = b"\x0cPhoto - JPEG".ljust(32, b"\0")
+    entry = _box(
+        b"jpeg", b"\0" * 6, struct.pack(">HHH4sIIHHIIIH", 1, 0, 0, b"\0\0\0\0", 0, 512, w, h, 72 << 16, 72 << 16, 0, 1),
+        name, struct.pack(">hh", 24, -1),
+    )  # fmt: skip
+    stbl = _box(
+        b"stbl",
+        _full(b"stsd", 0, struct.pack(">I", 1), entry),
+        _full(b"stts", 0, struct.pack(">III", 1, n, delta)),
+        _full(b"stsc", 0, struct.pack(">IIII", 1, 1, 1, 1)),
+        _full(b"stsz", 0, struct.pack(">II", 0, n), *(struct.pack(">I", len(f)) for f in frames)),
+        _full(b"stco", 0, struct.pack(">I", n), *(struct.pack(">I", o) for o in offsets)),
+    )
+    minf = _box(
+        b"minf",
+        _full(b"vmhd", 1, struct.pack(">HHHH", 0x40, 0x8000, 0x8000, 0x8000)),
+        _full(b"hdlr", 0, b"dhlr", b"alis", b"\0" * 12, b"\x0aDataHandler"),
+        _box(b"dinf", _full(b"dref", 0, struct.pack(">I", 1), _full(b"alis", 1))),
+        stbl,
+    )
+    trak = _box(b"trak", tkhd, _box(b"mdia", mdhd, hdlr, minf))
+    return ftyp + mdat + _box(b"moov", mvhd, trak)
+
+
+def silent_mp3(seconds: float) -> bytes:
+    """MPEG-1 Layer III frames, 128 kbit/s 44.1 kHz mono, all zero after the header: players play silence."""
+    frames = int(seconds * 44100 / 1152)
+    return (b"\xff\xfb\x90\xc0" + b"\0" * 413) * frames
+
+
 # ---------- the builder ----------
 
 
 class Builder:
-    def __init__(self, out: Path, count: int, seed: int, use_ffmpeg: bool, large: bool):
-        self.out, self.count, self.seed, self.large = out, count, seed, large
+    def __init__(self, out: Path, count: int, seed: int, use_ffmpeg: bool, large: bool, size: str = "full"):
+        self.out, self.count, self.seed, self.large, self.size = out, count, seed, large, size
         self.rng = Random(seed)
         self.projects = make_projects(self.rng)
         self.entries: list[Entry] = []
@@ -637,6 +953,14 @@ class Builder:
             Path("\\\\?\\" + str(path.resolve())).write_bytes(data)
         entry = Entry(rel, kind, fmt, contains, expected, size_bytes=len(data), **meta)
         entry.sha256 = hashlib.sha256(data).hexdigest()
+        if expected.startswith("rejected"):
+            entry.outcome = "refused"
+        elif expected == HELD:
+            entry.outcome = "held"
+        elif expected.startswith("stored with details"):
+            entry.outcome = "stored-with-metadata"
+        else:
+            entry.outcome = "read"
         self.entries.append(entry)
         return rel
 
@@ -990,6 +1314,7 @@ class Builder:
             rating = int(planted[0].planted_value) if planted else None
             img = photo(self.rng, part, proj, size, rating)
             buf = io.BytesIO()
+            truth: dict = {}
             contains = f"fake inspection photo {size[0]}x{size[1]}: valve and nameplate showing {part.number}"
             if fmt == "png":
                 img.save(buf, format="PNG", compress_level=6)
@@ -998,6 +1323,7 @@ class Builder:
                 exif[0x010F], exif[0x0110] = "FictionCam", "FC-1 (fictional camera)"
                 img.save(buf, format="JPEG", quality=88, exif=exif.tobytes())
                 contains += " (with fictional EXIF camera tags)"
+                truth = {"camera": "FictionCam FC-1 (fictional camera)"}
             else:
                 img.save(buf, format="JPEG", quality=88)
             name = f"{proj.code}-IMG-{i + 1:04d}{'-4000x3000' if big else ''}.{fmt}"
@@ -1012,19 +1338,29 @@ class Builder:
                 projects=[proj.name],
                 parts=[part.number],
                 planted=self.plant(planted and planted[0], rel),
+                media={"kind": "photo", "width": size[0], "height": size[1], **truth},
             )
 
     def video(self, n: int) -> None:
-        formats = ["avi", "mp4", "webm"] if self.ffmpeg else ["avi"]
+        # Hand-made formats first (byte-identical every run); real H.264 MP4 and VP8 WebM only when ffmpeg exists.
+        formats = ["mov", "avi", "mp4", "webm"] if self.ffmpeg else ["mov", "avi"]
         if not self.ffmpeg:
-            self.notes.append("ffmpeg not found (or --no-ffmpeg): every video is a hand-written MJPEG AVI")
+            self.notes.append("ffmpeg not found (or --no-ffmpeg): video is hand-written Photo-JPEG MOV and MJPEG AVI")
         for i in range(n):
             proj = self.project(i)
             part = self.rng.choice(proj.parts)
-            fps, secs = 10, self.rng.choice([3, 4, 5])
+            fps, secs = 10, self.rng.choice([3, 4, 5, 6])
             frames = gauge_frames(self.rng, part, fps * secs)
+            created = datetime(2023 + i % 3, 1 + (i * 5) % 12, 1 + (i * 7) % 27, 8 + i % 9, (i * 13) % 60)
             fmt = formats[i % len(formats)]
-            data = mjpeg_avi(frames, 320, 240, fps) if fmt == "avi" else ffmpeg_encode(self.ffmpeg, frames, fps, fmt)
+            truth = {"kind": "video", "duration_s": float(secs), "width": 320, "height": 240}
+            if fmt == "mov":
+                data = photo_jpeg_mov(frames, 320, 240, fps, created)
+                truth["taken"] = created.isoformat()
+            elif fmt == "avi":
+                data = mjpeg_avi(frames, 320, 240, fps)
+            else:
+                data = ffmpeg_encode(self.ffmpeg, frames, fps, fmt)
             if data is None:
                 self.notes.append(f"ffmpeg could not encode {fmt}; wrote an AVI instead")
                 fmt, data = "avi", mjpeg_avi(frames, 320, 240, fps)
@@ -1034,28 +1370,125 @@ class Builder:
                 "video",
                 fmt,
                 f"{secs}s clip of a pressure gauge sweeping up to {part.number}'s rating",
-                BINARY,
+                VIDEO,
                 projects=[proj.name],
                 parts=[part.number],
+                media=truth,
             )
 
     def audio(self, n: int) -> None:
         for i in range(n):
             proj = self.project(i)
+            if i % 3 == 2:
+                secs = float(self.rng.choice([4, 6, 8]))
+                self.write(
+                    f"audio/{proj.code}-MEMO-{i + 1:03d}.mp3",
+                    silent_mp3(secs),
+                    "audio",
+                    "mp3",
+                    f"{secs:g}-second silent MP3 (a voice memo stand-in with nothing recorded)",
+                    AUDIO,
+                    projects=[proj.name],
+                    media={"kind": "audio", "duration_s": round(int(secs * 44100 / 1152) * 1152 / 44100, 3)},
+                )
+                continue
+            rate = 16000 if i % 2 == 0 else 22050
             if i % 2 == 0:
                 segs = [
                     (self.rng.choice([440, 660, 880, 1000]), 0.25, 0.5) if k % 2 == 0 else (1, 0.25, 0.0)
                     for k in range(8)
                 ]
-                data, contains = wav(self.rng, segs, 0.01), "2-second test beeps"
+                data, contains = wav(self.rng, segs, 0.01, rate), "2-second test beeps"
             else:
                 segs = [
                     (self.rng.uniform(120, 900), self.rng.uniform(0.5, 2.0), self.rng.uniform(0.1, 0.4))
                     for _ in range(12)
                 ]
-                data, contains = wav(self.rng, segs, 0.08), "fake site walkthrough: varying tones and hiss, no speech"
+                data, contains = (
+                    wav(self.rng, segs, 0.08, rate),
+                    "voice-memo stand-in: varying tones and hiss, no speech",
+                )
+            frames = sum(int(secs * rate) for _, secs, _ in segs)
             self.write(
-                f"audio/{proj.code}-AUDIO-{i + 1:03d}.wav", data, "audio", "wav", contains, BINARY, projects=[proj.name]
+                f"audio/{proj.code}-VOICE-MEMO-{i + 1:03d}.wav",
+                data,
+                "audio",
+                "wav",
+                contains,
+                AUDIO,
+                projects=[proj.name],
+                media={"kind": "audio", "duration_s": round(frames / rate, 3), "sample_rate": rate, "channels": 1},
+            )
+
+    # ----- F11.8: stamped inspections, marked-up drawings, site photos -----
+
+    def pdf_stamped(self, n: int) -> None:
+        words = ["APPROVED", "QC PASSED", "REJECTED"]
+        for i in range(n):
+            proj = self.project(i)
+            num = f"{proj.code}-QCI-{700 + i:03d}"
+            word = words[i % 3]
+            d = when(self.rng)
+            rows = self.rng.sample(proj.parts, 3)
+            result = "FAIL" if word == "REJECTED" else "PASS"
+            lines = ["Item results:", *(f"{part_line(p)}  visual and dimensional check  {result}" for p in rows)]
+            lines += ["", *self.rng.sample(FILLER, 3)]
+            header = [f"Report No. {num}    Project: {proj.name}    Date: {d}", f"Inspector: {self.rng.choice(PEOPLE)}"]
+            self.write(
+                f"pdf_stamped/{num}.pdf",
+                pdf_stamped("QUALITY INSPECTION REPORT", header, lines, word, d, self.rng),
+                "pdf_stamped",
+                "pdf",
+                f"inspection report with a {word} seal and a sticker badge (seal words are real text)",
+                projects=[proj.name],
+                parts=[p.number for p in rows],
+            )
+
+    def pdf_marked_drawings(self, n: int) -> None:
+        for i in range(n):
+            proj = self.project(i)
+            num = f"{proj.code}-DWG-{1500 + i:04d}"
+            rev = 2 + i % 3
+            self.write(
+                f"pdf_marked_drawings/{num}.pdf",
+                pdf_marked_drawing(num, proj, when(self.rng), rev, self.rng),
+                "pdf_marked_drawings",
+                "pdf",
+                f"drawing rev {rev} with revision clouds, revision triangles, numbered callouts and a revision block",
+                projects=[proj.name],
+                parts=[p.number for p in proj.parts],
+            )
+
+    def photos_site(self, n: int) -> None:
+        stickers = ["QC PASS", "HOLD", "OK"]
+        for i in range(n):
+            proj = self.project(i)
+            part = self.rng.choice(proj.parts)
+            size = self.rng.choice([(1024, 768), (1280, 960), (800, 600)])
+            # Spread over three years so "photos from 2024" finds some and not others.
+            taken = datetime(2023 + i % 3, 1 + (i * 7) % 12, 1 + (i * 11) % 28, 7 + i % 10, (i * 17) % 60, i % 60)
+            camera = CAMERAS[i % len(CAMERAS)]
+            caption = f"Project {proj.name} - Unit {1 + i % 9} - {taken:%Y-%m-%d %H:%M}"
+            img = site_photo(self.rng, part, proj, size, caption, stickers[i % 3])
+            buf = io.BytesIO()
+            img.save(buf, format="JPEG", quality=85, exif=exif_bytes(taken, camera))
+            make, model = camera
+            self.write(
+                f"photos_site/{proj.code}-SITE-{i + 1:04d}.jpg",
+                buf.getvalue(),
+                "photos_site",
+                "jpg",
+                f"site photo {size[0]}x{size[1]}: tape measure, arrows, markers and a {stickers[i % 3]} sticker",
+                IMAGE,
+                projects=[proj.name],
+                parts=[part.number],
+                media={
+                    "kind": "photo",
+                    "width": size[0],
+                    "height": size[1],
+                    "taken": taken.isoformat(),
+                    "camera": model if make.casefold() in model.casefold() else f"{make} {model}",
+                },
             )
 
     # ----- edge cases -----
@@ -1067,6 +1500,28 @@ class Builder:
             self.write(f"{e}/{name}", data, e, fmt, contains, expected, **meta)
 
         put("empty_file.txt", b"", "txt", "zero bytes", "rejected: empty file")
+        # F11.8: a media name is not enough; the bytes must say so too.
+        put(
+            "text_named_video.mp4",
+            b"Project: Alpha\nThis is plain text with a .mp4 name.\n",
+            "txt",
+            "plain text named .mp4",
+            "rejected: extension .mp4 does not match detected type text/plain",
+        )
+        put(
+            "program_named_video.mov",
+            b"MZ\x90\x00\x03\x00\x00\x00" + rng.randbytes(600),
+            "bin",
+            "bytes that start like a Windows program, named .mov",
+            "rejected: unsupported or binary file type",
+        )
+        put(
+            "sound_named_video.mp4",
+            wav(rng, [(440, 0.5, 0.3)], 0.0),
+            "wav",
+            "a WAV recording renamed .mp4",
+            "rejected: extension .mp4 does not match detected type audio/wav",
+        )
         png = io.BytesIO()
         photo(rng, alpha.parts[0], alpha, (640, 480)).save(png, format="PNG")
         put(
@@ -1292,7 +1747,7 @@ class Builder:
             f"rejected: PDF has more than {MAX_PAGES} pages",
         )
         if not self.large:
-            self.notes.append("--skip-large: near-limit and over-limit files were not written")
+            self.notes.append("--skip-large or --size demo: near-limit and over-limit files were not written")
             return
         # Noise does not compress, and PNG row filters add ~5%: 4020 x 4020 RGB comes to about 48.8 MiB.
         side = 4020
@@ -1312,7 +1767,10 @@ class Builder:
     # ----- run -----
 
     def counts(self) -> dict[str, int]:
-        return {k: max(1, round(self.count * share)) for k, share in KIND_SHARES.items()}
+        n = {k: max(1, round(self.count * share)) for k, share in KIND_SHARES.items()}
+        if self.size == "demo":
+            n = {k: max(v, DEMO_AT_LEAST.get(k, 0)) for k, v in n.items()}
+        return n
 
     def run(self) -> dict:
         n = self.counts()
@@ -1333,6 +1791,10 @@ class Builder:
         self.photos(n["photos_jpg"], "jpg")
         self.video(n["video"])
         self.audio(n["audio"])
+        # Added in F11.8, after every older kind, so the older files stay the same for a given seed.
+        self.pdf_stamped(n["pdf_stamped"])
+        self.pdf_marked_drawings(n["pdf_marked_drawings"])
+        self.photos_site(n["photos_site"])
         self.edge_cases()
         return self.manifest()
 
@@ -1343,7 +1805,9 @@ class Builder:
         return {
             "about": "Fictional VAULT test files. Every name, company, project and part is made up.",
             "seed": self.seed,
+            "size": self.size,
             "count_requested": self.count,
+            "outcomes": {o: sum(x.outcome == o for x in self.entries) for o in OUTCOMES},
             "files_total": len(self.entries),
             "bytes_total": sum(x.size_bytes for x in self.entries),
             "kinds": kinds,
@@ -1368,8 +1832,9 @@ def readme(m: dict) -> str:
         "",
         "WHAT VAULT SHOULD DO",
         "  Accepted: PDF, PNG, JPG/JPEG, TXT, MD, CSV, JSON, LOG, DOCX, XLSX, PPTX (up to 50 MB, 500 pages).",
-        "  Images are stored but their text is not read without OCR or a vision model.",
-        "  Rejected: audio (WAV) and video (AVI/MP4/WebM): VAULT cannot read or transcribe them.",
+        "  Photos (PNG, JPG), video (MP4, MOV, WebM, AVI) and sound (WAV, MP3, M4A, OGG) are stored with their",
+        "  details: size in pixels, length, date taken and camera. Nothing inside them is read, watched or heard.",
+        "  Find them by name, date and details: 'find videos', 'photos from 2024 sorted by date'.",
         "  edge_cases/ holds files VAULT must reject, hold for review, or flag. Each file's expected result",
         "  is in manifest.json ('expected').",
         "",
@@ -1390,9 +1855,11 @@ def readme(m: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
-def generate(out: Path, count: int = 400, seed: int = 7, use_ffmpeg: bool = True, large: bool = True) -> dict:
+def generate(
+    out: Path, count: int = 400, seed: int = 7, use_ffmpeg: bool = True, large: bool = True, size: str = "full"
+) -> dict:
     out.mkdir(parents=True, exist_ok=True)
-    m = Builder(out, count, seed, use_ffmpeg, large).run()
+    m = Builder(out, count, seed, use_ffmpeg, large, size).run()
     (out / "manifest.json").write_text(json.dumps(m, indent=2, ensure_ascii=False) + "\n", "utf-8", newline="\n")
     (out / "README.txt").write_text(readme(m), "utf-8", newline="\n")
     return m
@@ -1401,7 +1868,13 @@ def generate(out: Path, count: int = 400, seed: int = 7, use_ffmpeg: bool = True
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--out", type=Path, default=Path("data/testset"))
-    ap.add_argument("--count", type=int, default=400, help="regular files; about 30 edge cases are added")
+    ap.add_argument(
+        "--size",
+        choices=sorted(SIZES),
+        default="full",
+        help="demo: about 120 files under 60 MB, quick to process; full: about 450 files including size-limit files",
+    )
+    ap.add_argument("--count", type=int, default=None, help="regular files (overrides --size); edge cases are added")
     ap.add_argument("--seed", type=int, default=7)
     ap.add_argument("--no-ffmpeg", action="store_true", help="write all video as hand-made AVI (fully reproducible)")
     ap.add_argument("--skip-large", action="store_true", help="skip the 4000x3000 photos and size-limit files")
@@ -1413,7 +1886,10 @@ def main() -> int:
         # Only a folder this script made earlier is cleared, so stale files never mix into a new set.
         shutil.rmtree(args.out)
     start = time.perf_counter()
-    m = generate(args.out, args.count, args.seed, not args.no_ffmpeg, not args.skip_large)
+    preset = SIZES[args.size]
+    count = args.count if args.count is not None else preset["count"]
+    large = preset["large"] and not args.skip_large
+    m = generate(args.out, count, args.seed, not args.no_ffmpeg, large, args.size)
     took = time.perf_counter() - start
     for kind, n in m["kinds"].items():
         size = sum(x["size_bytes"] for x in m["files"] if x["kind"] == kind)

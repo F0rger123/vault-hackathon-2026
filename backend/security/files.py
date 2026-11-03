@@ -22,7 +22,21 @@ ALLOWED_TYPES = {
     DOCX: {".docx"},
     XLSX: {".xlsx"},
     PPTX: {".pptx"},
+    # F11.8: photos, video and sound are stored and described, never read by a model. See backend/ingest/media.py.
+    "video/mp4": {".mp4", ".m4v"},
+    "video/quicktime": {".mov"},
+    "video/webm": {".webm"},
+    "video/x-msvideo": {".avi"},
+    "audio/wav": {".wav"},
+    "audio/mpeg": {".mp3"},
+    "audio/mp4": {".m4a"},
+    "audio/ogg": {".ogg", ".oga", ".opus"},
 }
+# MP4, MOV and M4A share one container (ISO base media), so the content says only "that family". As with Office,
+# the extension then picks the exact type, and only these three extensions may claim it.
+ISO_MEDIA = "video/iso-bmff"
+ISO_EXTENSIONS = {".mp4": "video/mp4", ".m4v": "video/mp4", ".mov": "video/quicktime", ".m4a": "audio/mp4"}
+_QT_FIRST_ATOMS = (b"moov", b"mdat", b"wide", b"free", b"skip", b"pnot")
 
 _SAFE_NAME = re.compile(r"[^A-Za-z0-9._ -]+")
 
@@ -40,6 +54,20 @@ def sniff_media_type(head: bytes) -> str | None:
         return "image/jpeg"
     if head.startswith(b"PK\x03\x04"):
         return "application/zip"
+    if len(head) >= 12 and head.startswith(b"RIFF"):
+        return {b"WAVE": "audio/wav", b"AVI ": "video/x-msvideo"}.get(head[8:12])
+    # A box starts with its 4-byte size, so its first byte is a control byte for any first box under 512 MB (an ftyp
+    # box is ~32 bytes, so 0). That keeps text such as "The free market..." from looking like a QuickTime atom.
+    if len(head) >= 12 and head[0] == 0 and head[4:8] == b"ftyp":
+        return ISO_MEDIA
+    if len(head) >= 8 and head[0] < 0x20 and head[0] not in (9, 10, 13) and head[4:8] in _QT_FIRST_ATOMS:
+        return ISO_MEDIA if int.from_bytes(head[:4], "big") >= 8 else None  # old QuickTime: an atom, no ftyp
+    if head.startswith(b"\x1a\x45\xdf\xa3") and b"webm" in head[:64]:
+        return "video/webm"
+    if head.startswith(b"OggS\x00"):
+        return "audio/ogg"
+    if head.startswith(b"ID3") or (len(head) >= 4 and _mp3_frame(head)):
+        return "audio/mpeg"
     if b"\x00" in head:
         return None
     try:
@@ -49,6 +77,18 @@ def sniff_media_type(head: bytes) -> str | None:
         if exc.start < len(head) - 4:
             return None
     return "text/plain"
+
+
+def _mp3_frame(head: bytes) -> bool:
+    """An MPEG audio Layer III frame header with a legal bitrate and sample rate (not just any 0xFF byte)."""
+    b1, b2 = head[1], head[2]
+    return (
+        head[0] == 0xFF
+        and (b1 & 0xE0) == 0xE0
+        and (b1 >> 3) & 3 != 1
+        and (b1 >> 1) & 3 == 1
+        and (b2 >> 4 not in (0, 15) and (b2 >> 2) & 3 != 3)
+    )
 
 
 def sanitize_filename(name: str) -> str:
@@ -81,6 +121,10 @@ def validate_upload(filename: str, head: bytes, size: int, max_bytes: int) -> tu
         if ext not in OFFICE_EXTENSIONS:
             raise FileRejected("archives are not accepted; only Word, Excel and PowerPoint files (.docx, .xlsx, .pptx)")
         return safe, OFFICE_EXTENSIONS[ext]
+    if media_type == ISO_MEDIA:
+        if ext not in ISO_EXTENSIONS:
+            raise FileRejected(f"extension {ext or '(none)'} does not match detected type video/mp4")
+        return safe, ISO_EXTENSIONS[ext]
     if ext not in ALLOWED_TYPES[media_type]:
         raise FileRejected(f"extension {ext or '(none)'} does not match detected type {media_type}")
     return safe, media_type

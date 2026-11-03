@@ -297,7 +297,12 @@ MIGRATIONS: list[str] = [
     ALTER TABLE users ADD COLUMN require_password INTEGER NOT NULL DEFAULT 0;
     ALTER TABLE users ADD COLUMN require_voice INTEGER NOT NULL DEFAULT 0;
     """,
-    # 11: F09.21, one-time invites an admin sends so a person picks their own password. Only a hash of the code
+    # 11: F11.8, photos, video and sound. The details read from the file's own header (length, size in pixels,
+    # date taken, camera), as JSON. NULL for documents. Nothing inside the picture or recording is stored.
+    """
+    ALTER TABLE documents ADD COLUMN media_info TEXT;
+    """,
+    # 12: F09.21, one-time invites an admin sends so a person picks their own password. Only a hash of the code
     # is stored. `requested_steps` holds the sign-in steps the admin asked for that the person has not set up yet.
     """
     CREATE TABLE invites (
