@@ -374,6 +374,11 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 
 ---
 
+#### F03.9 — Show plainly which models are downloaded
+
+- **Priority:** P0 · **Owner:** luke · **Status:** IN_PROGRESS · **Dependencies:** F03.6, F03.7
+- **Description:** Luke said (2026-11-02) there is no way to see if the models are downloaded. The list sat in a closed panel at the foot of Overview. A Models page in the side rail lists every Meta model as Downloaded or Not downloaded, with size and a Download button, and the side rail shows whether the model VAULT uses is ready.
+
 ## F04 — AI Model System
 
 #### F03.6 — How many local models fit on this computer
@@ -738,6 +743,11 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 - **Verification evidence:** —
 
 ---
+
+#### F06.8 — Chat box: find, sort and ask by typing
+
+- **Priority:** P0 · **Owner:** luke · **Status:** IN_PROGRESS · **Dependencies:** F06.1, F06.5, F06.7
+- **Description:** Luke asked (2026-11-02) to type "find this" or "sort it like this" and have VAULT do it. A chat box on every screen turns a message into a search with filters and a sort order, refines the last result ("only drawings", "newest first"), answers questions with cited sources, opens pages, and says which models are downloaded. Rules read the message first, so most messages answer at once; the local Meta model reads it only when the rules find nothing, and its answer is held to a fixed list of fields and checked values.
 
 ## F07 — Teaching & Corrections
 
@@ -1348,6 +1358,11 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 - **Description:** The final evaluation on 2026-11-02 found held-out project accuracy at 0.400, down from 0.889. Ollama went from 0.32.1 to 0.40.13 that day, and the extraction schema had no required fields, so Llama 3 left `project` out on 95 of 150 documents. On one test document the same prompt in plain JSON mode returned the project. The schema now requires the scored fields, with null still allowed.
 - **Verification evidence (2026-11-02):** rerun on 150 documents: held-out project back to 0.889, doc_type 0.978, conflicts 10 of 10. Rating accuracy went from 0.839 to 0.814.
 
+#### F10.18 — New logo, loading animations, plainer words
+
+- **Priority:** P1 · **Owner:** luke · **Status:** IN_PROGRESS · **Dependencies:** F10.16, F12.13
+- **Description:** Luke said (2026-11-02) the logo looks bad, loading needs better animations, and some wording overcomplicates things. New mark, a shared loading animation in place of "Loading" text, and shorter labels and page descriptions.
+
 ## F11 — Synthetic Data & Evaluation
 - **Verification evidence (E-E2E-2, 2026-10-28):** covered by the Playwright suite in `tests/e2e/` (`02-investigate`); 13 of 13 tests passed in 5 consecutive fresh runs on Windows 11 (Chromium, desktop and Pixel 7 profiles).
 
@@ -1629,3 +1644,8 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 - **Blockers:** none
 - **Related PR/commit:** —
 - **Verification evidence:** —
+
+#### F12.14 — Desktop app download that checks for updates
+
+- **Priority:** P0 · **Owner:** luke · **Status:** IN_PROGRESS · **Dependencies:** F12.12
+- **Description:** Luke asked (2026-11-02) for a file he can download from GitHub that runs on his computer in its own window, not in a browser tab, and that updates. VAULT.exe already opens its own window. It now asks GitHub for the newest release when it opens (an administrator can turn this off; nothing about the documents is sent) and offers the download. A version tag builds the installer and portable zip and attaches them to a draft release; Luke publishes it.
