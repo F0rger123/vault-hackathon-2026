@@ -176,6 +176,12 @@ Every response carries `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY
 - **Permission:** `system:read`
 - **Response 200:** the installed Ollama models, each with its size, its origin (`meta`, `llama-based` or `other`) and how many copies fit on the GPU or in RAM, plus `different_models_on_gpu_together`. If Ollama is not running, `reachable` is false.
 
+### `GET /system/update` (F12.14)
+Whether GitHub has a newer published release than this server's version.
+- **Permission:** `system:read`
+- **Response 200:** `{"current": "0.2.0", "enabled": true, "newer": true, "releases": "https://github.com/…/releases", "latest": "v0.3.0", "page": "https://github.com/…/releases/tag/v0.3.0", "published_at": "…" | null, "files": [{"name": "VAULT-Setup-0.3.0.exe", "url": "https://github.com/…/releases/download/…", "size_mb": 40.0}]}`. With `VAULT_UPDATE_CHECK=false`: only `current`, `enabled: false`, `newer: false`, `releases`. If GitHub cannot be reached: `newer: false` and an `error` sentence. Answers from memory for six hours. Only links into this project's own releases are returned.
+- **Errors:** 401, 403
+
 ### `GET /system/model-catalog` (F03.7)
 - **Permission:** `system:read`
 - **Response 200:**

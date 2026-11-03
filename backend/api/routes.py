@@ -24,6 +24,7 @@ from backend.api.schemas import (
     ProposalCreate,
     RemoteToggle,
 )
+from backend.core import updates
 from backend.core.config import Settings
 from backend.core.estimates import compare as compare_estimate
 from backend.core.estimates import record_estimate
@@ -52,7 +53,7 @@ from backend.workers.processing import may_go_remote, process_document
 from backend.workers.proposals import create_proposal, execute_proposal
 from backend.workers.records import COLUMNS, collection_records, to_csv
 
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 router = APIRouter(prefix="/api/v1")
 
 
@@ -267,6 +268,12 @@ def system_local_models(
 ) -> dict:
     """Installed Ollama models and how many copies of each fit on this machine at once (F03.6)."""
     return local_models(effective_settings(conn, settings), profile_hardware(settings.data_dir))
+
+
+@router.get("/system/update")
+def system_update(settings: Settings = Depends(get_settings), _: Principal = Depends(require("system:read"))) -> dict:
+    """F12.14: whether GitHub has a newer release than this one, and where to download it."""
+    return updates.check(VERSION, settings.update_check)
 
 
 @router.get("/system/model-catalog")

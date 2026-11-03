@@ -32,6 +32,10 @@ class Settings(BaseSettings):
     # Remote inference sends document text off this machine. It stays off unless an admin enables it.
     allow_remote_inference: bool = False
 
+    # Ask GitHub whether a newer VAULT has been released (F12.14). It sends only a plain request for the release
+    # list: no documents, names or settings. Set VAULT_UPDATE_CHECK=false on machines that must never go online.
+    update_check: bool = True
+
     max_workers: int = 0  # 0 = choose from hardware profile
     job_max_attempts: int = 3
     model_timeout_s: float = 120.0

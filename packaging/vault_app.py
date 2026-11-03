@@ -232,6 +232,9 @@ def open_window(url: str, smoke_result: dict | None, data: Path) -> None:
         raise ValueError("the window only ever shows the local VAULT interface")
     import webview
 
+    # The update Download button (F12.14) and other outside links open in the person's own browser, never inside
+    # this window, so the window still only ever shows the local interface.
+    webview.settings["OPEN_EXTERNAL_LINKS_IN_BROWSER"] = True
     window = webview.create_window(TITLE, url, width=SIZE[0], height=SIZE[1], min_size=MIN_SIZE, resizable=True)
     # debug=False keeps developer tools off. private_mode leaves no cookies, storage or cache on disk, so closing
     # the window ends the session. On Windows, name WebView2 so it can never fall back to an older browser engine.

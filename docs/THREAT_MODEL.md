@@ -20,6 +20,7 @@ This covers a single-organization VAULT deployment on its own hardware. The asse
 3. **Document content and model.** Document text is untrusted data. It may contain adversarial instructions.
 4. **Model output and VAULT.** Model output is untrusted. It is validated against a schema and never executed.
 5. **VAULT and the Meta Model API.** Data crosses the network only if an admin has enabled remote inference and the user has confirmed it for the job.
+6. **VAULT and GitHub (update check, F12.14).** The server asks GitHub's public release list for the newest version. It sends no document data, user names or settings, keeps only links to this project's own releases, and never downloads or runs anything; the person's browser fetches an installer only when they click Download. `VAULT_UPDATE_CHECK=false` turns it off.
 
 ## Actors
 

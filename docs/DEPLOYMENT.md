@@ -113,6 +113,10 @@ VAULT can be built into a normal Windows program. The computer it is installed o
 
 The script refuses a build containing tokens, `.env` files, databases or demo data (`packaging/check_bundle.py`), then opens the built app once to check it. `.github/workflows/release.yml` makes the same build on GitHub when started by hand or by a `v*` tag; a tag attaches the files to a draft release.
 
+**Updates (F12.14).** The app asks GitHub for the newest published release when it opens, at most every six hours, and shows a Download button in the side rail when one is newer. The request sends nothing about the computer or its documents, and VAULT never downloads or runs an installer by itself: the person clicks Download and their browser fetches it. Installing over the old version keeps the data, which lives in `%LOCALAPPDATA%\VAULT`. Set `VAULT_UPDATE_CHECK=false` on a machine that must never contact the internet.
+
+**Publishing a release:** bump the version in `pyproject.toml`, `backend/api/routes.py` (`VERSION`) and `frontend/package.json`, merge, then push a tag such as `v0.2.0`. The Release workflow builds the files and attaches them to a draft release; publish the draft on GitHub, and existing installs see it.
+
 **Verify the download.** Compare the printed hash with the `.sha256` file, or with the hash published next to the download:
 
 ```powershell

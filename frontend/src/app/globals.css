@@ -727,6 +727,9 @@ section.rounded-card:hover {
     transform: translateY(6px);
   }
 }
+.update-in {
+  animation: chat-open 0.4s var(--ease-out-soft) both;
+}
 .chat-row {
   animation: fade-in 0.25s ease-out both;
 }
