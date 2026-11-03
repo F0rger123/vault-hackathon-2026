@@ -16,6 +16,7 @@ import { useSession } from "../session";
 import { QuizCard, ScoreTrend, TrainingSteps } from "../training-extras";
 import { TitleBlock } from "../title-block";
 import { Button, cx, Empty, LoadError, Notice, Panel, Tag } from "../ui";
+import { LoadingBlock } from "../loader";
 
 const FIELD_LABEL: Record<string, string> = { doc_type: "Document type", project: "Project", doc_date: "Date" };
 
@@ -56,7 +57,7 @@ export function TrainingView() {
   if (!collection)
     return (
       <>
-        <TitleBlock href="/training" title="Training" description="Grade how well VAULT reads your documents, teach it, and re-test." />
+        <TitleBlock href="/training" title="Training" description="See how well VAULT reads, correct it, and test again." />
         <Empty>
           There is no collection in this mode yet. <Link href="/setup" className="underline underline-offset-4">Set one up</Link> first.
         </Empty>
@@ -72,7 +73,7 @@ export function TrainingView() {
       <TitleBlock
         href="/training"
         title="Training"
-        description="Grade how well VAULT reads this collection, teach it where it is wrong, and re-test on documents nobody corrected. When the scores are good enough, move on to real documents."
+        description="See how well VAULT reads this collection, correct it where it is wrong, and test again."
       />
       <TrainingSteps step={step} />
       <p className="mb-6 max-w-3xl text-sm text-muted">
@@ -108,7 +109,7 @@ export function TrainingView() {
             )
           }
         >
-          {report ? <Scores report={report} /> : <p className="text-sm text-muted">Loading</p>}
+          {report ? <Scores report={report} /> : <LoadingBlock label="Loading the scores" />}
         </Panel>
 
         <Panel title="Ready for real documents?">
@@ -231,7 +232,7 @@ function Scores({ report }: { report: TrainingReport }) {
     return (
       <p className="text-sm text-muted">
         Nothing to grade yet. In Demo mode the fictional dataset&apos;s answers are known; for your own documents, label a
-        few on <Link href="/setup" className="underline underline-offset-4">Set up a run</Link> (Teach by example) so VAULT
+        few on <Link href="/setup" className="underline underline-offset-4">Add files</Link> (Teach by example) so VAULT
         has right answers to check against.
       </p>
     );

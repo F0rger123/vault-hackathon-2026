@@ -31,6 +31,7 @@ import { RunSummaryPanel } from "../run-summary";
 import { useSession } from "../session";
 import { TitleBlock } from "../title-block";
 import { Button, cx, Empty, inputClass, LoadError, Meter, Notice, Tag } from "../ui";
+import { Loader, LoadingBlock } from "../loader";
 
 export function RunBoardView() {
   const params = useSearchParams();
@@ -46,8 +47,8 @@ export function RunBoardView() {
     <>
       <TitleBlock
         href="/run"
-        title="Live run board"
-        description="Follow documents through the coordinator, the security gate, each model lane and the reviewer as it happens."
+        title="Progress"
+        description="Watch VAULT read your documents, live."
         actions={
           jobs.data && jobs.data.length > 0 ? (
             <div className="flex items-center gap-2">
@@ -73,7 +74,7 @@ export function RunBoardView() {
       <LoadError error={jobs.error} status={jobs.status} what="runs" />
       {jobs.data && jobs.data.length === 0 && !requested && (
         <Empty>
-          There are no runs yet. Go to <Link href="/setup" className="text-blue underline">Set up a run</Link>, choose
+          There are no runs yet. Go to <Link href="/setup" className="text-blue underline">Add files</Link>, choose
           your model lanes and start one; it will appear here live.
         </Empty>
       )}
@@ -170,7 +171,7 @@ function Board({ jobId }: { jobId: number }) {
   const live = (id: number) => liveFrom !== null && id > liveFrom;
 
   if (job.error && !job.data) return <LoadError error={job.error} status={job.status} what={`run ${jobId}`} />;
-  if (!job.data) return <p className="text-sm text-muted">Loading run {jobId}</p>;
+  if (!job.data) return <LoadingBlock label={`Opening run ${jobId}`} />;
 
   const allTimes = model.lanes.flatMap((l) => l.extractTimes).sort((a, b) => a - b);
   const overall = docsPerMinute(allTimes, end, terminal ? Infinity : 60);
@@ -641,7 +642,7 @@ function EventLog({
         </div>
       </header>
       <ol aria-live="polite" aria-relevant="additions" className="max-h-[420px] overflow-y-auto">
-        {loading && <li className="px-4 py-3 text-sm text-muted">Loading events</li>}
+        {loading && <li className="px-4 py-3"><Loader label="Loading what the agents did" /></li>}
         {!loading && shown.length === 0 && (
           <li className="px-4 py-3 text-sm text-muted">No events in this view yet. They appear here as the agents work.</li>
         )}

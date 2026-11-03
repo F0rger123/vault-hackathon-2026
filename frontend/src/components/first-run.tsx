@@ -69,7 +69,7 @@ export function LocalModelsCard({ data, compact }: { data: LocalModels | undefin
       </ul>
       <p className="text-xs text-muted">
         Estimated from model sizes. VAULT reads documents only with Meta models; others are listed because Ollama has
-        them installed. Measure real speed under <Link href="/setup" className="underline underline-offset-4">Set up a run</Link>.
+        them installed. Measure real speed under <Link href="/setup" className="underline underline-offset-4">Add files</Link>.
       </p>
     </div>
   );
@@ -150,7 +150,7 @@ export function GettingStarted() {
     {
       done: (collection?.processed ?? 0) > 0,
       label: "Read them",
-      detail: collection?.processed ? `${collection.processed} read` : "One button on Set up a run.",
+      detail: collection?.processed ? `${collection.processed} read` : "One button on Add files.",
       href: "/setup",
     },
     {

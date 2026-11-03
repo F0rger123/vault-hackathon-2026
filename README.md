@@ -48,9 +48,9 @@ All data below is fictional, made by the project's own synthetic dataset generat
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/run-dark.jpg">
-    <img src="docs/screenshots/run-light.jpg" alt="Live run board: 150 documents read by Meta Llama 3 on this laptop in 8 minutes 56 seconds, through the coordinator, the security gate and the reviewer" width="100%">
+    <img src="docs/screenshots/run-light.jpg" alt="Progress: 150 documents read by Meta Llama 3 on this laptop in 8 minutes 56 seconds, through the coordinator, the security gate and the reviewer" width="100%">
   </picture>
-  <br><sub><b>Live run board.</b> Every document moves from the coordinator through the security gate and a local Llama lane to the reviewer. The board only changes when an agent reports real work.</sub>
+  <br><sub><b>Progress.</b> Every document moves from the coordinator through the security gate and a local Llama lane to the reviewer. The board only changes when an agent reports real work.</sub>
 </p>
 
 <table>
@@ -70,8 +70,8 @@ All data below is fictional, made by the project's own synthetic dataset generat
       <br><sub><b>Security.</b> A live checklist of VAULT's protections, each with how to fix it. Files with active content are held, and passkeys (face, fingerprint or a security key) can be required.</sub>
     </td>
     <td width="50%" valign="top">
-      <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/setup-dark.jpg"><img src="docs/screenshots/setup-light.jpg" alt="Set up a run: teach by example, check this machine, choose model lanes"></picture>
-      <br><sub><b>Set up a run.</b> Teach it with a few labelled examples, measure the machine, pick the model lanes, start.</sub>
+      <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/setup-dark.jpg"><img src="docs/screenshots/setup-light.jpg" alt="Add files: teach by example, check this machine, choose model lanes"></picture>
+      <br><sub><b>Add files.</b> Teach it with a few labelled examples, measure the machine, pick the model lanes, start.</sub>
     </td>
   </tr>
   <tr>
@@ -90,7 +90,7 @@ All data below is fictional, made by the project's own synthetic dataset generat
       <br><sub><b>Overview.</b> What's in the vault, where its documents are allowed to go, and what the agents found.</sub>
     </td>
     <td width="50%" valign="top" align="center">
-      <img src="docs/screenshots/phone-light.jpg" alt="The live run board on a phone" width="250">
+      <img src="docs/screenshots/phone-light.jpg" alt="The Progress page on a phone" width="250">
       <br><sub><b>On a phone.</b> The same run board, stacked for a small screen.</sub>
     </td>
   </tr>
@@ -163,8 +163,8 @@ You need Python 3.11+ and Node 20+. For the real AI you also need [Ollama](https
 1. **Start VAULT** with the one command below. It installs what is missing and opens VAULT. Add `-App` (Windows) or `--app` (Linux) to open it in its own window instead of a browser tab.
 2. **Choose Demo or Real.** Demo opens a fictional engineering archive at once; Real starts empty, with password sign-in.
 3. **Let it check your computer.** The Overview shows your graphics card and memory, which Meta models fit, and an **Install the recommended set** button. Models download once; after that VAULT works with the network unplugged.
-4. **Add documents** on Set up a run: drop files, or point it at a folder. PDF, Word, Excel, PowerPoint, text, CSV and images are accepted.
-5. **Read them** with one button, and watch the live run board.
+4. **Add documents** on Add files: drop files, or point it at a folder. PDF, Word, Excel, PowerPoint, text, CSV and images are accepted.
+5. **Read them** with one button, and watch the Progress page.
 6. **Check the quality** on Training before trusting it, then **teach it** on Brain.
 
 **Windows app without Python or Node:** `packaging/build_windows.ps1` builds a portable folder and zip (about 39 MB) with a guided first-run setup. Unzip it and run `VAULT.exe`. It is not code-signed, so Windows SmartScreen shows a warning the first time. No download is published yet, and so far it has been tested only on the machine that built it. Ollama is still a separate install for the real AI.

@@ -38,7 +38,7 @@ export function ApprovalsView() {
       <TitleBlock
         href="/approvals"
         title="Approvals"
-        description="Reorganizing or sharing files needs an administrator's approval. Approving writes copies into a new folder; originals are never moved, renamed or changed."
+        description="Moving or sharing files needs an admin's OK. VAULT writes copies; originals never change."
       />
       <div className="grid gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
         <Panel title="Propose a new folder layout" className="self-start">

@@ -33,7 +33,7 @@ function hasWebGL(): boolean {
 const noSubscribe = () => () => {};
 
 const DESCRIPTION =
-  "What VAULT knows about this collection, what your people taught it, and the questions it still has. Each collection has its own brain; nothing taught here is used anywhere else.";
+  "What VAULT knows about this collection, what you taught it, and what it still wants to ask.";
 
 /** F07.7 and F07.8: the collection brain, its questions, teaching, and the map (a 3D space, or the 2D map). */
 
@@ -238,7 +238,7 @@ function Questions(props: {
                   confirm_remote: false,
                   only_new: true,
                 });
-                setMessage(`Started run ${job.id}. Follow it on the Live run board.`);
+                setMessage(`Started run ${job.id}. Follow it on Progress.`);
               } catch (e) {
                 setMessage(errorText(e));
               } finally {

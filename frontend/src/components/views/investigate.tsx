@@ -61,7 +61,7 @@ export function InvestigateView() {
       <TitleBlock
         href="/investigate"
         title="Investigate"
-        description="Ask a question, search the archive, and check each finding against verbatim quotes from the original documents."
+        description="Search, ask a question, and check every answer against the original page."
       />
       {collection && <AskPanel collectionId={collection.id} onOpenDocument={setOpenDoc} />}
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">

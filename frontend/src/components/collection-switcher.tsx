@@ -146,7 +146,7 @@ export function CollectionSwitcher({ id }: { id: string }) {
                     </button>
                   </div>
                   {error && <p className="text-xs text-redline">{error}</p>}
-                  <p className="text-xs text-muted">It starts empty, with its own brain. Add documents on Set up a run.</p>
+                  <p className="text-xs text-muted">It starts empty, with its own brain. Add documents on Add files.</p>
                 </form>
               ) : (
                 <button
