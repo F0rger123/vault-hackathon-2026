@@ -11,7 +11,8 @@ from pydantic import BaseModel, Field
 
 from backend.api.deps import get_conn, require
 from backend.api.routes import _log_signin
-from backend.security import audit, signin_log
+from backend.api.routes_passkeys import apply_steps
+from backend.security import audit, signin_log, steps
 from backend.security import login as signin
 from backend.security.auth import ROLE_PERMISSIONS, Principal, create_user
 
@@ -32,6 +33,8 @@ class UserChange(BaseModel):
     # F09.19: the sign-in level an admin sets for someone. Each needs that person to have set it up first.
     require_passkey: bool | None = None
     require_face: bool | None = None
+    # F09.20: the full list of steps this person must pass, replacing the two switches above when given.
+    steps: list[str] | None = Field(default=None, max_length=4)
 
 
 class NewPassword(BaseModel):
@@ -65,8 +68,11 @@ def _public(conn, row) -> dict:
         "passkeys": conn.execute("SELECT COUNT(*) FROM passkeys WHERE user_id = ?", (row["id"],)).fetchone()[0],
         "face_set_up": conn.execute("SELECT 1 FROM face_templates WHERE user_id = ?", (row["id"],)).fetchone()
         is not None,
+        "voice_set_up": conn.execute("SELECT 1 FROM voice_templates WHERE user_id = ?", (row["id"],)).fetchone()
+        is not None,
         "require_passkey": bool(row["require_passkey"]),
         "require_face": bool(row["require_face"]),
+        "steps": steps.required(row),
         "created_at": row["created_at"],
         "last_sign_in": dict(last) if last else None,
     }
@@ -115,6 +121,11 @@ def change_user(
         raise HTTPException(status_code=409, detail=f"{row['username']} has no passkey yet; they add one on Security")
     if body.require_face and not pub["face_set_up"]:
         raise HTTPException(status_code=409, detail=f"{row['username']} has not set up face unlock yet")
+    if body.steps is not None:
+        try:
+            apply_steps(conn, user_id, body.steps)
+        except ValueError as exc:
+            raise HTTPException(status_code=409, detail=f"{row['username']}: {exc}") from exc
     for field in ("require_passkey", "require_face"):
         if getattr(body, field) is not None:
             conn.execute(f"UPDATE users SET {field} = ? WHERE id = ?", (int(getattr(body, field)), user_id))  # noqa: S608

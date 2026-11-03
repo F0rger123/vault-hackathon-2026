@@ -4,7 +4,7 @@ import random
 
 import pytest
 
-from backend.security import face
+from backend.security import face, steps
 from backend.security import login as signin
 from tests.conftest import auth
 
@@ -15,10 +15,10 @@ PASS = "a long enough password"
 @pytest.fixture(autouse=True)
 def _clean():
     signin.clear_attempts()
-    face._steps.clear()
+    steps._tickets.clear()
     yield
     signin.clear_attempts()
-    face._steps.clear()
+    steps._tickets.clear()
 
 
 def vec(seed: int, noise: float = 0.0, base: int | None = None) -> list[float]:

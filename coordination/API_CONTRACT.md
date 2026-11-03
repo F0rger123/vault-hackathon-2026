@@ -476,6 +476,18 @@ One row per part from each document's latest extraction. A processed document wi
 - `POST /auth/face` (sign-in within 15 minutes) `{"samples": [3–5 × 1024 floats], "live", "real"}` → status. Returns 422 if the readings disagree, are not live, or look like a photo.
 - `DELETE /auth/face` (sign-in within 15 minutes): deletes the fingerprints and turns the requirement off.
 - `PUT /auth/face/required` (sign-in within 15 minutes) `{"required": bool}`; 409 if face check is not set up.
+
+**Sign-in steps each person picks (F09.20).** Any mix of `password`, `passkey`, `face`, `voice`, asked in that order (password and passkey first, either order when both are ticked). Nothing ticked: a password or a passkey is enough. `passkey` without `password`: a password cannot start sign-in. Every correct step but the last returns `{"step": next, "remaining": [...], "done": [...], "handle", "username"}` instead of a session; the ticket lasts 3 minutes from the last correct step and ends after 3 wrong answers. A step that is not the next one returns 409. The sign-in log records the whole chain, for example `password+face+voice`.
+- `GET /auth/steps` (signed in) → `{"required": [steps], "set_up": {"password", "passkey", "face", "voice": bool}}`.
+- `PUT /auth/steps` (sign-in within 15 minutes) `{"steps": [...]}` → status; 409 for an unknown step or one not set up yet.
+- `PATCH /users/{id}` (users:manage) also takes `{"steps": [...]}`, with the same 409. `GET /users` rows add `voice_set_up` and `steps`.
+- `POST /auth/password-step` (public, own origin) `{"handle", "password"}` → next step or session; 401 `wrong password`.
+- `POST /auth/passkey-login` also takes `"step": handle` when the passkey is a later step; 401 if the passkey belongs to another account.
+- `POST /auth/face-step` and `POST /auth/face` also take `"quality": {"width", "height", "fps", "brightness", "sharpness", "face_px"}`; 422 or 401 when the camera picture is below 640×360, under 12 fps, too dark or bright, blurred, or the face is too small.
+- `POST /auth/voice-step` (public, own origin) `{"handle", "frames": [40–300 × 13 floats], "snr_db"}` → next step or session; 401 `that was not the key phrase`, or the microphone is too noisy (under 12 dB above the room).
+- `GET /auth/voice` (signed in) → `{"enrolled", "set_up_at", "min_snr_db", "samples"}`.
+- `POST /auth/voice` (sign-in within 15 minutes) `{"samples": [3 takes of frames], "snr_db"}` → status; 422 if the takes disagree, are silent, too short or too noisy.
+- `DELETE /auth/voice` (sign-in within 15 minutes): deletes the saved takes and drops the step.
 - `PATCH /users/{id}` (admin) also takes `require_passkey` and `require_face`; 409 unless that person has set it up. `GET /users` rows add `passkeys`, `face_set_up`, `require_passkey`, `require_face`.
 - `GET /stats?collection_id=N` limits the counts to one collection.
 

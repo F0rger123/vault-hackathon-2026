@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 from backend.api.deps import get_conn, get_settings, require
 from backend.api.routes import _browser_origin_ok, _log_signin
 from backend.core.config import Settings
-from backend.security import audit, face, passkeys, signin_log
+from backend.security import audit, face, passkeys, signin_log, steps, voice
 from backend.security import login as signin
 from backend.security.auth import Principal, hash_token
 from backend.storage.db import now
@@ -45,6 +45,8 @@ class LoginOptions(BaseModel):
 class LoginVerify(BaseModel):
     handle: str = Field(max_length=64)
     credential: dict
+    # F09.20: set when the passkey is a later step, after a password the person also asked for.
+    step: str | None = Field(default=None, max_length=64)
 
 
 class Required(BaseModel):
@@ -129,13 +131,26 @@ def login(
         _log_signin(conn, request, "unknown-user", "passkey", "denied", str(exc))
         raise HTTPException(status_code=401, detail=str(exc)) from exc
     signin.clear_attempts(row["username"])
-    needs_face = conn.execute("SELECT require_face FROM users WHERE id = ?", (row["id"],)).fetchone()[0]
-    if needs_face:
-        audit.record(conn, row["username"], "auth.passkey_login", "allowed", detail={"next": "face check"})
-        return signin.face_step(row, "passkey-login")
+    srow = signin.step_user(conn, row["id"])
+    if body.step:
+        try:
+            ticket = steps.peek(body.step)
+        except steps.StepError as exc:
+            raise HTTPException(status_code=401, detail=str(exc)) from exc
+        if ticket["user_id"] != row["id"] or steps.remaining(srow, ticket["done"])[:1] != ["passkey"]:
+            steps.wrong(body.step)
+            raise HTTPException(status_code=401, detail="that passkey belongs to a different account")
+        result = signin.continue_step(conn, body.step, "passkey", settings.session_ttl_hours)
+        method = steps.method_label(result.get("done") or [*ticket["done"], "passkey"])
+    else:
+        result = signin.after_step(conn, srow, ["passkey"], settings.session_ttl_hours)
+        method = "passkey"
+    if "step" in result:
+        audit.record(conn, row["username"], "auth.passkey_login", "allowed", detail={"next": result["step"]})
+        return result
     audit.record(conn, row["username"], "auth.passkey_login", "allowed")
-    _log_signin(conn, request, row["username"], "passkey", "allowed")
-    return signin.passkey_session(conn, row, settings.session_ttl_hours)
+    _log_signin(conn, request, row["username"], method, "allowed")
+    return result
 
 
 # ---------- face check (F09.19) ----------
@@ -145,6 +160,7 @@ class FaceEnroll(BaseModel):
     samples: list[list[float]] = Field(min_length=1, max_length=face.MAX_SAMPLES)
     live: float = Field(ge=0, le=1)
     real: float = Field(ge=0, le=1)
+    quality: dict[str, float] = Field(default_factory=dict, max_length=12)
 
 
 @router.get("/auth/face")
@@ -156,6 +172,7 @@ def face_status(conn=Depends(get_conn), p: Principal = Depends(require("system:r
 def face_enroll(body: FaceEnroll, conn=Depends(get_conn), p: Principal = Depends(fresh_session)) -> dict:
     """Save this person's face fingerprints. Numbers only: the browser never sends a picture."""
     try:
+        face.check_quality(body.quality)
         n = face.enroll(conn, p.user_id, body.samples, body.live, body.real)
     except face.FaceError as exc:
         audit.record(conn, p.username, "face.enroll", "denied", detail={"reason": str(exc)})
@@ -178,3 +195,86 @@ def face_required(body: Required, conn=Depends(get_conn), p: Principal = Depends
     conn.execute("UPDATE users SET require_face = ? WHERE id = ?", (int(body.required), p.user_id))
     audit.record(conn, p.username, "face.require", "allowed", detail={"required": body.required})
     return face.status(conn, p.user_id)
+
+
+# ---------- spoken key phrase and the steps a person picks (F09.20) ----------
+
+
+class VoiceEnroll(BaseModel):
+    samples: list[list[list[float]]] = Field(min_length=voice.SAMPLES, max_length=voice.SAMPLES)
+    snr_db: float = Field(ge=-100, le=200)
+
+
+class Steps(BaseModel):
+    steps: list[str] = Field(max_length=4)
+
+
+def set_up(conn, user_id: int) -> dict[str, bool]:
+    """Which steps this person could require right now: each needs setting up first."""
+    row = conn.execute("SELECT password_hash FROM users WHERE id = ?", (user_id,)).fetchone()
+    return {
+        "password": bool(row and row["password_hash"]),
+        "passkey": bool(passkeys.list_passkeys(conn, user_id)),
+        "face": face.status(conn, user_id)["enrolled"],
+        "voice": voice.status(conn, user_id)["enrolled"],
+    }
+
+
+def steps_status(conn, user_id: int) -> dict:
+    row = signin.step_user(conn, user_id)
+    return {"required": steps.required(row) if row else [], "set_up": set_up(conn, user_id)}
+
+
+def apply_steps(conn, user_id: int, wanted: list[str]) -> None:
+    """Raises ValueError for an unknown step or one this person has not set up."""
+    unknown = [s for s in wanted if s not in steps.FACTORS]
+    if unknown:
+        raise ValueError(f"unknown sign-in step: {unknown[0]}")
+    ready = set_up(conn, user_id)
+    missing = [steps.LABELS[s] for s in wanted if not ready[s]]
+    if missing:
+        raise ValueError(f"set up the {missing[0]} first")
+    sets = ", ".join(f"require_{f} = ?" for f in steps.FACTORS)
+    conn.execute(
+        f"UPDATE users SET {sets} WHERE id = ?",  # noqa: S608 - column names come from steps.FACTORS
+        (*[int(f in wanted) for f in steps.FACTORS], user_id),
+    )
+
+
+@router.get("/auth/steps")
+def my_steps(conn=Depends(get_conn), p: Principal = Depends(require("system:read"))) -> dict:
+    return steps_status(conn, p.user_id)
+
+
+@router.put("/auth/steps")
+def set_my_steps(body: Steps, conn=Depends(get_conn), p: Principal = Depends(fresh_session)) -> dict:
+    try:
+        apply_steps(conn, p.user_id, body.steps)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    audit.record(conn, p.username, "signin.steps", "allowed", detail={"steps": body.steps})
+    return steps_status(conn, p.user_id)
+
+
+@router.get("/auth/voice")
+def voice_status(conn=Depends(get_conn), p: Principal = Depends(require("system:read"))) -> dict:
+    return {**voice.status(conn, p.user_id), "min_snr_db": voice.MIN_SNR_DB, "samples": voice.SAMPLES}
+
+
+@router.post("/auth/voice", status_code=201)
+def voice_enroll(body: VoiceEnroll, conn=Depends(get_conn), p: Principal = Depends(fresh_session)) -> dict:
+    """Save the key phrase as numbers describing how it sounds. No recording is sent or kept."""
+    try:
+        saved = voice.enroll(conn, p.user_id, body.samples, body.snr_db)
+    except voice.VoiceError as exc:
+        audit.record(conn, p.username, "voice.enroll", "denied", detail={"reason": str(exc)})
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    audit.record(conn, p.username, "voice.enroll", "allowed")
+    return saved
+
+
+@router.delete("/auth/voice")
+def voice_remove(conn=Depends(get_conn), p: Principal = Depends(fresh_session)) -> dict:
+    voice.remove(conn, p.user_id)
+    audit.record(conn, p.username, "voice.remove", "allowed")
+    return voice.status(conn, p.user_id)

@@ -20,7 +20,7 @@ import sqlite3
 import threading
 import time
 
-from backend.security import face
+from backend.security import steps
 from backend.security.auth import create_user, hash_token, issue_token
 from backend.storage.db import now, transaction
 
@@ -126,8 +126,7 @@ def password_login(conn: sqlite3.Connection, username: str, password: str, ttl_h
     Raises LoginLocked when the username used up its attempts, LoginBusy when too many run at once.
     """
     row = conn.execute(
-        "SELECT id, username, role, password_hash, require_passkey, require_face, disabled "
-        "FROM users WHERE username = ?",
+        f"SELECT id, username, role, password_hash, disabled, {STEP_COLUMNS} FROM users WHERE username = ?",  # noqa: S608
         (username,),
     ).fetchone()
     _start_attempt(row["username"] if row else UNKNOWN)
@@ -143,23 +142,53 @@ def password_login(conn: sqlite3.Connection, username: str, password: str, ttl_h
         return None
     clear_attempts(row["username"])
     # Told only after a correct password, so it reveals nothing to someone guessing.
-    if row["require_passkey"]:
+    if not steps.can_start_with(row, "password"):
         raise PasskeyRequired()
-    if row["require_face"]:
-        return face_step(row, "password-login")
-    return _session(conn, row, "password-login", ttl_hours)
+    return after_step(conn, row, ["password"], ttl_hours)
 
 
-def face_step(row, label: str) -> dict:
-    """The password or passkey was right; the face check comes next, and only then a session (F09.19)."""
-    return {"step": "face", "handle": face.start_step(row["id"], label), "username": row["username"]}
+def check_password(conn: sqlite3.Connection, user_id: int, password: str) -> bool:
+    """The password as a later step. Costs one scrypt run, and is limited by the step ticket's tries."""
+    row = conn.execute("SELECT password_hash FROM users WHERE id = ?", (user_id,)).fetchone()
+    stored = row["password_hash"] if row and row["password_hash"] else _DUMMY_HASH
+    with _slots:
+        return verify_password(password, stored) and bool(row and row["password_hash"])
 
 
-def face_session(conn: sqlite3.Connection, user_id: int, label: str, ttl_hours: float) -> dict:
-    row = conn.execute("SELECT id, username, role FROM users WHERE id = ? AND disabled = 0", (user_id,)).fetchone()
+STEP_COLUMNS = ", ".join(f"require_{f}" for f in steps.FACTORS)
+
+
+def step_user(conn: sqlite3.Connection, user_id: int):
+    return conn.execute(
+        f"SELECT id, username, role, {STEP_COLUMNS} FROM users WHERE id = ? AND disabled = 0",  # noqa: S608
+        (user_id,),
+    ).fetchone()
+
+
+def after_step(conn: sqlite3.Connection, row, done: list[str], ttl_hours: float, handle: str | None = None) -> dict:
+    """A session once every step this person chose is done; otherwise a ticket naming the next step (F09.20)."""
+    left = steps.remaining(row, done)
+    if left:
+        return {
+            "step": left[0],
+            "remaining": left,
+            "done": done,
+            "handle": handle or steps.start(row["id"], done),
+            "username": row["username"],
+        }
+    if handle:
+        steps.finish(handle)
+    return _session(conn, row, f"{steps.method_label(done)}-login", ttl_hours)
+
+
+def continue_step(conn: sqlite3.Connection, handle: str, factor: str, ttl_hours: float) -> dict:
+    """Call after `factor` was checked for the ticket's person. Raises StepError if the ticket is gone."""
+    ticket = steps.peek(handle)
+    row = step_user(conn, ticket["user_id"])
     if not row:
-        raise face.FaceError("this account cannot sign in")
-    return _session(conn, row, label, ttl_hours)
+        steps.finish(handle)
+        raise steps.StepError("this account cannot sign in")
+    return after_step(conn, row, steps.passed(handle, factor), ttl_hours, handle)
 
 
 def needs_owner(conn: sqlite3.Connection) -> bool:
@@ -190,10 +219,6 @@ def demo_login(conn: sqlite3.Connection, role: str, ttl_hours: float) -> dict | 
         return None
     row = conn.execute("SELECT id, username, role FROM users WHERE username = ?", (role,)).fetchone()
     return _session(conn, row, "demo-login", ttl_hours) if row else None
-
-
-def passkey_session(conn: sqlite3.Connection, row, ttl_hours: float) -> dict:
-    return _session(conn, row, "passkey-login", ttl_hours)
 
 
 def _session(conn: sqlite3.Connection, row, label: str, ttl_hours: float) -> dict:
