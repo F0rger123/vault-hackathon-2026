@@ -1,14 +1,19 @@
 // No imports from ./ui: that module is client-only, and this one also renders in server pages (run/page.tsx).
 const cx = (...parts: (string | undefined)[]) => parts.filter(Boolean).join(" ");
 
-/** The loading mark: eight bolts round a vault dial light up in turn. Used wherever something is on its way. */
+// The logo's four trim marks, clockwise from the top left.
+const CORNERS = ["M2 8V2h6", "M16 2h6v6", "M22 16v6h-6", "M8 22H2v-6"];
+
+/** The loading mark: the logo's trim marks light in turn round its keyhole. Used wherever something is on its way. */
 export function Loader({ label, className, size = 16 }: { label?: string; className?: string; size?: number }) {
   return (
     <span role="status" className={cx("inline-flex items-center gap-2 text-sm text-muted", className)}>
       <svg aria-hidden viewBox="0 0 24 24" width={size} height={size} className="loader-dial shrink-0">
-        {Array.from({ length: 8 }, (_, i) => (
-          <rect key={i} x="11" y="1.5" width="2" height="6" rx="1" transform={`rotate(${i * 45} 12 12)`} style={{ animationDelay: `${i * 0.1}s` }} />
+        {CORNERS.map((d, i) => (
+          <path key={d} d={d} fill="none" strokeWidth="2.6" style={{ animationDelay: `${i * 0.18}s` }} />
         ))}
+        <circle cx="12" cy="10.4" r="2.6" fill="currentColor" />
+        <path d="M10.5 12.2h3l.8 4.6h-4.6z" fill="currentColor" />
       </svg>
       {label && <span className="loader-label">{label}</span>}
     </span>

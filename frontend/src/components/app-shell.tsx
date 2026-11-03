@@ -14,7 +14,7 @@ import { CommandPalette } from "./command-palette";
 import { SetupWizard } from "./setup-wizard";
 import { PostureBadge } from "./security-posture";
 import { UpdateNotice } from "./update-notice";
-import { VaultMark } from "./vault-mark";
+import { VaultLockup } from "./vault-mark";
 import { SessionGate, SessionProvider, useMaybeSession, useSession } from "./session";
 import { Button, cx, inputClass } from "./ui";
 
@@ -86,10 +86,28 @@ function ModelBadge() {
 
 function Wordmark() {
   return (
-    <Link href="/" className="flex items-center gap-3 rounded-control">
-      <VaultMark className="h-8 w-8" />
-      <span className="text-[15px] font-semibold tracking-[0.32em] text-ink">VAULT</span>
+    <Link href="/" className="flex items-center rounded-control">
+      <VaultLockup />
     </Link>
+  );
+}
+
+/** The corner of a drawing sheet: who made it and how, in ruled cells. Here it says where VAULT runs. */
+function SheetTitleBlock() {
+  const rows: [string, string][] = [
+    ["Runs on", "This computer"],
+    ["Reads with", "Meta Llama, through Ollama"],
+    ["Internet account", "Not needed"],
+  ];
+  return (
+    <dl className="grid w-full max-w-md grid-cols-[auto_minmax(0,1fr)] border border-line-strong text-[13px]">
+      {rows.map(([k, v], i) => (
+        <div key={k} className={cx("contents", i > 0 && "[&>*]:border-t [&>*]:border-line-strong")}>
+          <dt className="border-r border-line-strong px-3 py-2 text-muted">{k}</dt>
+          <dd className="px-3 py-2 font-medium">{v}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 
@@ -400,8 +418,9 @@ function SignIn({ onSignedIn, message }: { onSignedIn: () => void; message?: str
 
   if (nextStep)
     return (
-      <div className="grid min-h-dvh place-items-center px-4 py-10">
-        <div className="animate-rise w-full max-w-md rounded-card border border-line bg-panel p-5 shadow-lift">
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-6 px-4 py-10">
+        <VaultLockup />
+        <div className="trim animate-rise w-full max-w-md rounded-card border border-line bg-panel p-4 shadow-lift sm:p-6">
           <SignInSteps
             start={nextStep}
             onSignedIn={signedIn}
@@ -415,14 +434,31 @@ function SignIn({ onSignedIn, message }: { onSignedIn: () => void; message?: str
     );
 
   return (
-    <div className="grid min-h-dvh place-items-center px-4 py-10">
-      <div className="animate-rise w-full max-w-sm rounded-card border border-line bg-panel shadow-lift">
-        <div className="vault-dial-intro border-b border-line px-5 py-4">
-          <Wordmark />
+    <div className="grid min-h-dvh lg:grid-cols-[minmax(0,1.15fr)_minmax(440px,0.85fr)]">
+      <section
+        aria-label="About VAULT"
+        className="relative isolate flex flex-col justify-between gap-8 overflow-hidden border-b border-line px-5 py-7 sm:px-10 sm:py-10 lg:border-b-0 lg:border-r lg:px-14 lg:py-12"
+      >
+        <div aria-hidden className="sheet-grid absolute inset-0 -z-10" />
+        <VaultLockup size="lg" intro />
+        <div className="max-w-xl">
+          <p className="display text-balance text-[26px] leading-[1.08] sm:text-[40px] xl:text-[46px]">
+            Your drawings, reports and contracts, read on this computer.
+          </p>
+          <p className="mt-4 max-w-md text-[15px] leading-relaxed text-muted">
+            Every fact VAULT pulls out carries the exact quote it came from, and nothing changes without a person&apos;s
+            approval.
+          </p>
         </div>
-        <div className="flex flex-col gap-4 px-5 py-5">
+        <div className="hidden sm:block">
+          <SheetTitleBlock />
+        </div>
+      </section>
+      <div className="grid place-items-center px-4 py-8 sm:py-12">
+      <div className="trim animate-rise w-full max-w-sm rounded-card border border-line bg-panel shadow-lift">
+        <div className="flex flex-col gap-4 px-5 py-6">
           <div>
-            <h1 className="display text-xl">Sign in</h1>
+            <h1 className="display text-[22px]">Sign in</h1>
             <p className="mt-1 text-sm text-muted">
               No API key or internet account needed. VAULT runs on this computer, with Meta Llama through Ollama.
             </p>
@@ -543,6 +579,7 @@ function SignIn({ onSignedIn, message }: { onSignedIn: () => void; message?: str
             </form>
           </details>
         </div>
+      </div>
       </div>
     </div>
   );

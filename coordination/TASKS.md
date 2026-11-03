@@ -1434,6 +1434,30 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
   - **e2e:** `26 passed (2.2m)` (full suite, including `025-ask` on desktop and at 390 px).
   - **Not verified:** a run with Ollama and llama3 answering. Tests and e2e use the rules.
 
+#### F10.21 — A sharper look and a better logo; face check set-up with a phone fallback
+
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F10.16, F09.19, F09.20
+- **Description:** Luke's feedback: the app looked basic and the logo weak; face unlock set-up should look striking; it must work on phone, tablet and desktop; and when the webcam is not good enough, VAULT should suggest using the phone instead. Look only: behaviour, routes, API and accessible names are unchanged.
+- **Implementation scope:**
+  - New logo: a keyhole framed by four trim marks on an ink tile (chosen from five concepts, sheet in `docs/screenshots/F10.21/logo-concepts.png`). `vault-mark.tsx` (`VaultMark`, `VaultLockup`), `app/icon.svg`, `app/favicon.ico` regenerated (16/32/48 px, Pillow), README banners' mark swapped, loader redrawn from the same marks.
+  - Type: Archivo with its width axis (wide for titles and the wordmark) and IBM Plex Mono for data, replacing Inter and JetBrains Mono.
+  - Tokens and primitives first: panel highlight, `Panel` trim marks and wider titles, `Button` depth, `Empty` with the empty frame, `Figure` spacing; `TitleBlock` gets an engineer's-scale ruler; rail active bar.
+  - Sign-in: split screen with the lockup, one plain statement, and a ruled title block; the steps screen gets the lockup and trim. Setup wizard gets the lockup and drafting grid. Ask VAULT empty state restyled.
+  - Face check (`face-capture.tsx`): reticle following the detected face box, a segmented ring filling one segment per accepted reading with a capture flash, quality cells with real-value bars, an on-video hint, and a check mark only when the server accepts (`onDone` resolving `true`). Key phrase (`voice-capture.tsx`) gets the same stage, take segments that flash on accepted takes, and the same success moment. Sign-in step trail restyled; it still moves only on real answers.
+  - Poor camera: below-minimum resolution or frame rate at start, or light/focus failing for 5 s with a face in view, shows "Your camera isn't good enough. Use your phone instead". On set-up this adds a phone passkey (`addPasskey("Phone", "phone")`, the browser's QR code) and says honestly that the phone's own Face ID or fingerprint replaces VAULT's webcam check. At sign-in it only explains what to do (better light or camera, ask an admin, or swap Face check for a phone passkey once signed in): `backend/security/steps.py` never lets another step stand in for a required face step, and that is unchanged.
+- **Acceptance criteria:**
+  - Lint, types and build clean; full e2e suite passes with no spec changes.
+  - No sideways scroll at 390 px on sign-in, Overview, Add files, Progress, Investigate, Ask VAULT, Brain and Security.
+  - Every new animation on the face and key-phrase screens is tied to a real reading, take or server answer, and respects `prefers-reduced-motion`.
+- **Required tests:** existing e2e suite (names unchanged).
+- **Blockers:** none
+- **Related PR/commit:** branch `luke/F10.21-look-and-logo`
+- **Verification evidence (2026-11-03, Windows 11):**
+  - **frontend:** `npm run lint` clean, `npx tsc --noEmit` clean, `npm run build` compiled all 13 routes.
+  - **e2e:** `27 passed (2.0m)` (full suite, desktop and Pixel 7, ports 8430/3430).
+  - **Screenshots:** `docs/screenshots/F10.21/` before and after at 1440, 820 and 390 px (fictional demo data), the face check with Chromium's fake camera, the poor-camera phone offer (fake camera forced to 8 fps) and the key-phrase recorder. The page script reported no sideways scroll at any size.
+  - **Not verified:** the reticle following a real face, a capture flash and the accepted check mark (no camera or real face in the test environment; Chromium's fake camera shows a test pattern, so no face is detected); the phone passkey QR flow with a real phone; the light/focus 5 s trigger (only the frame-rate trigger was exercised).
+
 ## F11 — Synthetic Data & Evaluation
 - **Verification evidence (E-E2E-2, 2026-10-28):** covered by the Playwright suite in `tests/e2e/` (`02-investigate`); 13 of 13 tests passed in 5 consecutive fresh runs on Windows 11 (Chromium, desktop and Pixel 7 profiles).
 
