@@ -807,8 +807,9 @@ export const vault = {
   invites: () => api<Invite[]>("/users/invites"),
   createInvite: (body: { username: string; role: string; note: string; steps: ExtraStep[] }) => post<InviteCreated>("/users/invites", body),
   revokeInvite: (id: number) => del<{ revoked: boolean }>(`/users/invites/${id}`),
-  invitePreview: (code: string) => api<InvitePreview>(`/auth/invite/${encodeURIComponent(code)}`),
-  acceptInvite: (code: string, password: string) => post<SignedIn>(`/auth/invite/${encodeURIComponent(code)}`, { password }),
+  // The code goes in the body, never the URL, so it cannot land in an access log.
+  invitePreview: (code: string) => post<InvitePreview>("/auth/invite/preview", { code }),
+  acceptInvite: (code: string, password: string) => post<SignedIn>("/auth/invite/accept", { code, password }),
   mySteps: () => api<StepsStatus>("/auth/steps"),
   changeUser: (id: number, change: { role?: string; disabled?: boolean; steps?: SignInStep[] }) =>
     api<ManagedUser>(`/users/${id}`, { method: "PATCH", body: JSON.stringify(change) }),

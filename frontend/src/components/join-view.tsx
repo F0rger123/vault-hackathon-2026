@@ -12,16 +12,22 @@ import { STEP_NAMES } from "./sign-in-steps";
 import { Button, Field, inputClass, Notice } from "./ui";
 import { VaultMark } from "./vault-mark";
 
-/** The code from `/join#CODE` (preferred, never sent to a server) or `/join?code=CODE`. */
-function codeFrom(hash: string, search: string): string {
-  const fromHash = decodeURIComponent(hash.replace(/^#/, "")).trim();
-  return fromHash || (new URLSearchParams(search).get("code") ?? "").trim();
+/**
+ * The code from `/join#CODE`. Only the part after `#` is read: browsers never send it to any server, and the API
+ * receives the code in a request body, so it never appears in a URL that a server or proxy could log.
+ */
+function codeFrom(hash: string): string {
+  try {
+    return decodeURIComponent(hash.replace(/^#/, "")).trim();
+  } catch {
+    return hash.replace(/^#/, "").trim();
+  }
 }
 
 /** F09.21: the page an invited person opens. They see who invited them and as what, then pick their password. */
 export function JoinView() {
-  const { hash, search } = useUrl();
-  const code = codeFrom(hash, search);
+  const { hash } = useUrl();
+  const code = codeFrom(hash);
   return (
     <div className="grid min-h-dvh place-items-center px-4 py-10">
       <div className="animate-rise w-full max-w-md rounded-card border border-line bg-panel shadow-lift">

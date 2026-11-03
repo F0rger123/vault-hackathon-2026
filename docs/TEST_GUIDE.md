@@ -139,7 +139,9 @@ ends the attempt.
    of what that role can and cannot do; any extra sign-in steps; and how they get in. Back, Next and the numbered
    trail move between questions; Enter goes to the next one and Escape closes.
 3. Leave **One-time invite link** chosen and press **Create invite**. Copy the link (or the code), or scan the QR
-   code with a phone. The QR code is drawn by VAULT itself; the link is never sent to a QR service.
+   code with a phone. The QR code is drawn by VAULT itself; the link is never sent to a QR service. The code sits
+   after the `#` in the link and travels to the API only inside the request body, so it never shows up in a server
+   log.
 4. Open the link in a private window (or another browser). It says who invited you and as what. Choose a password
    (10 characters or more), type it again, and you land signed in on Security with a welcome note.
 5. Check: open the same link again (refused: it works once). Under People the invite has left "Invites waiting"

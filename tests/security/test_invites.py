@@ -69,7 +69,9 @@ def test_invite_is_accepted_once_and_signs_the_person_in(client, tokens, setting
     listed = client.get(f"{API}/users/invites", headers=auth(tokens["admin"])).json()
     assert [i["username"] for i in listed] == ["erin"] and "code" not in listed[0]
 
-    seen = client.get(f"{API}/auth/invite/{code.lower()}").json()  # typed in lower case still works
+    seen = client.post(
+        f"{API}/auth/invite/preview", json={"code": code.lower()}
+    ).json()  # typed in lower case still works
     assert seen == {
         "username": "erin",
         "role": "analyst",
@@ -77,8 +79,8 @@ def test_invite_is_accepted_once_and_signs_the_person_in(client, tokens, setting
         "expires_at": made["expires_at"],
         "min_password": signin.MIN_PASSWORD,
     }
-    assert client.post(f"{API}/auth/invite/{code}", json={"password": "short"}).status_code == 422
-    r = client.post(f"{API}/auth/invite/{code}", json={"password": PASS})
+    assert client.post(f"{API}/auth/invite/accept", json={"code": code, "password": "short"}).status_code == 422
+    r = client.post(f"{API}/auth/invite/accept", json={"code": code, "password": PASS})
     assert r.status_code == 200
     session = r.json()
     assert session["username"] == "erin" and session["role"] == "analyst"
@@ -86,8 +88,8 @@ def test_invite_is_accepted_once_and_signs_the_person_in(client, tokens, setting
     assert me["username"] == "erin" and me["role"] == "analyst"
     # Their own password works from now on; the invite does not, for anyone.
     assert client.post(f"{API}/auth/login", json={"username": "erin", "password": PASS}).status_code == 200
-    assert client.post(f"{API}/auth/invite/{code}", json={"password": PASS}).status_code == 404
-    assert client.get(f"{API}/auth/invite/{code}").status_code == 404
+    assert client.post(f"{API}/auth/invite/accept", json={"code": code, "password": PASS}).status_code == 404
+    assert client.post(f"{API}/auth/invite/preview", json={"code": code}).status_code == 404
     assert client.get(f"{API}/users/invites", headers=auth(tokens["admin"])).json() == []
     assert [a["outcome"] for a in _audit(settings, "auth.invite_accept")] == ["allowed", "denied"]
     assert _audit(settings, "user.invite")[0]["actor"] == "admin"
@@ -108,7 +110,7 @@ def test_expired_and_withdrawn_invites_answer_like_unknown_ones(client, tokens, 
     assert client.delete(f"{API}/users/invites/{gone['id']}", headers=h).status_code == 200
     assert client.delete(f"{API}/users/invites/{gone['id']}", headers=h).status_code == 404
     answers = [
-        client.post(f"{API}/auth/invite/{c}", json={"password": PASS})
+        client.post(f"{API}/auth/invite/accept", json={"code": c, "password": PASS})
         for c in (old["code"], gone["code"], "ABCD-EFGH-JKMN-PQRS-TVWX")
     ]
     assert {r.status_code for r in answers} == {404}
@@ -131,21 +133,26 @@ def test_expired_and_withdrawn_invites_answer_like_unknown_ones(client, tokens, 
 
 def test_public_invite_routes_refuse_other_sites_and_are_rate_limited(client, tokens):
     code = _invite(client, tokens)["code"]
+    # The code only ever travels in a request body, so no route takes it in the URL (or an access log).
+    assert client.get(f"{API}/auth/invite/{code}").status_code == 404
+    assert client.post(f"{API}/auth/invite/{code}", json={"password": PASS}).status_code in (404, 405)
     evil = {"Origin": "https://evil.example"}
-    assert client.get(f"{API}/auth/invite/{code}", headers=evil).status_code == 403
-    assert client.post(f"{API}/auth/invite/{code}", headers=evil, json={"password": PASS}).status_code == 403
+    assert client.post(f"{API}/auth/invite/preview", headers=evil, json={"code": code}).status_code == 403
+    assert (
+        client.post(f"{API}/auth/invite/accept", headers=evil, json={"code": code, "password": PASS}).status_code == 403
+    )
     for _ in range(signin.MAX_ATTEMPTS):
-        assert client.get(f"{API}/auth/invite/WRONG-WRONG-WRONG-WRONG").status_code == 404
-    locked = client.get(f"{API}/auth/invite/{code}")
+        assert client.post(f"{API}/auth/invite/preview", json={"code": "WRONG-WRONG-WRONG-WRONG"}).status_code == 404
+    locked = client.post(f"{API}/auth/invite/preview", json={"code": code})
     assert locked.status_code == 429
-    assert client.post(f"{API}/auth/invite/{code}", json={"password": PASS}).status_code == 429
+    assert client.post(f"{API}/auth/invite/accept", json={"code": code, "password": PASS}).status_code == 429
     signin.clear_attempts()
-    assert client.post(f"{API}/auth/invite/{code}", json={"password": PASS}).status_code == 200
+    assert client.post(f"{API}/auth/invite/accept", json={"code": code, "password": PASS}).status_code == 200
 
 
 def test_requested_steps_switch_on_once_the_person_sets_them_up(client, tokens, settings):
     code = _invite(client, tokens, "hana", steps=["voice", "face", "face"])["code"]
-    session = client.post(f"{API}/auth/invite/{code}", json={"password": PASS}).json()
+    session = client.post(f"{API}/auth/invite/accept", json={"code": code, "password": PASS}).json()
     h = auth(session["token"])
     status = client.get(f"{API}/auth/steps", headers=h).json()
     assert status["requested"] == ["face", "voice"] and status["required"] == ["password"]

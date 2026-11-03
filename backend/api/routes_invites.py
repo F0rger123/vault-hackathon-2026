@@ -5,7 +5,7 @@ The two public routes behave like the sign-in routes: VAULT's own interface only
 and one answer for every code that does not work (unknown, used, withdrawn or expired look the same).
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from backend.api.deps import get_conn, get_settings, require
@@ -20,7 +20,6 @@ from backend.storage.db import transaction
 router = APIRouter(prefix="/api/v1")
 
 NOT_VALID = "this invite does not work any more; it may have expired, been used or been withdrawn"
-CODE = Path(min_length=1, max_length=64)
 
 
 class NewInvite(BaseModel):
@@ -30,7 +29,12 @@ class NewInvite(BaseModel):
     steps: list[str] = Field(default_factory=list, max_length=3)
 
 
-class AcceptInvite(BaseModel):
+class InviteCode(BaseModel):
+    # In the body, never the URL, so the code cannot end up in an access log or a proxy log.
+    code: str = Field(min_length=1, max_length=64)
+
+
+class AcceptInvite(InviteCode):
     password: str = Field(min_length=signin.MIN_PASSWORD, max_length=200)
 
 
@@ -104,13 +108,13 @@ def _bucket(request: Request) -> str:
     return "\x00invite:" + (request.client.host if request.client else "")
 
 
-@router.get("/auth/invite/{code}")
+@router.post("/auth/invite/preview")
 def open_invite(
-    request: Request, code: str = CODE, conn=Depends(get_conn), settings: Settings = Depends(get_settings)
+    body: InviteCode, request: Request, conn=Depends(get_conn), settings: Settings = Depends(get_settings)
 ) -> dict:
     """Public: who the invite is for and as what. Nothing else about the account or the server."""
     _guard(conn, request, settings, "auth.invite_open")
-    row = invites.find_open(conn, code)
+    row = invites.find_open(conn, body.code)
     if row is None:
         audit.record(conn, "unknown-user", "auth.invite_open", "denied", detail={"reason": "not valid"})
         raise HTTPException(status_code=404, detail=NOT_VALID)
@@ -124,19 +128,15 @@ def open_invite(
     }
 
 
-@router.post("/auth/invite/{code}")
+@router.post("/auth/invite/accept")
 def accept_invite(
-    body: AcceptInvite,
-    request: Request,
-    code: str = CODE,
-    conn=Depends(get_conn),
-    settings: Settings = Depends(get_settings),
+    body: AcceptInvite, request: Request, conn=Depends(get_conn), settings: Settings = Depends(get_settings)
 ) -> dict:
     """Public: set the password, use up the invite and sign in, all at once or not at all."""
     _guard(conn, request, settings, "auth.invite_accept")
     digest = signin.hash_password(body.password)  # slow on purpose, so done before taking the write lock
     with transaction(conn):
-        row = invites.find_open(conn, code)
+        row = invites.find_open(conn, body.code)
         reason = "not valid" if row is None else ("name taken" if signin.known_user(conn, row["username"]) else None)
         if reason is None:
             uid = create_user(conn, row["username"], row["role"])

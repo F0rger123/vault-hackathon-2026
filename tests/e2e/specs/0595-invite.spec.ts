@@ -45,6 +45,10 @@ test("invite someone with a one-time link", async ({ page, context, browser, bro
   // The invited person, in a fresh browser with nothing stored.
   const theirs = await browser.newContext();
   const them = await theirs.newPage();
+  // Every URL their browser requests, to prove the code never leaves in one (only in request bodies).
+  const urls: string[] = [];
+  them.on("request", (r) => urls.push(r.url()));
+  const code = link.split("#")[1];
   await them.goto(link);
   await expect(them.getByText(/admin\s+invited you to VAULT as\s+analyst/)).toBeVisible();
   await them.getByLabel("Choose a password").fill("north yard lantern 42");
@@ -57,6 +61,9 @@ test("invite someone with a one-time link", async ({ page, context, browser, bro
     return r.json();
   }, API);
   expect(me).toMatchObject({ username: "nora.k", role: "analyst" });
+  expect(urls.some((u) => u.includes("/auth/invite/accept"))).toBe(true);
+  const leaked = urls.filter((u) => u.includes(code) || u.includes(code.replaceAll("-", "")));
+  expect(leaked).toEqual([]);
 
   // Used once, it is gone: from the admin's list, and for anyone opening it again.
   const again = await theirs.newPage();
