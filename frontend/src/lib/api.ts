@@ -912,3 +912,96 @@ export function errorText(e: unknown): string {
   }
   return e instanceof Error ? e.message : "Something went wrong.";
 }
+
+// ---------- Ask VAULT (F10.20): POST /collections/{id}/agent streams one JSON event per line ----------
+
+export type TeamHelperId = "finder" | "sorter" | "conflicts" | "answer" | "facts" | "models" | "navigator";
+
+export interface TeamHelperPlan {
+  id: TeamHelperId;
+  name: string;
+  does: string;
+  why: string;
+  step: number;
+  uses_model: boolean;
+  with: TeamHelperId[];
+}
+
+export type TeamEvent =
+  | { type: "start"; t_ms: number; collection_id: number }
+  | { type: "coordinator"; t_ms: number; status: "asking_model" | "merged" | "fallback"; text: string; model?: string; duration_ms?: number }
+  | {
+      type: "plan";
+      t_ms: number;
+      source: "rules" | "model";
+      model: string | null;
+      duration_ms: number;
+      command: ChatCommand;
+      reason: string;
+      helpers: TeamHelperPlan[];
+      steps: TeamHelperId[][];
+      parallel_note: string | null;
+      question_plan?: Investigation["plan"];
+    }
+  | {
+      type: "helper";
+      t_ms: number;
+      id: TeamHelperId;
+      name: string;
+      status: "started" | "progress" | "finished" | "failed";
+      thread?: string;
+      text?: string;
+      duration_ms?: number;
+      summary?: string;
+      result?: Record<string, unknown>;
+      detail?: string;
+    }
+  | {
+      type: "answer";
+      t_ms: number;
+      kind: ChatCommand["kind"];
+      command: ChatCommand;
+      text: string;
+      sentences?: AnswerSentence[];
+      sources?: InvestigationSource[];
+      findings?: Investigation["findings"];
+      withheld_local_only?: number;
+      answered_by?: Investigation["answered_by"];
+      rows?: SearchResult[];
+      count?: number;
+      route?: string | null;
+      models?: { name: string; size_gb: number; used_by_vault: boolean; loaded: boolean }[];
+    }
+  | { type: "error"; t_ms: number; status: number; detail: string }
+  | { type: "done"; t_ms: number; duration_ms: number };
+
+/** Send one message to the coordinator and hand each event to `onEvent` as soon as its line arrives. */
+export async function askTeam(
+  collectionId: number,
+  message: string,
+  previous: ChatCommand | null,
+  onEvent: (e: TeamEvent) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  const res = await request(`/collections/${collectionId}/agent`, {
+    method: "POST",
+    body: JSON.stringify({ message, previous }),
+    signal,
+  });
+  if (!res.body) throw new ApiError(0, "The server sent no answer.");
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let cut: number;
+    while ((cut = buffer.indexOf("\n")) >= 0) {
+      const line = buffer.slice(0, cut).trim();
+      buffer = buffer.slice(cut + 1);
+      if (line) onEvent(JSON.parse(line) as TeamEvent);
+    }
+  }
+  if (buffer.trim()) onEvent(JSON.parse(buffer) as TeamEvent);
+}

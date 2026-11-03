@@ -252,14 +252,26 @@ def run_find(conn: sqlite3.Connection, collection_id: int, cmd: Command) -> tupl
     If the words find nothing but the filters do ("signed contracts"), the filters alone answer, and the reply
     says the words were dropped.
     """
-    rows, total = _find(conn, collection_id, cmd)
-    if not total and cmd.q and (cmd.doc_type or cmd.project or cmd.year or cmd.part_number or cmd.media):
-        rows, total = _find(conn, collection_id, cmd.model_copy(update={"q": ""}))
-        return rows, total, total > 0
-    return rows, total, False
+    docs, dropped = find_documents(conn, collection_id, cmd)
+    return sort_rows(docs, cmd)[:SHOWN], len(docs), dropped
 
 
-def _find(conn: sqlite3.Connection, collection_id: int, cmd: Command) -> tuple[list[dict], int]:
+def find_documents(conn: sqlite3.Connection, collection_id: int, cmd: Command) -> tuple[list[dict], bool]:
+    """Every matching document once, best match first (up to 200). Returns (documents, words dropped)."""
+    docs = _find(conn, collection_id, cmd)
+    if not docs and cmd.q and (cmd.doc_type or cmd.project or cmd.year or cmd.part_number or cmd.media):
+        docs = _find(conn, collection_id, cmd.model_copy(update={"q": ""}))
+        return docs, bool(docs)
+    return docs, False
+
+
+def sort_rows(rows: list[dict], cmd: Command) -> list[dict]:
+    """The rows in the order the command asks for (best match first keeps the search order)."""
+    key = _sort_key(cmd)
+    return sorted(rows, key=key, reverse=cmd.order == "desc") if key else list(rows)
+
+
+def _find(conn: sqlite3.Connection, collection_id: int, cmd: Command) -> list[dict]:
     def go(q: str) -> list[dict]:
         return search(
             conn, q, collection_id, cmd.doc_type, cmd.project, None, None, cmd.part_number, 200, cmd.exclude,
@@ -277,10 +289,7 @@ def _find(conn: sqlite3.Connection, collection_id: int, cmd: Command) -> tuple[l
         if r["document_id"] not in seen:
             seen.add(r["document_id"])
             docs.append(r)
-    key = _sort_key(cmd)
-    if key:
-        docs.sort(key=key, reverse=cmd.order == "desc")
-    return docs[:SHOWN], len(docs)
+    return docs
 
 
 def describe(cmd: Command, total: int, dropped: bool = False) -> str:

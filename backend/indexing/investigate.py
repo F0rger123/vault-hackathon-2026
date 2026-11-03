@@ -23,6 +23,7 @@ from backend.workers.processing import may_go_remote
 
 MAX_SOURCES = 16
 MAX_FINDINGS = 4
+FINDING_FIELDS = ("id", "kind", "key", "summary", "status")
 PART_RE = re.compile(r"\b[A-Z]{2,4}-\d{3,5}(?:-[A-Z0-9]{1,4})?\b", re.IGNORECASE)
 YEAR_RE = re.compile(r"\b(19|20)\d{2}\b")
 NUMBER_RE = re.compile(r"(?<![\w.])\d[\d,]*(?:\.\d+)?(?![\w])")
@@ -152,8 +153,58 @@ def _local_only(conn: sqlite3.Connection, document_id: int) -> bool:
     return not may_go_remote(conn, document_id)
 
 
-def retrieve(conn: sqlite3.Connection, collection_id: int, plan: dict, remote: bool) -> tuple[list[dict], list, int]:
-    """Collect numbered sources: finding evidence first, then search hits. Returns (sources, findings, withheld)."""
+def matching_findings(conn: sqlite3.Connection, collection_id: int, plan: dict) -> list[dict]:
+    """Recorded conflicts that fit the question, with a few evidence lines each. Reads the database only."""
+    if not (plan["conflicts"] or plan["part_numbers"]):
+        return []
+    out = []
+    rows = conn.execute("SELECT * FROM findings WHERE collection_id = ? ORDER BY id", (collection_id,)).fetchall()
+    for r in rows:
+        ev = loads(r["evidence"], [])
+        if plan["part_numbers"] and r["key"] not in plan["part_numbers"]:
+            continue
+        if plan["project"] and not any((e.get("project") or "") == plan["project"].casefold() for e in ev):
+            continue
+        out.append({**{k: r[k] for k in FINDING_FIELDS}, "evidence": _representative(ev)})
+        if len(out) >= MAX_FINDINGS:
+            break
+    return out
+
+
+def search_hits(conn: sqlite3.Connection, collection_id: int, plan: dict) -> list[dict]:
+    """Documents that match the question's words, best first, each with the line that matched."""
+    date_from = f"{plan['year']}-01-01" if plan["year"] else None
+    date_to = f"{plan['year']}-12-31" if plan["year"] else None
+    common = dict(
+        collection_id=collection_id,
+        doc_type=plan["doc_type"],
+        project=plan["project"],
+        date_from=date_from,
+        date_to=date_to,
+        limit=8,
+    )
+    hits: dict[int, tuple[int, dict]] = {}
+    queries = plan["terms"] or [""]
+    for part in plan["part_numbers"] or [None]:
+        for q in queries:
+            for h in search(conn, q, part_number=part, **common):
+                score, _ = hits.get(h["document_id"], (0, h))
+                hits[h["document_id"]] = (score + 1, h)
+    needles = plan["part_numbers"] + plan["terms"]
+    out = []
+    for _, h in sorted(hits.values(), key=lambda x: (-x[0], x[1]["document_id"])):
+        page, line = _line_for(conn, h["document_id"], h["page"], needles)
+        out.append({**h, "page": page, "line": line})
+    return out
+
+
+def number_sources(
+    conn: sqlite3.Connection, matched: list[dict], hits: list[dict], remote: bool
+) -> tuple[list[dict], list, int]:
+    """Number the lines an answer may cite: finding evidence first, then search hits.
+
+    Returns (sources, findings, withheld).
+    """
     sources: list[dict] = []
     withheld = 0
 
@@ -185,15 +236,7 @@ def retrieve(conn: sqlite3.Connection, collection_id: int, plan: dict, remote: b
         return len(sources)
 
     findings = []
-    rows = conn.execute("SELECT * FROM findings WHERE collection_id = ? ORDER BY id", (collection_id,)).fetchall()
-    for r in rows:
-        ev = loads(r["evidence"], [])
-        if plan["part_numbers"] and r["key"] not in plan["part_numbers"]:
-            continue
-        if plan["project"] and not any((e.get("project") or "") == plan["project"].casefold() for e in ev):
-            continue
-        if not (plan["conflicts"] or plan["part_numbers"]):
-            continue
+    for f in matched:
         cited = [
             add(
                 e["document_id"],
@@ -201,52 +244,27 @@ def retrieve(conn: sqlite3.Connection, collection_id: int, plan: dict, remote: b
                 e.get("page"),
                 e.get("quote"),
                 "finding",
-                {"finding_id": r["id"], "value": e.get("value")},
+                {"finding_id": f["id"], "value": e.get("value")},
             )
-            for e in _representative(ev)
+            for e in f["evidence"]
         ]
-        findings.append(
-            {
-                "id": r["id"],
-                "kind": r["kind"],
-                "key": r["key"],
-                "summary": r["summary"],
-                "status": r["status"],
-                "sources": [c for c in cited if c],
-            }
-        )
-        if len(findings) >= MAX_FINDINGS:
-            break
-
-    date_from = f"{plan['year']}-01-01" if plan["year"] else None
-    date_to = f"{plan['year']}-12-31" if plan["year"] else None
-    common = dict(
-        collection_id=collection_id,
-        doc_type=plan["doc_type"],
-        project=plan["project"],
-        date_from=date_from,
-        date_to=date_to,
-        limit=8,
-    )
-    hits: dict[int, tuple[int, dict]] = {}
-    queries = plan["terms"] or [""]
-    for part in plan["part_numbers"] or [None]:
-        for q in queries:
-            for h in search(conn, q, part_number=part, **common):
-                score, _ = hits.get(h["document_id"], (0, h))
-                hits[h["document_id"]] = (score + 1, h)
-    needles = plan["part_numbers"] + plan["terms"]
-    for _, h in sorted(hits.values(), key=lambda x: (-x[0], x[1]["document_id"])):
-        page, line = _line_for(conn, h["document_id"], h["page"], needles)
+        findings.append({**{k: f[k] for k in FINDING_FIELDS}, "sources": [c for c in cited if c]})
+    for h in hits:
         add(
             h["document_id"],
             h["filename"],
-            page,
-            line,
+            h["page"],
+            h["line"],
             "search",
             {"doc_type": h["doc_type"], "project": h["project"], "doc_date": h["doc_date"]},
         )
     return sources, findings, withheld
+
+
+def retrieve(conn: sqlite3.Connection, collection_id: int, plan: dict, remote: bool) -> tuple[list[dict], list, int]:
+    """Collect numbered sources: finding evidence first, then search hits. Returns (sources, findings, withheld)."""
+    matched = matching_findings(conn, collection_id, plan)
+    return number_sources(conn, matched, search_hits(conn, collection_id, plan), remote)
 
 
 def _representative(evidence: list[dict], per_value: int = 2) -> list[dict]:
@@ -328,18 +346,31 @@ def model_answer(
         raise ProviderError(f"model answer failed schema validation ({type(exc).__name__})") from exc
 
 
+def write_answer(
+    conn: sqlite3.Connection,
+    collection_id: int,
+    question: str,
+    provider: Provider,
+    plan: dict,
+    sources: list[dict],
+    findings: list[dict],
+) -> list[AnswerSentence]:
+    """The model writes the answer when the provider is one; otherwise the rules restate what was found."""
+    info = provider.info()
+    if not info.is_ai_model or not sources:
+        return template_answer(plan, sources, findings)
+    # The brain's meanings help the model read local jargon. They stay on this machine: a remote model
+    # never receives them (F07.7).
+    meanings = prompt_guidance(conn, collection_id) if info.locality == "local" else None
+    return model_answer(provider, question, sources, findings, meanings)
+
+
 def investigate(conn: sqlite3.Connection, collection_id: int, question: str, provider: Provider) -> dict:
     started = time.perf_counter()
     info = provider.info()
     plan = plan_question(conn, collection_id, question)
     sources, findings, withheld = retrieve(conn, collection_id, plan, remote=info.locality == "remote")
-    if not info.is_ai_model or not sources:
-        raw = template_answer(plan, sources, findings)
-    else:
-        # The brain's meanings help the model read local jargon. They stay on this machine: a remote model
-        # never receives them (F07.7).
-        meanings = prompt_guidance(conn, collection_id) if info.locality == "local" else None
-        raw = model_answer(provider, question, sources, findings, meanings)
+    raw = write_answer(conn, collection_id, question, provider, plan, sources, findings)
     sentences = check_sentences(raw, sources)
     return {
         "question": question,

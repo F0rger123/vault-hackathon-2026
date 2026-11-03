@@ -1,6 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { errorText, vault, type ChatCommand, type ChatReply, type Investigation } from "@/lib/api";
 import { humanize } from "@/lib/format";
@@ -21,6 +22,7 @@ const STARTERS = ["Find contracts, newest first", "Show inspection reports", "Wh
 export function ChatBox() {
   const { collection } = useSession();
   const router = useRouter();
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [log, setLog] = useState<Entry[]>([]);
@@ -75,7 +77,8 @@ export function ChatBox() {
     }
   };
 
-  if (!collection) return null;
+  // The full chat page has its own input; a second box over it would only get in the way.
+  if (!collection || pathname === "/chat") return null;
   return (
     <>
       {!open && (
@@ -100,6 +103,13 @@ export function ChatBox() {
               <ChatIcon /> Ask VAULT
             </h2>
             <div className="flex gap-1">
+              <Link
+                href="/chat"
+                onClick={() => setOpen(false)}
+                className="rounded-control px-2 py-1 text-xs text-muted hover:bg-raised hover:text-ink"
+              >
+                Open full chat
+              </Link>
               {log.length > 0 && (
                 <button
                   type="button"

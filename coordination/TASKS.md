@@ -1406,6 +1406,32 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
   - the pre-run estimate is never called from the UI;
   - the Meta API key is not test-called when saved.
 
+#### F10.20 — Ask VAULT: a full chat page where you watch the coordinator hand work to helpers
+
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F06.4, F06.8
+- **Description:** a ChatGPT-style page (`/chat`, "Ask VAULT" in the side rail and "Open full chat" in the `/` box). Each reply shows the coordinator's plan and one card per helper, lit by real server events, then the answer with numbered sources that open the document. No mock-ups: every card is one real function call with its measured time.
+- **Implementation scope:**
+  - `POST /collections/{id}/agent` (`backend/agents/ask_team.py`, route in `routes_agents.py`) streams NDJSON: `start`, `plan` (rules or local model), `helper` started/progress/finished/failed with `duration_ms` and results, `coordinator` merged/fallback, `answer`, `done`.
+  - Helpers wrap existing code. Finder: `assistant.find_documents` or `investigate.search_hits`. Sorter: `assistant.sort_rows`. Conflict checker: `investigate.matching_findings`. Answer writer: `investigate.write_answer` (the model if the provider is one, the rules otherwise). Fact checker: `check_sentences`. Models helper: `local_models`. Navigator: the chat page map. `retrieve` and `run_find` were split into these pieces without changing their results.
+  - Finder and Conflict checker run together on two threads, each with its own database connection. The plan says so.
+  - Remote inference follows the `/investigations` rules. If no provider is named and the local model is off, the rules answer and a `fallback` event says so; it never falls back to a remote model.
+  - Page: thread kept in sessionStorage per collection, Enter to send, Stop, expandable helper cards, and a "This computer" note from `/system/hardware` and `/system/local-models`. Works at phone width; motion follows `prefers-reduced-motion`.
+- **Acceptance criteria:**
+  - The answer and sources for a question equal `POST /investigations`.
+  - The find rows equal `/chat`.
+  - Events arrive in order.
+  - A missing `search` permission gives 403 and an audit entry.
+  - The e2e test sees finished helper cards and a source that opens.
+- **Required tests:** `tests/integration/test_ask_team.py`; e2e `025-ask`.
+- **Blockers:** none
+- **Related PR/commit:** branch `luke/F10.20-agent-chat`
+- **Verification evidence (2026-11-03, Windows 11):**
+  - **ruff:** `All checks passed!`, `205 files already formatted`.
+  - **pytest:** `294 passed in 297.15s` (full suite, including 3 new tests in `test_ask_team.py`).
+  - **frontend:** `npm run lint` clean, `npx tsc --noEmit` clean, `npm run build` compiled with `/chat`.
+  - **e2e:** `26 passed (2.2m)` (full suite, including `025-ask` on desktop and at 390 px).
+  - **Not verified:** a run with Ollama and llama3 answering. Tests and e2e use the rules.
+
 ## F11 — Synthetic Data & Evaluation
 - **Verification evidence (E-E2E-2, 2026-10-28):** covered by the Playwright suite in `tests/e2e/` (`02-investigate`); 13 of 13 tests passed in 5 consecutive fresh runs on Windows 11 (Chromium, desktop and Pixel 7 profiles).
 

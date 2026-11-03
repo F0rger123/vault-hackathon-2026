@@ -505,6 +505,30 @@ The chat box (F06.8). Turns one typed message into a command and, for `find`, ru
 `kind` is `find`, `ask` (the client then calls `POST /investigations` with `command.q`), `open` (the client goes to `command.page`), `models` (adds `models: [{"name", "size_gb", "used_by_vault"}]`) or `help`. Rules read the message first. With `previous`, a message such as "only 2024" or "sort by name" changes the last find instead of starting again; a message starting with "find", "show" or "list" starts again. Only when the rules understand nothing, and `use_model` is true, the local Ollama model (never a remote one) fills the same fields; values outside the known document types and projects are dropped. If the words match nothing but the filters do, the filters alone answer and `reply` says so.
 - **Errors:** 401, 403, 404 (collection), 422
 
+### `POST /collections/{id}/agent` (F10.20, streamed)
+Ask VAULT. A coordinator reads one message (the same rules as `/chat`, then the local model only if the rules understand nothing and `use_model` is true), hands the work to helpers, and streams what happens. Each helper wraps an existing function; every timing is measured around that call.
+- **Permission:** `search`. Each answered question is written to the audit log as `ask.run` (provider and counts only, never the question).
+- **Body:** `{"message": "…", "previous": <command from the last find> | null, "use_model": true, "provider": "ollama" | "meta_api" | "heuristic" | null, "confirm_remote": false}`. `message` 1–300 chars.
+- **Response 200:** `Content-Type: application/x-ndjson`, one JSON object per line, in this order:
+```json
+{"type": "start", "t_ms": 0, "collection_id": 1}
+{"type": "coordinator", "t_ms": 1, "status": "asking_model", "text": "…", "model": "llama3:latest"}
+{"type": "coordinator", "t_ms": 2, "status": "fallback", "text": "The local model is not running, so the Answer writer uses VAULT's rules instead."}
+{"type": "plan", "t_ms": 3, "source": "rules", "model": null, "duration_ms": 2, "command": {<chat command>},
+ "reason": "A question: find the evidence, answer it, check it.",
+ "helpers": [{"id": "finder", "name": "Finder", "does": "Searches the index", "why": "…", "step": 0, "uses_model": false, "with": ["conflicts"]}],
+ "steps": [["finder", "conflicts"], ["answer"], ["facts"]], "parallel_note": "Finder and Conflict checker … run at the same time.",
+ "question_plan": {<investigation plan>}}
+{"type": "helper", "t_ms": 4, "id": "finder", "name": "Finder", "status": "started", "thread": "vault-helper_0"}
+{"type": "helper", "t_ms": 4, "id": "finder", "name": "Finder", "status": "progress", "text": "Searching for pressure, ratings"}
+{"type": "helper", "t_ms": 19, "id": "finder", "name": "Finder", "status": "finished", "duration_ms": 15, "summary": "8 matching documents", "result": {"count": 8, "documents": [...]}}
+{"type": "coordinator", "t_ms": 20, "status": "merged", "text": "Numbered 14 source lines for the Answer writer", "duration_ms": 1}
+{"type": "answer", "t_ms": 40, "kind": "ask", "command": {…}, "text": "…", "sentences": [<as /investigations answer>], "sources": [...], "findings": [...], "withheld_local_only": 0, "answered_by": {…}}
+{"type": "done", "t_ms": 41, "duration_ms": 41}
+```
+Helpers by command: `ask` runs Finder and Conflict checker together (the Conflict checker only when the question asks about conflicts or names a part), then the Answer writer (`write_answer`: the model when the provider is one, the rules otherwise), then the Fact checker (`check_sentences`). The answer, sources and checks equal what `POST /investigations` returns for the same question. `find` runs Finder, then Sorter when a sort was asked for; the answer has `rows` (≤ 50), `count` and `text` as in `/chat`. `models` runs the Models helper (Ollama's model list); `open` runs the Navigator and the answer carries `route`. `help` has no helpers. A helper that fails sends `status: "failed"` with a short `detail` written by VAULT. A provider that cannot be used ends the stream with `{"type": "error", "status": 400|403|409|503, "detail": "…"}` before any answer: remote inference follows the `/investigations` rules (admin setting, `confirm_remote`, analyst or admin role). If no provider was named and the default local model is not running, the rules answer instead and a `fallback` event says so; VAULT never falls back to a remote model. Errors never include document text or paths.
+- **Errors (before the stream starts):** 401, 403 (no `search`), 404 (collection), 422
+
 ### `POST /investigations`
 Answers a natural-language question using only evidence from one collection (F06.4). Retrieval is deterministic: the question is turned into a plan (known project names, part numbers, document-type words, a year, conflict words, remaining search terms), then finding evidence and search hits become numbered sources. A Meta model writes the answer as sentences that cite source numbers; the `heuristic` provider writes a fixed template instead and is labelled `is_ai_model: false`. Every sentence is checked after generation.
 - **Permission:** `search`
