@@ -143,8 +143,13 @@ function Thread({ collectionId, demo }: { collectionId: number; demo: boolean })
       <MachineNote />
       <div aria-live="polite" className="flex min-h-[40dvh] flex-col gap-6 pb-6">
         {state.turns.length === 0 && (
-          <div className="flex flex-col gap-3 rounded-card border border-dashed border-line p-5">
-            <p className="text-sm text-muted">Try one of these, or type your own.</p>
+          <div className="flex flex-col items-start gap-4 rounded-card border border-dashed border-line-strong p-5 sm:p-6">
+            <svg aria-hidden viewBox="0 0 24 24" className="h-7 w-7 text-muted" fill="none" stroke="currentColor" strokeWidth="1.6">
+              <path d="M2 8V2h6M16 2h6v6M22 16v6h-6M8 22H2v-6" />
+              <path d="M7.5 9h9M7.5 12.5h6" strokeLinecap="round" />
+            </svg>
+            <p className="display text-[17px] leading-snug">Ask about your documents, or tell VAULT what to find.</p>
+            <p className="-mt-2 text-sm text-muted">Try one of these, or type your own.</p>
             <div className="flex flex-wrap gap-1.5">
               {(demo ? DEMO_STARTERS : STARTERS).map((s) => (
                 <button

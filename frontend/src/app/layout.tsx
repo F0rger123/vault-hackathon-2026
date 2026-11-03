@@ -1,18 +1,21 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Archivo, IBM_Plex_Mono } from "next/font/google";
 import { AppShell } from "@/components/app-shell";
 import "./globals.css";
 
-// Inter for the interface: clear at small sizes and calm at large ones.
-const ui = Inter({
+// F10.21: Archivo, a grotesque with a width axis. Normal width for reading; widened for titles and the wordmark, like
+// the lettering in a drawing's title block.
+const ui = Archivo({
   variable: "--font-ui",
   subsets: ["latin"],
+  axes: ["wdth"],
 });
 
-// Mono is reserved for literal data: verbatim document quotes and part numbers.
-const data = JetBrains_Mono({
+// Mono is reserved for literal data: verbatim document quotes, part numbers and measured values.
+const data = IBM_Plex_Mono({
   variable: "--font-data",
   subsets: ["latin"],
+  weight: ["400", "500"],
 });
 
 export const metadata: Metadata = {
