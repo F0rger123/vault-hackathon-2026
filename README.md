@@ -158,16 +158,20 @@ Plans in detail: [docs/MASTER_BLUEPRINT.md](docs/MASTER_BLUEPRINT.md) and [coord
 
 ## Set it up
 
+**Easiest: download the Windows app.** Get `VAULT-Setup-<version>.exe` from the [latest release](https://github.com/F0rger123/vault-hackathon-2026/releases/latest) and run it. VAULT opens in its own window, with nothing else to install except [Ollama](https://ollama.com/download) for the AI. It checks GitHub for newer versions and shows a Download button when one is out; your documents and settings stay when you update. It is not code-signed, so Windows SmartScreen warns the first time (More info, then Run anyway).
+
+**Or run it from the source code:**
+
 You need Python 3.11+ and Node 20+. For the real AI you also need [Ollama](https://ollama.com/download), the open-source program that runs Meta's models on your own computer. Without it, VAULT still runs, using the rules baseline, which is labelled "not AI".
 
 1. **Start VAULT** with the one command below. It installs what is missing and opens VAULT. Add `-App` (Windows) or `--app` (Linux) to open it in its own window instead of a browser tab.
 2. **Choose Demo or Real.** Demo opens a fictional engineering archive at once; Real starts empty, with password sign-in.
-3. **Let it check your computer.** The Overview shows your graphics card and memory, which Meta models fit, and an **Install the recommended set** button. Models download once; after that VAULT works with the network unplugged.
+3. **Let it check your computer.** The Overview shows your graphics card and memory, which Meta models fit, and a **Download the recommended set** button. Models download once; after that VAULT works with the network unplugged.
 4. **Add documents** on Add files: drop files, or point it at a folder. PDF, Word, Excel, PowerPoint, text, CSV and images are accepted.
 5. **Read them** with one button, and watch the Progress page.
 6. **Check the quality** on Training before trusting it, then **teach it** on Brain.
 
-**Windows app without Python or Node:** `packaging/build_windows.ps1` builds a portable folder and zip (about 39 MB) with a guided first-run setup. Unzip it and run `VAULT.exe`. It is not code-signed, so Windows SmartScreen shows a warning the first time. No download is published yet, and so far it has been tested only on the machine that built it. Ollama is still a separate install for the real AI.
+**Build the Windows app yourself:** `packaging/build_windows.ps1` builds the installer, a portable folder and a zip (about 39 MB) with a guided first-run setup. So far the app has been tested only on the machine that built it. Ollama is still a separate install for the real AI.
 
 **One command:**
 

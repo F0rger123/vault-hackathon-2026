@@ -13,6 +13,7 @@ import { ChatBox } from "./chat-box";
 import { CommandPalette } from "./command-palette";
 import { SetupWizard } from "./setup-wizard";
 import { PostureBadge } from "./security-posture";
+import { UpdateNotice } from "./update-notice";
 import { VaultMark } from "./vault-mark";
 import { SessionGate, SessionProvider, useMaybeSession, useSession } from "./session";
 import { Button, cx, inputClass } from "./ui";
@@ -300,6 +301,7 @@ function Chrome({ children }: { children: ReactNode }) {
             <CollectionSwitcher id="collection-rail" />
             <UserBox />
             <ThemeToggle />
+            <UpdateNotice />
           </div>
         </nav>
       )}
@@ -326,6 +328,7 @@ function Chrome({ children }: { children: ReactNode }) {
                 <CollectionSwitcher id="collection-menu" />
                 <UserBox />
                 <ThemeToggle />
+                <UpdateNotice />
               </div>
             </nav>
           )}

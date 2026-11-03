@@ -505,6 +505,18 @@ export interface SearchResponse {
   results: SearchResult[];
 }
 
+export interface UpdateInfo {
+  current: string;
+  enabled: boolean;
+  newer: boolean;
+  releases: string;
+  latest?: string | null;
+  page?: string;
+  published_at?: string | null;
+  files?: { name: string; url: string; size_mb: number }[];
+  error?: string;
+}
+
 export interface ChatCommand {
   kind: "find" | "ask" | "open" | "models" | "help";
   q: string;
@@ -729,6 +741,7 @@ export const vault = {
   hardware: () => api<Hardware>("/system/hardware"),
   localModels: () => api<LocalModels>("/system/local-models"),
   modelCatalog: () => api<ModelCatalog>("/system/model-catalog"),
+  update: () => api<UpdateInfo>("/system/update"),
   securityPosture: () => api<SecurityPostureReport>("/security/posture"),
   quarantine: () => api<HeldDocument[]>("/security/quarantine"),
   releaseDocument: (id: number) => post<{ document_id: number; status: string }>(`/documents/${id}/release`, {}),
