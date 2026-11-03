@@ -23,6 +23,7 @@ import time
 
 from backend.agents.security_agent import _INTERNAL, _RESTRICTED, PII_PATTERNS
 from backend.core.config import Settings
+from backend.ingest.media import is_media
 from backend.providers.base import Provider, ProviderError
 from backend.security.files import safe_join, sanitize_filename
 from backend.storage.db import dumps, loads, now
@@ -117,12 +118,12 @@ def plan_pack(conn: sqlite3.Connection, collection_id: int, recipient: str, crit
             items.append({**item, "action": "left_out", "reason": "Not in the projects you chose"})
         elif want_types and (d["doc_type"] or "").casefold() not in want_types:
             items.append({**item, "action": "left_out", "reason": "Not one of the document types you chose"})
-        elif d["media_type"].startswith("image/"):
+        elif is_media(d["media_type"]):
             items.append(
                 {
                     **item,
                     "action": "left_out",
-                    "reason": "A picture: VAULT cannot check images for sensitive content yet",
+                    "reason": "A photo, video or sound file: VAULT cannot check what is in it for sensitive content",
                 }
             )
         elif d["data"] is None:

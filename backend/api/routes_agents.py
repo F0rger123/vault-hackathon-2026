@@ -121,7 +121,8 @@ def calibrate_capacity(
     """Measure throughput at increasing concurrency on real stored documents (admin; can take minutes)."""
     provider, info = _provider(conn, settings, body.provider, body.confirm_remote, p.username)
     docs = conn.execute(
-        "SELECT id, filename FROM documents WHERE media_type NOT LIKE 'image/%' AND status != 'quarantined' "
+        "SELECT id, filename FROM documents WHERE substr(media_type, 1, 6) NOT IN ('image/', 'video/', 'audio/') "
+        "AND status != 'quarantined' "
         "ORDER BY RANDOM() LIMIT ?",
         (body.sample_size,),
     ).fetchall()

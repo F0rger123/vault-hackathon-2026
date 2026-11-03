@@ -66,6 +66,10 @@ ORDER_WORDS = {
     ("date", "asc"): "oldest first",
     ("name", "asc"): "A to Z",
     ("name", "desc"): "Z to A",
+    ("duration", "desc"): "longest first",
+    ("duration", "asc"): "shortest first",
+    ("size", "desc"): "largest first",
+    ("size", "asc"): "smallest first",
 }
 
 

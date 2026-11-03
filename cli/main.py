@@ -268,7 +268,8 @@ def calibrate(provider: str | None = None, sample: int = 8, levels: str = "1,2,4
             typer.echo("calibrate runs on local providers only from the CLI", err=True)
             raise typer.Exit(1)
         rows = conn.execute(
-            "SELECT id, filename FROM documents WHERE media_type NOT LIKE 'image/%' ORDER BY RANDOM() LIMIT ?",
+            "SELECT id, filename FROM documents WHERE substr(media_type, 1, 6) NOT IN ('image/', 'video/', 'audio/') "
+            "ORDER BY RANDOM() LIMIT ?",
             (sample,),
         ).fetchall()
         docs = [(r["filename"], load_pages(conn, r["id"])) for r in rows]
