@@ -95,5 +95,12 @@ def test_injection_detection_and_prompt_fencing():
     assert "<document>" in prompt and '"evil\\"name.txt"' in prompt
 
 
+def test_inline_schema_makes_the_model_answer_the_scored_fields():
+    schema = inline_schema()
+    assert {"doc_type", "project", "doc_date", "components", "evidence"} <= set(schema["required"])
+    # Required does not mean invented: a document with no project can still answer null.
+    assert {"type": "null"} in schema["properties"]["project"]["anyOf"]
+
+
 def test_inline_schema_has_no_refs():
     assert "$ref" not in str(inline_schema())

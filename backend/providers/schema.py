@@ -55,6 +55,9 @@ class Extraction(BaseModel):
         return v.strip() if v else None
 
 
+REQUIRED_FIELDS = ("doc_type", "project", "doc_date", "components", "evidence")
+
+
 def json_schema() -> dict:
     return Extraction.model_json_schema()
 
@@ -73,7 +76,9 @@ def inline_schema() -> dict:
             return [walk(v) for v in node]
         return node
 
-    return walk(schema)
+    # Newer Ollama lets a model skip any field not listed here, and Llama 3 then skipped `project` on most documents
+    # (F04.12). Null still means "not stated". The rest stay optional, so the model does not spend time on them.
+    return {**walk(schema), "required": list(REQUIRED_FIELDS)}
 
 
 def _norm(s: str) -> str:

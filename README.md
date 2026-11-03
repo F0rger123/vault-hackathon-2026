@@ -143,7 +143,7 @@ Measured on 150 fictional files with 12 planted problems, scored against ground 
 
 | | Document type | Project | Part numbers | Pressure ratings | Conflicts found | False conflicts | Time for 150 files |
 |---|---|---|---|---|---|---|---|
-| **Meta Llama 3 8B, local** | **0.956** | **0.889** | **1.000** | 0.797 | **10 / 10** | **0** | 6.8 min |
+| **Meta Llama 3 8B, local** | **0.978** | **0.889** | **1.000** | 0.814 | **10 / 10** | **0** | 10.5 min |
 | Rules baseline (not AI) | 0.889 | 0.800 | 1.000 | 0.847 | 10 / 10 | 0 | ~2 s |
 
 The rules baseline is kept for comparison and offline tests and is labelled "not an AI model" wherever it appears. Every run, including the ones that got worse, is in [evaluation/results](evaluation/results/SUMMARY.md).

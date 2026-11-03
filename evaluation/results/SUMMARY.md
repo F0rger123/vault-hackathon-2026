@@ -27,6 +27,17 @@ Notes:
   optimistic. A fresh dataset seed should be used for the final reported figures (task F11.4).
 - Rating accuracy below 1.0 is mostly drawings where the model attaches one rating to several parts.
 
+## Final run on frozen code (F11.4, 2026-11-02)
+
+Dataset v1 again, `llama3:latest`, Ollama 0.40.13, 2 workers, 10.5 minutes for 150 documents on a laptop that was also running VAULT. Results are in `final-2026-11-02/`.
+
+| Held-out, 45 documents | doc_type | project | doc_date | part recall | rating accuracy | conflicts found (of 10) | false conflicts |
+|---|---|---|---|---|---|---|---|
+| After the Ollama update, before the fix | 0.978 | 0.400 | 1.000 | 1.000 | 0.839 | 10 | 0 |
+| With required fields (F04.12), final | **0.978** | **0.889** | **1.000** | **1.000** | 0.814 | **10** | **0** |
+
+The update made the model skip `project`, which this evaluation caught. The fix was checked on this same dataset, which the prompt was tuned on, so these numbers are slightly optimistic. The fresh-seed run in `fresh-seed-2027/` used the older Ollama and has not been repeated. It is also slower than the earlier 6.8 minutes, and the cause was not isolated.
+
 ## Corrections experiment (F07.3, 2026-10-28)
 
 Question: do corrections a reviewer makes on some documents improve accuracy on documents nobody corrected?
