@@ -20,15 +20,16 @@ def hw(vram_mb, ram_mb):
 
 def test_recommendations_follow_the_hardware():
     laptop = mi.catalog_for(hw(8192, 32768), set())
-    assert laptop["recommended"] == ["llama3:8b", "llama3.2-vision:11b"]
+    # Only the reader: VAULT does not use the vision model yet, so it is not recommended (F09.19 audit).
+    assert laptop["recommended"] == ["llama3:8b"]
     assert {m["name"]: m["runs_on"] for m in laptop["models"]}["llama3.3:70b"] == "too_big"
 
     no_gpu = mi.catalog_for(hw(0, 16384), set())
-    # Without a graphics card the reader is small, and the vision model does not fit in 60% of 16 GB.
+    # Without a graphics card the reader is small.
     assert no_gpu["recommended"] == ["llama3.2:3b"]
 
     server = mi.catalog_for(hw(81920, 262144), {"llama3:latest"})
-    assert server["recommended"] == ["llama3.3:70b", "llama3.2-vision:11b"]
+    assert server["recommended"] == ["llama3.3:70b"]
     assert {m["name"]: m["installed"] for m in server["models"]}["llama3:8b"] is True
 
 

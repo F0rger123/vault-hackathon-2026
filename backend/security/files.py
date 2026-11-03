@@ -57,6 +57,12 @@ def sanitize_filename(name: str) -> str:
     base = _SAFE_NAME.sub("_", base).strip(" .")
     if not base:
         raise FileRejected("empty filename")
+    if len(base) <= 180:
+        return base
+    # Shorten the name but keep the extension, or a long name would lose it and be refused as the wrong type.
+    stem, dot, ext = base.rpartition(".")
+    if dot and 0 < len(ext) <= 10:
+        return stem[: 179 - len(ext)] + "." + ext
     return base[:180]
 
 

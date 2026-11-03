@@ -469,6 +469,16 @@ Matches in `snippet` are wrapped in `[[` and `]]`; render them as highlights and
 One row per part from each document's latest extraction. A processed document with no parts still gets one row. `csv` returns the same columns as `text/csv` with `Content-Disposition: attachment`. Cells that start with `=`, `+`, `-` or `@` are prefixed with `'`, so a spreadsheet does not run them as formulas.
 - **Errors:** 401, 403, 404 (unknown collection), 422 (unknown format)
 
+### Sign-in levels and the face check (F09.19)
+- `POST /auth/login` and `POST /auth/passkey-login` return `{"step": "face", "handle", "username"}` instead of a session when the account requires the face check. No token exists yet.
+- `POST /auth/face-step` (public, VAULT's own origin only) `{"handle", "embedding": [1024 floats], "live": 0..1, "real": 0..1}` → the session, or 401 (`the face did not match`, `that looked like a photo or a screen, not a real face`, `too many face attempts; start again` after 3 tries, or an expired ticket after 2 minutes). Logged as `password+face` or `passkey+face`.
+- `GET /auth/face` (signed in) → `{"enrolled", "samples", "set_up_at", "required", "match", "live_min", "real_min"}`.
+- `POST /auth/face` (sign-in within 15 minutes) `{"samples": [3–5 × 1024 floats], "live", "real"}` → status. Returns 422 if the readings disagree, are not live, or look like a photo.
+- `DELETE /auth/face` (sign-in within 15 minutes): deletes the fingerprints and turns the requirement off.
+- `PUT /auth/face/required` (sign-in within 15 minutes) `{"required": bool}`; 409 if face check is not set up.
+- `PATCH /users/{id}` (admin) also takes `require_passkey` and `require_face`; 409 unless that person has set it up. `GET /users` rows add `passkeys`, `face_set_up`, `require_passkey`, `require_face`.
+- `GET /stats?collection_id=N` limits the counts to one collection.
+
 ### `POST /collections/{id}/chat`
 The chat box (F06.8). Turns one typed message into a command and, for `find`, runs it.
 - **Permission:** `search`

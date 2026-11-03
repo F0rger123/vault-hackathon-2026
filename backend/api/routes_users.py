@@ -29,6 +29,9 @@ class NewUser(BaseModel):
 class UserChange(BaseModel):
     role: str | None = None
     disabled: bool | None = None
+    # F09.19: the sign-in level an admin sets for someone. Each needs that person to have set it up first.
+    require_passkey: bool | None = None
+    require_face: bool | None = None
 
 
 class NewPassword(BaseModel):
@@ -59,6 +62,11 @@ def _public(conn, row) -> dict:
         "role": row["role"],
         "disabled": bool(row["disabled"]),
         "has_password": bool(row["password_hash"]),
+        "passkeys": conn.execute("SELECT COUNT(*) FROM passkeys WHERE user_id = ?", (row["id"],)).fetchone()[0],
+        "face_set_up": conn.execute("SELECT 1 FROM face_templates WHERE user_id = ?", (row["id"],)).fetchone()
+        is not None,
+        "require_passkey": bool(row["require_passkey"]),
+        "require_face": bool(row["require_face"]),
         "created_at": row["created_at"],
         "last_sign_in": dict(last) if last else None,
     }
@@ -102,6 +110,14 @@ def change_user(
     losing_admin = row["role"] == "admin" and ((body.role not in (None, "admin")) or body.disabled is True)
     if losing_admin and not _other_active_admins(conn, user_id):
         raise HTTPException(status_code=409, detail="VAULT needs at least one active admin")
+    pub = _public(conn, row)
+    if body.require_passkey and not pub["passkeys"]:
+        raise HTTPException(status_code=409, detail=f"{row['username']} has no passkey yet; they add one on Security")
+    if body.require_face and not pub["face_set_up"]:
+        raise HTTPException(status_code=409, detail=f"{row['username']} has not set up face unlock yet")
+    for field in ("require_passkey", "require_face"):
+        if getattr(body, field) is not None:
+            conn.execute(f"UPDATE users SET {field} = ? WHERE id = ?", (int(getattr(body, field)), user_id))  # noqa: S608
     if body.role is not None:
         conn.execute("UPDATE users SET role = ? WHERE id = ?", (body.role, user_id))
     if body.disabled is not None:
@@ -114,7 +130,7 @@ def change_user(
         "user.change",
         "allowed",
         target=f"user:{row['username']}",
-        detail={"role": body.role, "disabled": body.disabled},
+        detail=body.model_dump(exclude_none=True),
     )
     return _public(conn, _user(conn, user_id))
 

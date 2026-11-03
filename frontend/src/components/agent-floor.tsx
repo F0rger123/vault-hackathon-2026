@@ -339,7 +339,7 @@ export function AgentFloor({
     return () => window.removeEventListener(ASK_EVENT, onAsk);
   }, []);
 
-  // Replay: the record of a finished run, compressed. Starts once by itself, the first time the floor is on screen.
+  // Replay: the record of a finished run, compressed, only when asked for.
   const timers = useRef<number[]>([]);
   const replay = () => {
     timers.current.forEach((t) => window.clearTimeout(t));
@@ -353,14 +353,7 @@ export function AgentFloor({
   useEffect(() => {
     replayRef.current = replay;
   });
-  const started = useRef(false);
-  const ready = finished && liveFrom !== null && events.length > 0;
-  useEffect(() => {
-    if (!ready || started.current || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    started.current = true;
-    const handle = window.setTimeout(() => replayRef.current(), 200);
-    return () => window.clearTimeout(handle);
-  }, [ready]);
+  // No automatic replay: a finished run stays still until someone presses Replay, so nothing looks live that isn't.
   useEffect(() => {
     const list = timers;
     return () => list.current.forEach((t) => window.clearTimeout(t));

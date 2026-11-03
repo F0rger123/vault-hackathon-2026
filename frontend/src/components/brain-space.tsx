@@ -666,9 +666,8 @@ export default function BrainSpace({
       }
       startedRun.current = runId ?? null;
     } else if (startedRun.current !== runId) {
+      // A finished run is not replayed by itself; the Replay button does that, labelled as a replay.
       startedRun.current = runId ?? null;
-      const handle = window.setTimeout(() => replayRef.current(), 600);
-      return () => window.clearTimeout(handle);
     }
   }, [events, hasEvents, running, runId]);
   useEffect(() => {

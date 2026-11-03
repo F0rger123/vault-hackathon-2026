@@ -12,7 +12,9 @@ import { TitleBlock } from "../title-block";
 import { cx, Empty, Figure, LoadError, Meter, Panel, Tag } from "../ui";
 
 export function OverviewView() {
-  const { collection, stats } = useSession();
+  const { collection } = useSession();
+  // Counts for the collection on screen only, so another collection (or the demo archive) never mixes in.
+  const stats = useLoad(collection ? `stats:${collection.id}` : null, () => vault.stats(collection!.id), 5000).data;
   const providers = useLoad("providers", vault.providers, 15000);
   const localModels = useLoad("local-models", vault.localModels, 30000);
   const all = useLoad("jobs", vault.jobs, 3000);

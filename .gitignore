@@ -46,3 +46,4 @@ tests/e2e/playwright-report/
 frontend/.next-e2e/
 # Interface builds for another API port (start.py --api-port).
 frontend/.next-api*/
+frontend/public/models/

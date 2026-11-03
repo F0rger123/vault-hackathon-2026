@@ -10,7 +10,7 @@ from backend.providers import apply_policy, get_provider
 from backend.providers.base import Provider, ProviderInfo
 from backend.providers.fill_fields import fill_from_text
 from backend.providers.prompting import detect_injection
-from backend.providers.schema import verify_evidence
+from backend.providers.schema import Extraction, verify_evidence
 from backend.storage.db import dumps, loads, now
 from backend.workers.brain import prompt_guidance, scoped_rules
 
@@ -105,7 +105,14 @@ def process_document(
     shots = pick_examples(mine, pages)
 
     started = time.perf_counter()
-    extraction = provider.extract(pages, doc["filename"], rules, shots)
+    picture = (doc["media_type"] or "").startswith("image/")
+    if picture:
+        # No model can see the picture yet (no vision or OCR), so nothing is extracted and nothing is pretended:
+        # the record says plainly that the picture was stored but not read.
+        extraction = Extraction(title=doc["filename"][:200], summary="Picture stored. VAULT cannot read pictures yet.")
+        info = ProviderInfo("none", "not read: picture", "local", False, (), "Nothing was sent anywhere.", True)
+    else:
+        extraction = provider.extract(pages, doc["filename"], rules, shots)
     filled = 0
     if info.is_ai_model:
         # Labelled quantities and materials the model left empty, taken from the part's own line (F04.11).

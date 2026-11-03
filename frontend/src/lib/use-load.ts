@@ -9,6 +9,8 @@ export interface Loaded<T> {
   /** HTTP status of the last error (403 = role not allowed, 0 = server unreachable). */
   status: number | null;
   loading: boolean;
+  /** When the server last answered this request (ms since 1970), or null before the first answer on this page. */
+  at: number | null;
   reload: () => void;
 }
 
@@ -48,7 +50,7 @@ export function preload<T>(key: string, fn: () => Promise<T>): void {
  */
 export function useLoad<T>(key: string | null, fn: () => Promise<T>, intervalMs?: number): Loaded<T> {
   const id = key === null ? null : slot(key);
-  const [result, setResult] = useState<{ id: string; data: T } | null>(null);
+  const [result, setResult] = useState<{ id: string; data: T; at: number } | null>(null);
   const [error, setError] = useState<{ text: string; status: number } | null>(null);
   const [settled, setSettled] = useState<string | null>(null);
   const [nonce, setNonce] = useState(0);
@@ -66,7 +68,7 @@ export function useLoad<T>(key: string | null, fn: () => Promise<T>, intervalMs?
         (d) => {
           remember(id, d);
           if (!alive) return;
-          setResult({ id, data: d });
+          setResult({ id, data: d, at: Date.now() });
           setError(null);
           setSettled(id);
         },
@@ -91,6 +93,7 @@ export function useLoad<T>(key: string | null, fn: () => Promise<T>, intervalMs?
     error: error?.text ?? null,
     status: error?.status ?? null,
     loading: id !== null && settled !== id && data === undefined,
+    at: result?.id === id ? result.at : null,
     reload,
   };
 }

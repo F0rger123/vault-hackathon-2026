@@ -20,6 +20,7 @@ import sqlite3
 import threading
 import time
 
+from backend.security import face
 from backend.security.auth import create_user, hash_token, issue_token
 from backend.storage.db import now, transaction
 
@@ -125,7 +126,8 @@ def password_login(conn: sqlite3.Connection, username: str, password: str, ttl_h
     Raises LoginLocked when the username used up its attempts, LoginBusy when too many run at once.
     """
     row = conn.execute(
-        "SELECT id, username, role, password_hash, require_passkey, disabled FROM users WHERE username = ?",
+        "SELECT id, username, role, password_hash, require_passkey, require_face, disabled "
+        "FROM users WHERE username = ?",
         (username,),
     ).fetchone()
     _start_attempt(row["username"] if row else UNKNOWN)
@@ -143,7 +145,21 @@ def password_login(conn: sqlite3.Connection, username: str, password: str, ttl_h
     # Told only after a correct password, so it reveals nothing to someone guessing.
     if row["require_passkey"]:
         raise PasskeyRequired()
+    if row["require_face"]:
+        return face_step(row, "password-login")
     return _session(conn, row, "password-login", ttl_hours)
+
+
+def face_step(row, label: str) -> dict:
+    """The password or passkey was right; the face check comes next, and only then a session (F09.19)."""
+    return {"step": "face", "handle": face.start_step(row["id"], label), "username": row["username"]}
+
+
+def face_session(conn: sqlite3.Connection, user_id: int, label: str, ttl_hours: float) -> dict:
+    row = conn.execute("SELECT id, username, role FROM users WHERE id = ? AND disabled = 0", (user_id,)).fetchone()
+    if not row:
+        raise face.FaceError("this account cannot sign in")
+    return _session(conn, row, label, ttl_hours)
 
 
 def needs_owner(conn: sqlite3.Connection) -> bool:

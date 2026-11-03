@@ -39,7 +39,7 @@ from backend.indexing.search import search as run_search
 from backend.ingest.service import ensure_collection, ingest_bytes
 from backend.providers import PROVIDER_NAMES, get_provider
 from backend.providers.base import ProviderError
-from backend.security import audit, signin_log
+from backend.security import audit, face, signin_log
 from backend.security import login as signin
 from backend.security.auth import Principal, list_tokens, revoke_token
 from backend.security.files import FileRejected, contained, original_path
@@ -153,8 +153,46 @@ def login(
         audit.record(conn, who, "auth.login", "denied", detail={"reason": "wrong credentials"})
         _log_signin(conn, request, who, "password", "denied", "wrong credentials")
         raise HTTPException(status_code=401, detail="wrong username or password")
+    if session.get("step") == "face":
+        # Right password, but no session yet: the face check decides (POST /auth/face-step), and that is logged.
+        audit.record(conn, session["username"], "auth.login", "allowed", detail={"next": "face check"})
+        return session
     audit.record(conn, session["username"], "auth.login", "allowed")
     _log_signin(conn, request, session["username"], "password", "allowed")
+    return session
+
+
+class FaceStep(BaseModel):
+    handle: str = Field(max_length=64)
+    embedding: list[float] = Field(max_length=2048)
+    live: float = Field(ge=0, le=1)
+    real: float = Field(ge=0, le=1)
+
+
+@router.post("/auth/face-step")
+def face_step(
+    body: FaceStep, request: Request, conn=Depends(get_conn), settings: Settings = Depends(get_settings)
+) -> dict:
+    """F09.19: the second step after a correct password or passkey. A session exists only once the face matches."""
+    if not _browser_origin_ok(request, settings):
+        raise HTTPException(status_code=403, detail="sign-in is only accepted from VAULT's own interface")
+    try:
+        step = face.use_step(body.handle)
+    except face.FaceError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+    user = conn.execute("SELECT username FROM users WHERE id = ?", (step["user_id"],)).fetchone()
+    who = user["username"] if user else "unknown-user"
+    method = step["method"].replace("-login", "") + "+face"
+    try:
+        score = face.match(conn, step["user_id"], body.embedding, body.live, body.real)
+        session = signin.face_session(conn, step["user_id"], step["method"], settings.session_ttl_hours)
+    except face.FaceError as exc:
+        audit.record(conn, who, "auth.face", "denied", detail={"reason": str(exc)})
+        _log_signin(conn, request, who, method, "denied", str(exc))
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+    face.finish_step(body.handle)
+    audit.record(conn, who, "auth.face", "allowed", detail={"similarity": round(score, 2)})
+    _log_signin(conn, request, who, method, "allowed")
     return session
 
 
@@ -364,17 +402,34 @@ def set_remote(body: RemoteToggle, conn=Depends(get_conn), p: Principal = Depend
 
 
 @router.get("/stats")
-def stats(conn=Depends(get_conn), _: Principal = Depends(require("system:read"))) -> dict:
-    one = lambda sql: conn.execute(sql).fetchone()[0]  # noqa: E731
+def stats(
+    collection_id: int | None = None, conn=Depends(get_conn), _: Principal = Depends(require("system:read"))
+) -> dict:
+    """Counts for the whole install, or for one collection, so the Overview never mixes in other collections."""
+    if collection_id is None:
+        docs, args = "", ()
+    else:
+        docs, args = " WHERE collection_id = ?", (collection_id,)
+
+    def one(sql: str, scoped: str = "") -> int:
+        return conn.execute(sql + (scoped if collection_id is not None else ""), args if scoped else ()).fetchone()[0]
+
+    in_docs = " WHERE document_id IN (SELECT id FROM documents WHERE collection_id = ?)"
     return {
         "collections": one("SELECT COUNT(*) FROM collections"),
-        "documents": one("SELECT COUNT(*) FROM documents"),
-        "processed": one("SELECT COUNT(*) FROM documents WHERE status = 'processed'"),
-        "pages": one("SELECT COUNT(*) FROM pages"),
-        "bytes": one("SELECT COALESCE(SUM(size_bytes), 0) FROM documents"),
-        "findings": one("SELECT COUNT(*) FROM findings"),
-        "jobs_active": one("SELECT COUNT(*) FROM jobs WHERE status IN ('queued', 'running')"),
-        "proposals_pending": one("SELECT COUNT(*) FROM proposals WHERE status = 'pending'"),
+        "documents": one("SELECT COUNT(*) FROM documents", docs),
+        "processed": one(
+            "SELECT COUNT(*) FROM documents WHERE status = 'processed'", " AND collection_id = ?" if docs else ""
+        ),
+        "pages": one("SELECT COUNT(*) FROM pages", in_docs),
+        "bytes": one("SELECT COALESCE(SUM(size_bytes), 0) FROM documents", docs),
+        "findings": one("SELECT COUNT(*) FROM findings", docs),
+        "jobs_active": one(
+            "SELECT COUNT(*) FROM jobs WHERE status IN ('queued', 'running')", " AND collection_id = ?" if docs else ""
+        ),
+        "proposals_pending": one(
+            "SELECT COUNT(*) FROM proposals WHERE status = 'pending'", " AND collection_id = ?" if docs else ""
+        ),
     }
 
 

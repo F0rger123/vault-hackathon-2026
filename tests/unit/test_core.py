@@ -21,6 +21,12 @@ def test_sniff_types():
     assert sniff_media_type(b"MZ\x90\x00\x03\x00") is None
 
 
+def test_long_filenames_keep_their_extension():
+    name = sanitize_filename("x" * 195 + ".txt")
+    assert len(name) == 180 and name.endswith(".txt")
+    assert len(sanitize_filename("y" * 300)) == 180
+
+
 def test_sanitize_filename_strips_directories():
     assert sanitize_filename("../../etc/passwd.txt") == "passwd.txt"
     assert sanitize_filename("C:\\Windows\\system32\\x.pdf") == "x.pdf"

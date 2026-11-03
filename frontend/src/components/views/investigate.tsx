@@ -189,8 +189,8 @@ export function InvestigateView() {
                     Show the pictures in this archive
                   </Button>
                   <p className="text-xs">
-                    Pictures are listed by name now. Searching inside photos, scans and videos needs the Llama 3.2 Vision
-                    model; install it from the Overview.
+                    Pictures are listed by name only. VAULT cannot read text or objects inside pictures yet, and it
+                    does not accept video or sound files.
                   </p>
                 </div>
               )}

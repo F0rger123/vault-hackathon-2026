@@ -10,7 +10,9 @@ import { Button, Field, inputClass, Notice, Panel, Tag } from "./ui";
 const ROLES = ["viewer", "analyst", "admin"] as const;
 const METHOD: Record<string, string> = {
   password: "Password",
-  passkey: "Face, fingerprint or key",
+  passkey: "Passkey",
+  "password+face": "Password and face check",
+  "passkey+face": "Passkey and face check",
   demo: "Demo button",
   "first-setup": "First setup",
   "password-change": "Changed password",
@@ -110,6 +112,26 @@ function Person({
           {user.last_sign_in
             ? `Last signed in ${dateTime(user.last_sign_in.ts)} with ${(METHOD[user.last_sign_in.method] ?? user.last_sign_in.method).toLowerCase()}`
             : "Has not signed in yet"}
+        </span>
+        <span className="mt-1 flex flex-wrap gap-3 text-xs">
+          <label className="flex items-center gap-1.5" title={user.passkeys ? "" : "They add a passkey on Security first"}>
+            <input
+              type="checkbox"
+              checked={user.require_passkey}
+              disabled={busy !== null || (!user.passkeys && !user.require_passkey)}
+              onChange={(e) => act(`pk${user.id}`, () => vault.changeUser(user.id, { require_passkey: e.target.checked }))}
+            />
+            Passkey required <span className="text-muted">({user.passkeys} added)</span>
+          </label>
+          <label className="flex items-center gap-1.5" title={user.face_set_up ? "" : "They set up the face check on Security first"}>
+            <input
+              type="checkbox"
+              checked={user.require_face}
+              disabled={busy !== null || (!user.face_set_up && !user.require_face)}
+              onChange={(e) => act(`face${user.id}`, () => vault.changeUser(user.id, { require_face: e.target.checked }))}
+            />
+            Face check required <span className="text-muted">({user.face_set_up ? "set up" : "not set up"})</span>
+          </label>
         </span>
       </span>
       <select

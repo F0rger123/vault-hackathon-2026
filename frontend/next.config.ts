@@ -27,7 +27,7 @@ const securityHeaders = [
   { key: "X-Frame-Options", value: "DENY" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "no-referrer" },
-  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()" },
+  { key: "Permissions-Policy", value: "camera=(self), microphone=(), geolocation=(), payment=(), usb=()" },
   { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
 ];
 
@@ -51,6 +51,8 @@ const nextConfig: NextConfig = {
         },
       }),
   turbopack: {
+    // F09.19: the face library's package map names only its Node build; the browser needs its ES module build.
+    resolveAlias: { "@vladmandic/human": "./node_modules/@vladmandic/human/dist/human.esm.js" },
     rules: {
       "*.css": {
         loaders: ["@tailwindcss/turbopack"],

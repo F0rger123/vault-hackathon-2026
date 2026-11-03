@@ -112,6 +112,19 @@ export interface SignedIn {
   expires_at: number;
 }
 
+/** F09.19: the password or passkey was right, and this account also needs its face check before a session. */
+export interface FaceStepNeeded {
+  step: "face";
+  handle: string;
+  username: string;
+}
+
+export type SignInResult = SignedIn | FaceStepNeeded;
+
+export function needsFace(r: SignInResult): r is FaceStepNeeded {
+  return "step" in r && r.step === "face";
+}
+
 export interface ApiKeyStatus {
   configured: boolean;
   source: "environment" | "vault" | null;
@@ -711,6 +724,10 @@ export interface ManagedUser {
   role: "admin" | "analyst" | "viewer";
   disabled: boolean;
   has_password: boolean;
+  passkeys: number;
+  face_set_up: boolean;
+  require_passkey: boolean;
+  require_face: boolean;
   created_at: number;
   last_sign_in: { ts: number; method: string } | null;
 }
@@ -729,14 +746,14 @@ export interface SigninEntry {
 export const vault = {
   users: () => api<ManagedUser[]>("/users"),
   addUser: (username: string, role: string, password: string) => post<ManagedUser>("/users", { username, role, password }),
-  changeUser: (id: number, change: { role?: string; disabled?: boolean }) =>
+  changeUser: (id: number, change: { role?: string; disabled?: boolean; require_passkey?: boolean; require_face?: boolean }) =>
     api<ManagedUser>(`/users/${id}`, { method: "PATCH", body: JSON.stringify(change) }),
   resetPassword: (id: number, password: string) => put<{ sessions_ended: number }>(`/users/${id}/password`, { password }),
   changeOwnPassword: (current: string, password: string) => post<{ sessions_ended: number }>("/auth/password", { current, password }),
   signinLog: (limit = 200) => api<SigninEntry[]>(`/signin-log?limit=${limit}`),
   signinVerify: () => api<{ intact: boolean; entries: number; first_bad_id: number | null }>("/signin-log/verify"),
   me: () => api<Me>("/me"),
-  stats: () => api<Stats>("/stats"),
+  stats: (collectionId?: number) => api<Stats>(collectionId ? `/stats?collection_id=${collectionId}` : "/stats"),
   providers: () => api<ProvidersResponse>("/system/providers"),
   hardware: () => api<Hardware>("/system/hardware"),
   localModels: () => api<LocalModels>("/system/local-models"),
@@ -776,7 +793,7 @@ export const vault = {
   collections: () => api<Collection[]>("/collections"),
   createCollection: (name: string, is_demo: boolean) => post<Collection>("/collections", { name, is_demo }),
   authOptions: () => api<AuthOptions>("/auth/options"),
-  login: (username: string, password: string) => post<SignedIn>("/auth/login", { username, password }),
+  login: (username: string, password: string) => post<SignInResult>("/auth/login", { username, password }),
   demoLogin: (role: Role) => post<SignedIn>("/auth/demo-login", { role }),
   setupOwner: (username: string, password: string) => post<SignedIn>("/setup/owner", { username, password }),
   logout: () => post<{ signed_out: boolean }>("/auth/logout", {}),
