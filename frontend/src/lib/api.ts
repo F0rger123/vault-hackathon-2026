@@ -112,17 +112,22 @@ export interface SignedIn {
   expires_at: number;
 }
 
-/** F09.19: the password or passkey was right, and this account also needs its face check before a session. */
-export interface FaceStepNeeded {
-  step: "face";
+/** F09.20: the steps a person can require at sign-in, in the order VAULT asks for them. */
+export type SignInStep = "password" | "passkey" | "face" | "voice";
+
+/** A correct step, but this account asked for more: `step` is next, and only the last one gives a session. */
+export interface StepNeeded {
+  step: SignInStep;
+  remaining: SignInStep[];
+  done: SignInStep[];
   handle: string;
   username: string;
 }
 
-export type SignInResult = SignedIn | FaceStepNeeded;
+export type SignInResult = SignedIn | StepNeeded;
 
-export function needsFace(r: SignInResult): r is FaceStepNeeded {
-  return "step" in r && r.step === "face";
+export function needsStep(r: SignInResult): r is StepNeeded {
+  return "step" in r;
 }
 
 export interface ApiKeyStatus {
@@ -726,8 +731,10 @@ export interface ManagedUser {
   has_password: boolean;
   passkeys: number;
   face_set_up: boolean;
+  voice_set_up: boolean;
   require_passkey: boolean;
   require_face: boolean;
+  steps: SignInStep[];
   created_at: number;
   last_sign_in: { ts: number; method: string } | null;
 }
@@ -746,7 +753,7 @@ export interface SigninEntry {
 export const vault = {
   users: () => api<ManagedUser[]>("/users"),
   addUser: (username: string, role: string, password: string) => post<ManagedUser>("/users", { username, role, password }),
-  changeUser: (id: number, change: { role?: string; disabled?: boolean; require_passkey?: boolean; require_face?: boolean }) =>
+  changeUser: (id: number, change: { role?: string; disabled?: boolean; steps?: SignInStep[] }) =>
     api<ManagedUser>(`/users/${id}`, { method: "PATCH", body: JSON.stringify(change) }),
   resetPassword: (id: number, password: string) => put<{ sessions_ended: number }>(`/users/${id}/password`, { password }),
   changeOwnPassword: (current: string, password: string) => post<{ sessions_ended: number }>("/auth/password", { current, password }),

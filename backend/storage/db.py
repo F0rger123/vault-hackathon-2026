@@ -283,6 +283,20 @@ MIGRATIONS: list[str] = [
     CREATE INDEX face_templates_user ON face_templates(user_id);
     ALTER TABLE users ADD COLUMN require_face INTEGER NOT NULL DEFAULT 0;
     """,
+    # 10: F09.20, sign-in steps each person picks (any mix of password, passkey, face, spoken key phrase).
+    # Only numbers describing how the phrase sounds are stored, never a recording.
+    """
+    CREATE TABLE voice_templates (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL REFERENCES users(id),
+        features TEXT NOT NULL,
+        threshold REAL NOT NULL,
+        created_at REAL NOT NULL
+    );
+    CREATE INDEX voice_templates_user ON voice_templates(user_id);
+    ALTER TABLE users ADD COLUMN require_password INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE users ADD COLUMN require_voice INTEGER NOT NULL DEFAULT 0;
+    """,
 ]
 
 

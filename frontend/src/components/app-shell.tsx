@@ -3,11 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
-import { errorText, needsFace, setToken, vault, type AuthOptions, type FaceStepNeeded, type SignedIn, type SignInResult } from "@/lib/api";
-import { faceStep as faceStepCall } from "@/lib/face";
+import { errorText, needsStep, setToken, vault, type AuthOptions, type SignedIn, type SignInResult, type StepNeeded } from "@/lib/api";
 import { useLoad } from "@/lib/use-load";
 import { signInWithPasskey, passkeysSupported } from "@/lib/passkeys";
-import { FaceCapture } from "./face-capture";
+import { SignInSteps } from "./sign-in-steps";
 import { MatrixRain } from "./matrix-rain";
 import { CollectionSwitcher } from "./collection-switcher";
 import { ChatBox } from "./chat-box";
@@ -371,8 +370,7 @@ function SignIn({ onSignedIn, message }: { onSignedIn: () => void; message?: str
   const [token, setTokenValue] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
-  const [faceStep, setFaceStep] = useState<FaceStepNeeded | null>(null);
-  const [faceTry, setFaceTry] = useState(0);
+  const [nextStep, setNextStep] = useState<StepNeeded | null>(null);
 
   useEffect(() => {
     vault.authOptions().then(setOptions, () => setOptions({ demo_login: false, password_login: false, passkey_login: false }));
@@ -391,7 +389,7 @@ function SignIn({ onSignedIn, message }: { onSignedIn: () => void; message?: str
     setError(null);
     try {
       const r = await attempt();
-      if (needsFace(r)) setFaceStep(r);
+      if (needsStep(r)) setNextStep(r);
       else signedIn(r);
     } catch (e) {
       setError(e instanceof DOMException ? "The passkey was cancelled or not allowed on this device." : errorText(e));
@@ -400,35 +398,16 @@ function SignIn({ onSignedIn, message }: { onSignedIn: () => void; message?: str
     }
   };
 
-  if (faceStep)
+  if (nextStep)
     return (
       <div className="grid min-h-dvh place-items-center px-4 py-10">
         <div className="animate-rise w-full max-w-md rounded-card border border-line bg-panel p-5 shadow-lift">
-          <h1 className="display text-xl">Face check</h1>
-          <p className="mb-4 mt-1 text-sm text-muted">
-            {faceStep.username}&apos;s account also asks for a face check. Look at the camera.
-          </p>
-          {error && (
-            <p className="mb-3 text-sm text-redline" role="alert">
-              {error}
-            </p>
-          )}
-          <FaceCapture
-            key={faceTry}
-            mode="verify"
+          <SignInSteps
+            start={nextStep}
+            onSignedIn={signedIn}
             onCancel={() => {
-              setFaceStep(null);
+              setNextStep(null);
               setError(null);
-            }}
-            onDone={async (samples) => {
-              try {
-                signedIn(await faceStepCall(faceStep.handle, samples));
-              } catch (e) {
-                const text = errorText(e);
-                setError(text);
-                if (/start again/.test(text)) setFaceStep(null);
-                else setFaceTry((n) => n + 1);
-              }
             }}
           />
         </div>

@@ -5,7 +5,17 @@ import { errorText, vault, type ManagedUser } from "@/lib/api";
 import { dateTime } from "@/lib/format";
 import { useLoad } from "@/lib/use-load";
 import { useSession } from "./session";
+import { STEP_NAMES } from "./sign-in-steps";
 import { Button, Field, inputClass, Notice, Panel, Tag } from "./ui";
+
+const STEPS = ["password", "passkey", "face", "voice"] as const;
+
+/** "password+face+voice" reads as "Password, then face check, then key phrase". */
+function methodName(m: string): string {
+  if (METHOD[m]) return METHOD[m];
+  const parts = m.split("+").map((x) => STEP_NAMES[x as keyof typeof STEP_NAMES]?.toLowerCase() ?? x);
+  return parts.join(", then ").replace(/^./, (c) => c.toUpperCase());
+}
 
 const ROLES = ["viewer", "analyst", "admin"] as const;
 const METHOD: Record<string, string> = {
@@ -110,28 +120,30 @@ function Person({
         )}
         <span className="block text-xs text-muted">
           {user.last_sign_in
-            ? `Last signed in ${dateTime(user.last_sign_in.ts)} with ${(METHOD[user.last_sign_in.method] ?? user.last_sign_in.method).toLowerCase()}`
+            ? `Last signed in ${dateTime(user.last_sign_in.ts)} with ${methodName(user.last_sign_in.method).toLowerCase()}`
             : "Has not signed in yet"}
         </span>
-        <span className="mt-1 flex flex-wrap gap-3 text-xs">
-          <label className="flex items-center gap-1.5" title={user.passkeys ? "" : "They add a passkey on Security first"}>
-            <input
-              type="checkbox"
-              checked={user.require_passkey}
-              disabled={busy !== null || (!user.passkeys && !user.require_passkey)}
-              onChange={(e) => act(`pk${user.id}`, () => vault.changeUser(user.id, { require_passkey: e.target.checked }))}
-            />
-            Passkey required <span className="text-muted">({user.passkeys} added)</span>
-          </label>
-          <label className="flex items-center gap-1.5" title={user.face_set_up ? "" : "They set up the face check on Security first"}>
-            <input
-              type="checkbox"
-              checked={user.require_face}
-              disabled={busy !== null || (!user.face_set_up && !user.require_face)}
-              onChange={(e) => act(`face${user.id}`, () => vault.changeUser(user.id, { require_face: e.target.checked }))}
-            />
-            Face check required <span className="text-muted">({user.face_set_up ? "set up" : "not set up"})</span>
-          </label>
+        <span className="mt-1 flex flex-wrap gap-3 text-xs" role="group" aria-label={`Sign-in steps for ${user.username}`}>
+          {STEPS.map((step) => {
+            const ready = { password: user.has_password, passkey: user.passkeys > 0, face: user.face_set_up, voice: user.voice_set_up }[step];
+            const on = user.steps.includes(step);
+            return (
+              <label key={step} className="flex items-center gap-1.5" title={ready ? "" : `They set up the ${STEP_NAMES[step].toLowerCase()} on Security first`}>
+                <input
+                  type="checkbox"
+                  checked={on}
+                  disabled={busy !== null || (!ready && !on)}
+                  onChange={(e) =>
+                    act(`${step}${user.id}`, () =>
+                      vault.changeUser(user.id, { steps: e.target.checked ? [...user.steps, step] : user.steps.filter((x) => x !== step) }),
+                    )
+                  }
+                />
+                {STEP_NAMES[step]}
+                {!ready && <span className="text-muted">(not set up)</span>}
+              </label>
+            );
+          })}
         </span>
       </span>
       <select
@@ -225,7 +237,7 @@ export function SigninLogPanel() {
               <tr key={e.id} className="border-t border-line">
                 <td className="whitespace-nowrap py-1.5 pr-4 tabular-nums">{dateTime(e.ts)}</td>
                 <td className="py-1.5 pr-4 font-medium">{e.username}</td>
-                <td className="py-1.5 pr-4">{METHOD[e.method] ?? e.method}</td>
+                <td className="py-1.5 pr-4">{methodName(e.method)}</td>
                 <td className="py-1.5 pr-4">
                   {e.outcome === "allowed" ? <Tag tone="green">OK</Tag> : <Tag tone="red">{e.reason ?? "Denied"}</Tag>}
                 </td>

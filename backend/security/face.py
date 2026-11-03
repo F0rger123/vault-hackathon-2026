@@ -15,10 +15,7 @@ from __future__ import annotations
 
 import json
 import math
-import secrets
 import sqlite3
-import threading
-import time
 
 from backend.storage.db import now
 
@@ -28,11 +25,6 @@ MATCH = 0.6  # Human's similarity, 0 to 1. Its face-ID demo treats about 0.5 as 
 LIVE_MIN = 0.5  # liveness model: blinking, moving person rather than a still
 REAL_MIN = 0.5  # anti-spoof model: a real face rather than a photo or screen
 MIN_SAMPLES, MAX_SAMPLES = 3, 5
-STEP_SECONDS = 120
-STEP_TRIES = 3
-
-_steps: dict[str, dict] = {}
-_lock = threading.Lock()
 
 
 class FaceError(ValueError):
@@ -110,34 +102,16 @@ def match(conn: sqlite3.Connection, user_id: int, embedding: list[float], live: 
     return best
 
 
-# ---------- the pending second step ----------
+# F09.20: the browser refuses a poor camera or picture before it reads a face; the server re-checks what it reports.
+QUALITY_MIN = {"width": 640, "height": 360, "fps": 12, "face_px": 120, "sharpness": 8}
+BRIGHTNESS = (45, 215)
 
 
-def start_step(user_id: int, method: str) -> str:
-    """After a correct password or passkey, a short-lived ticket for the face step. No session exists yet."""
-    handle = secrets.token_urlsafe(24)
-    t = time.monotonic()
-    with _lock:
-        for k in [k for k, v in _steps.items() if v["expires"] < t]:
-            _steps.pop(k, None)
-        _steps[handle] = {"user_id": user_id, "method": method, "expires": t + STEP_SECONDS, "tries": 0}
-    return handle
-
-
-def use_step(handle: str) -> dict:
-    """Count one try on a ticket. Raises FaceError when it is unknown, expired or used up."""
-    with _lock:
-        step = _steps.get(handle)
-        if not step or step["expires"] < time.monotonic():
-            _steps.pop(handle, None)
-            raise FaceError("this sign-in took too long; start again")
-        step["tries"] += 1
-        if step["tries"] > STEP_TRIES:
-            _steps.pop(handle, None)
-            raise FaceError("too many face attempts; start again")
-        return dict(step)
-
-
-def finish_step(handle: str) -> None:
-    with _lock:
-        _steps.pop(handle, None)
+def check_quality(q: dict[str, float]) -> None:
+    if not q:
+        return
+    for key, low in QUALITY_MIN.items():
+        if key in q and q[key] < low:
+            raise FaceError(f"the camera picture is not good enough ({key} {q[key]:.0f}, VAULT needs {low})")
+    if "brightness" in q and not BRIGHTNESS[0] <= q["brightness"] <= BRIGHTNESS[1]:
+        raise FaceError("the picture is too dark or too bright; face a window or a lamp")

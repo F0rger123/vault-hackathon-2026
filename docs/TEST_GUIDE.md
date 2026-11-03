@@ -60,38 +60,53 @@ edge cases.
 
 ## 4. Sign-in security, step by step
 
-There are four levels. Each person picks theirs on **Security > How you sign in**, and an admin can require one for
-anyone under **Security > People**.
+Each person picks their own sign-in steps on **Security > How you sign in**: any mix of the four below, so two,
+three or all four. An admin can set them for anyone under **Security > People**. VAULT asks for every ticked step,
+in this order, and gives no session until the last one is right.
 
-| Level | Signing in needs | Strength |
+| Step | What it proves | Checked by |
 |---|---|---|
-| 1 | Password or passkey | Basic |
-| 2 | Password or passkey, then a face check by webcam | Adds something you are |
-| 3 | Passkey only | Phishing-proof |
-| 4 | Passkey, then a face check | Strongest VAULT offers |
+| Password | Something you know | The server |
+| Passkey (this computer, a security key, or a phone) | Something you have | Your device; the server checks its signature |
+| Face check | Something you are | The webcam on this computer; the server compares the numbers |
+| Key phrase | A phrase you know, in your voice | The microphone on this computer; the server compares the numbers |
 
-### Add a passkey (levels 3 and 4)
-1. Security > How you sign in > **1. Passkeys**. Pick where it lives:
+Rules:
+- Nothing ticked: a password or a passkey is enough.
+- Passkey ticked without Password: a password alone no longer gets in.
+- Password and Passkey both ticked: either one first, then the other.
+- Face check and key phrase always come after, and can never be the only step.
+
+The preview under the step cards shows exactly what the next sign-in will ask for, and how strong that mix is.
+Press **Save sign-in steps**. A step that is not set up yet opens its setup instead.
+
+**Test the chain:** tick Password, Face check and Key phrase, save, sign out, sign in with your password. The trail
+shows three steps; each lights up only after the server accepted the one before. A wrong face or phrase three times
+ends the attempt.
+
+### Add a passkey
+1. Security > How you sign in > **Set up each step > Passkey**. Pick where it lives:
    - **This computer:** Windows Hello. On a laptop without a face or fingerprint sensor, Windows Hello asks for its PIN. This laptop has only a normal webcam, so Windows Hello shows a PIN here.
-   - **Security key:** a USB or NFC key such as a YubiKey. Plug it in, touch it when it blinks.
+   - **Security key:** a FIDO2 USB or NFC key such as a YubiKey. VAULT lists the steps: plug it in, press **Add a passkey**, choose Security key if the browser asks, set or type the key's PIN, touch it when it blinks. Old U2F-only keys cannot check a PIN and are refused.
    - **Phone:** scan the QR code with your phone and confirm there.
 2. Name it and press **Add a passkey**, then follow the device's own prompt. Choosing the kind stops Chrome from
    offering to save the passkey to Google Password Manager instead.
 3. If you signed in more than 15 minutes ago, VAULT asks you to confirm it is you first (password, passkey, or the
    demo button in Demo mode). This stops someone at an unlocked computer from adding their own passkey.
-4. Add a second passkey (for example a spare key) before you tick **Require a passkey to sign in**, so you cannot be
-   locked out.
+4. Add a second passkey (for example a spare key) before you tick **Passkey** as a step, so you cannot be locked out.
 5. Test: sign out, type your username, press **Sign in with a passkey**.
 
-### Set up the face check (levels 2 and 4)
-1. Security > **2. Face check by webcam > Set up face check**. Allow the camera when the browser or app asks.
-2. Look at the camera. Each box goes green only when its condition is met:
+### Set up the face check
+1. Security > How you sign in > **Set up each step > Face check > Set up face check**. Allow the camera when the browser or app asks.
+2. VAULT first checks the camera itself: at least 640×360, 12 frames a second, enough light, in focus, and your
+   face big enough. A camera below that is refused with the reason (for example "The camera sends 320×240").
+   Then look at the camera. Each box goes green only when its condition is met:
    - **Face found:** a face is close enough to the camera.
    - **Live person:** the liveness model sees a live person.
    - **Real, not a photo:** the anti-spoof model sees a real face rather than a photo or screen.
 
    The dots on your face are the points the model actually found. VAULT takes five readings, then saves them.
-3. Tick **Require the face check at every sign-in**.
+3. Tick **Face check** in the step cards and save.
 4. Test, all three must work:
    - **Correct:** sign out, sign in with your password; VAULT shows the face check; look at the camera: you are in.
    - **Wrong person:** someone else's face is refused.
@@ -101,14 +116,29 @@ anyone under **Security > People**.
    works in Chrome and Edge and in the VAULT app (allow it when asked). Some built-in preview panes block cameras.
 6. **Honest limit:** the face check runs in the browser, so someone in control of that computer could feed it a
    recording. That is why it is a second step, never a way in on its own. For hardware-grade face unlock, use Windows
-   Hello with an infrared camera, registered as a passkey (level 3 or 4).
+   Hello with an infrared camera, registered as a passkey.
+
+### Set up the key phrase
+1. Security > How you sign in > **Set up each step > Key phrase > Set up key phrase**. Allow the microphone.
+2. Think of a phrase only you know, three to six words, not your password (for example a made-up line). Do not
+   type it anywhere.
+3. Press **Speak**, say the phrase, then pause: recording stops by itself. Do it three times the same way. The
+   bars are the real microphone level.
+4. Each take is checked: VAULT refuses a muted microphone, a distorted (too loud) one, under a second of speech,
+   and a noisy room (under 12 dB above the noise), and says which.
+5. Tick **Key phrase** in the step cards and save.
+6. Test: sign in; at the key phrase step say the phrase (in). Say a different phrase (refused). Have someone else
+   say your phrase (should be refused; report it if it passes).
+7. **How it works:** the browser turns each take into speech features (13 numbers every 20 ms); the server lines
+   them up with your saved takes by dynamic time warping. No recording is sent or kept. **Delete my key phrase**
+   removes it. **Honest limit:** a recording of you saying the phrase would pass, so it is always an extra step.
 
 ### Hardware you could buy (optional)
 These links are Amazon searches, not endorsements; check the seller is the maker.
 
 | Device | Why | Search |
 |---|---|---|
-| YubiKey 5 NFC (USB-A) | The common security key. Works with level 3 or 4. | [amazon.com/s?k=YubiKey+5+NFC](https://www.amazon.com/s?k=YubiKey+5+NFC) |
+| YubiKey 5 NFC (USB-A) | The common FIDO2 security key, as the Passkey step. | [amazon.com/s?k=YubiKey+5+NFC](https://www.amazon.com/s?k=YubiKey+5+NFC) |
 | YubiKey 5C NFC (USB-C) | Same, for USB-C laptops. | [amazon.com/s?k=YubiKey+5C+NFC](https://www.amazon.com/s?k=YubiKey+5C+NFC) |
 | Any FIDO2 security key | Cheaper alternatives (Yubico Security Key, Google Titan, Feitian). | [amazon.com/s?k=FIDO2+security+key](https://www.amazon.com/s?k=FIDO2+security+key) |
 | Windows Hello IR webcam | Adds real Windows Hello face unlock to a laptop without it (this one lacks it). | [amazon.com/s?k=Windows+Hello+IR+webcam](https://www.amazon.com/s?k=Windows+Hello+IR+webcam) |
