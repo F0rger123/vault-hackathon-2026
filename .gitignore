@@ -19,6 +19,8 @@ frontend/next-env.d.ts
 data/runtime/
 data/demo/
 data/e2e/
+# Large fictional drag-in test set from scripts/make_test_files.py; regenerate it, never commit it.
+data/testset/
 data/*.db
 *.db
 *.db-wal
