@@ -5,6 +5,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, UploadFile
 from fastapi.responses import FileResponse, Response
+from pydantic import BaseModel, Field
 
 from backend.api.deps import effective_settings, get_conn, get_settings, require
 from backend.api.schemas import (
@@ -31,6 +32,7 @@ from backend.core.local_models import cache_clear as local_models_cache_clear
 from backend.core.local_models import local_models
 from backend.core.model_install import INSTALLS, catalog_for
 from backend.core.secrets_store import clear_key, key_status, store_key
+from backend.indexing import assistant
 from backend.indexing.investigate import investigate
 from backend.indexing.search import search as run_search
 from backend.ingest.service import ensure_collection, ingest_bytes
@@ -854,6 +856,58 @@ def search(
         conn, q, collection_id, doc_type, project, date_from, date_to, part_number, limit, exclude, year, media
     )
     return {"query": q, "count": len(results), "results": results}
+
+
+class ChatMessage(BaseModel):
+    message: str = Field(min_length=1, max_length=300)
+    previous: assistant.Command | None = None
+    use_model: bool = True
+
+
+@router.post("/collections/{collection_id}/chat")
+def chat(
+    collection_id: int,
+    body: ChatMessage,
+    conn=Depends(get_conn),
+    settings: Settings = Depends(get_settings),
+    _: Principal = Depends(require("search")),
+) -> dict:
+    """F06.8: one typed message becomes a search, a sort, a question, a page to open, or the model list."""
+    _collection(conn, collection_id)
+    cmd = assistant.interpret(conn, collection_id, body.message, body.previous)
+    eff = effective_settings(conn, settings)
+    if cmd.kind == "help" and body.use_model and len(body.message.split()) >= 3:
+        # Only the local model, never a remote one: the chat box has no data-leaves-this-machine prompt.
+        local = get_provider("ollama", eff)
+        info = local.info()
+        if info.available and info.locality == "local":
+            cmd = assistant.model_command(local, conn, collection_id, body.message) or cmd
+    out: dict = {"command": cmd.model_dump(), "results": [], "count": 0}
+    if cmd.kind == "find":
+        out["results"], out["count"], dropped = assistant.run_find(conn, collection_id, cmd)
+        out["reply"] = assistant.describe(cmd, out["count"], dropped)
+    elif cmd.kind == "models":
+        lm = local_models(eff, profile_hardware(settings.data_dir))
+        out["models"] = [
+            {"name": m["name"], "size_gb": m["size_gb"], "used_by_vault": m["used_by_vault"]} for m in lm["models"]
+        ]
+        if not lm["reachable"]:
+            out["reply"] = "Ollama is not running, so VAULT cannot see your models. Start Ollama, then ask again."
+        elif not lm["models"]:
+            out["reply"] = "No models are downloaded yet. Open Models to download Llama 3."
+        else:
+            active = any(m["used_by_vault"] for m in lm["models"])
+            n = len(lm["models"])
+            out["reply"] = f"{n} model{'s' if n != 1 else ''} downloaded on this computer." + (
+                "" if active else f" The model VAULT is set to use, {eff.ollama_model}, is not one of them."
+            )
+    elif cmd.kind == "open":
+        out["reply"] = "Opening."
+    elif cmd.kind == "ask":
+        out["reply"] = "Reading the sources."
+    else:
+        out["reply"] = assistant.HELP
+    return out
 
 
 @router.get("/collections/{collection_id}/findings")

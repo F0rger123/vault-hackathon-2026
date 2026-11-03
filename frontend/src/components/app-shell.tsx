@@ -8,6 +8,7 @@ import { signInWithPasskey, passkeysSupported } from "@/lib/passkeys";
 import { MatrixRain } from "./matrix-rain";
 import { UnlockSequence, type UnlockPhase } from "./unlock-sequence";
 import { CollectionSwitcher } from "./collection-switcher";
+import { ChatBox } from "./chat-box";
 import { CommandPalette } from "./command-palette";
 import { SetupWizard } from "./setup-wizard";
 import { PostureBadge } from "./security-posture";
@@ -314,6 +315,7 @@ function Chrome({ children }: { children: ReactNode }) {
         {ready && <DemoBanner />}
         {children}
       </main>
+      {ready && <ChatBox />}
     </div>
   );
 }

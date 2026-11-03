@@ -505,6 +505,28 @@ export interface SearchResponse {
   results: SearchResult[];
 }
 
+export interface ChatCommand {
+  kind: "find" | "ask" | "open" | "models" | "help";
+  q: string;
+  doc_type: string | null;
+  project: string | null;
+  year: string | null;
+  part_number: string | null;
+  media: "image" | "document" | null;
+  exclude: string;
+  sort: "relevance" | "date" | "name" | "type" | "project";
+  order: "asc" | "desc";
+  page: string | null;
+}
+
+export interface ChatReply {
+  command: ChatCommand;
+  reply: string;
+  results: SearchResult[];
+  count: number;
+  models?: { name: string; size_gb: number; used_by_vault: boolean }[];
+}
+
 export interface InvestigationSource {
   id: number;
   document_id: number;
@@ -787,6 +809,8 @@ export const vault = {
     return api<SearchResponse>(`/search?${q.toString()}`);
   },
   findings: (collectionId: number) => api<Finding[]>(`/collections/${collectionId}/findings`),
+  chat: (collectionId: number, message: string, previous: ChatCommand | null) =>
+    post<ChatReply>(`/collections/${collectionId}/chat`, { message, previous }),
   investigate: (collection_id: number, question: string, provider: ProviderName | null) =>
     post<Investigation>("/investigations", { collection_id, question, provider, confirm_remote: false }),
   proposals: () => api<Proposal[]>("/proposals"),

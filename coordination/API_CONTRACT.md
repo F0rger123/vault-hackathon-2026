@@ -463,6 +463,20 @@ Matches in `snippet` are wrapped in `[[` and `]]`; render them as highlights and
 One row per part from each document's latest extraction. A processed document with no parts still gets one row. `csv` returns the same columns as `text/csv` with `Content-Disposition: attachment`. Cells that start with `=`, `+`, `-` or `@` are prefixed with `'`, so a spreadsheet does not run them as formulas.
 - **Errors:** 401, 403, 404 (unknown collection), 422 (unknown format)
 
+### `POST /collections/{id}/chat`
+The chat box (F06.8). Turns one typed message into a command and, for `find`, runs it.
+- **Permission:** `search`
+- **Body:** `{"message": "find drawings for Alpha, newest first", "previous": <command from the last find reply> | null, "use_model": true}`. `message` 1–300 chars.
+- **Response 200:**
+```json
+{"command": {"kind": "find", "q": "", "doc_type": "engineering_drawing", "project": "Alpha", "year": null,
+             "part_number": null, "media": null, "exclude": "", "sort": "date", "order": "desc", "page": null},
+ "reply": "8 drawings in Alpha, newest first.", "count": 8,
+ "results": [<search result rows, one per document, at most 50>]}
+```
+`kind` is `find`, `ask` (the client then calls `POST /investigations` with `command.q`), `open` (the client goes to `command.page`), `models` (adds `models: [{"name", "size_gb", "used_by_vault"}]`) or `help`. Rules read the message first. With `previous`, a message such as "only 2024" or "sort by name" changes the last find instead of starting again; a message starting with "find", "show" or "list" starts again. Only when the rules understand nothing, and `use_model` is true, the local Ollama model (never a remote one) fills the same fields; values outside the known document types and projects are dropped. If the words match nothing but the filters do, the filters alone answer and `reply` says so.
+- **Errors:** 401, 403, 404 (collection), 422
+
 ### `POST /investigations`
 Answers a natural-language question using only evidence from one collection (F06.4). Retrieval is deterministic: the question is turned into a plan (known project names, part numbers, document-type words, a year, conflict words, remaining search terms), then finding evidence and search hits become numbered sources. A Meta model writes the answer as sentences that cite source numbers; the `heuristic` provider writes a fixed template instead and is labelled `is_ai_model: false`. Every sentence is checked after generation.
 - **Permission:** `search`

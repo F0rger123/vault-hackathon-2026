@@ -639,7 +639,67 @@ section.rounded-card:hover {
   transform-origin: bottom left;
 }
 
+/* F10.18: loading dial. Bolts light in turn round the dial, the same eight as the logo. */
+.loader-dial rect {
+  fill: currentColor;
+  opacity: 0.18;
+  animation: bolt 0.8s linear infinite;
+}
+@keyframes bolt {
+  0% {
+    opacity: 1;
+    fill: var(--green);
+  }
+  60%,
+  100% {
+    opacity: 0.18;
+  }
+}
+.loader-label {
+  background: linear-gradient(90deg, var(--muted) 0%, var(--ink) 50%, var(--muted) 100%) 0 0 / 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: label-sweep 1.6s linear infinite;
+}
+@keyframes label-sweep {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* F06.8: the chat box rises from its button; each message and result row settles in. */
+.chat-panel {
+  transform-origin: bottom right;
+  animation: chat-open 0.22s var(--ease-out-soft) both;
+}
+@keyframes chat-open {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+}
+.chat-launch {
+  animation: fade-in 0.3s ease-out both;
+}
+.chat-msg {
+  animation: chat-msg 0.2s var(--ease-out-soft) both;
+}
+@keyframes chat-msg {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+.chat-row {
+  animation: fade-in 0.25s ease-out both;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .loader-dial rect {
+    animation: none;
+    opacity: 0.6;
+  }
   *,
   *::before,
   *::after {
