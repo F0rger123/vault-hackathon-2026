@@ -1,6 +1,6 @@
 # Status: Luke and his AI coding sessions
 
-Last updated: 2026-10-29
+Last updated: 2026-11-03
 
 ## Now
 
@@ -22,6 +22,11 @@ Last updated: 2026-10-29
 - **Luke, Nov 3:** record the video from `docs/DEMO_SCRIPT.md`.
 
 ## Updates
+
+### 2026-11-03 · F06.8, F03.9, F10.18, F12.14 · merged
+- **Merged:** #96 (chat box that finds, sorts and asks; Models page; new logo; loading animation; plainer page names, "Add files" and "Progress") and #97 (update check, version 0.2.0).
+- **Release:** tag `v0.2.0` pushed. The Release workflow attaches the installer and zip to a draft release. Luke publishes it on GitHub; installed copies then see it.
+- **Not verified:** the installer on a clean machine; the update banner against a real newer release (none published yet).
 
 ### 2026-10-30 · F12.12 · portable app merged
 - **Merged:** #85. Standalone Windows build, tested through the setup wizard on the built exe.

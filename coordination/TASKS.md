@@ -376,8 +376,9 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 
 #### F03.9 — Show plainly which models are downloaded
 
-- **Priority:** P0 · **Owner:** luke · **Status:** IN_PROGRESS · **Dependencies:** F03.6, F03.7
+- **Priority:** P0 · **Owner:** luke · **Status:** DONE · **Dependencies:** F03.6, F03.7
 - **Description:** Luke said (2026-11-02) there is no way to see if the models are downloaded. The list sat in a closed panel at the foot of Overview. A Models page in the side rail lists every Meta model as Downloaded or Not downloaded, with size and a Download button, and the side rail shows whether the model VAULT uses is ready.
+- **Verification evidence (2026-11-03):** PR #96 merged, CI green. In the browser the Models page showed "Ready to read", the six downloaded models, and the download list; the side rail showed "llama3 downloaded".
 
 ## F04 — AI Model System
 
@@ -746,8 +747,9 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 
 #### F06.8 — Chat box: find, sort and ask by typing
 
-- **Priority:** P0 · **Owner:** luke · **Status:** IN_PROGRESS · **Dependencies:** F06.1, F06.5, F06.7
+- **Priority:** P0 · **Owner:** luke · **Status:** DONE · **Dependencies:** F06.1, F06.5, F06.7
 - **Description:** Luke asked (2026-11-02) to type "find this" or "sort it like this" and have VAULT do it. A chat box on every screen turns a message into a search with filters and a sort order, refines the last result ("only drawings", "newest first"), answers questions with cited sources, opens pages, and says which models are downloaded. Rules read the message first, so most messages answer at once; the local Meta model reads it only when the rules find nothing, and its answer is held to a fixed list of fields and checked values.
+- **Verification evidence (2026-11-03):** PR #96 merged, CI green (backend, frontend, e2e, trivy, semgrep). `tests/integration/test_chat.py` covers filters, sort order, refining, ask, open, models, help, operator text, sign-in and 404/422. In the browser: "find drawings for Alpha, newest first" gave 8 drawings; "only 2024" narrowed to 2; a question was answered by Llama 3 with cited sources in 18 s (model cold).
 
 ## F07 — Teaching & Corrections
 
@@ -1360,8 +1362,9 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 
 #### F10.18 — New logo, loading animations, plainer words
 
-- **Priority:** P1 · **Owner:** luke · **Status:** IN_PROGRESS · **Dependencies:** F10.16, F12.13
+- **Priority:** P1 · **Owner:** luke · **Status:** DONE · **Dependencies:** F10.16, F12.13
 - **Description:** Luke said (2026-11-02) the logo looks bad, loading needs better animations, and some wording overcomplicates things. New mark, a shared loading animation in place of "Loading" text, and shorter labels and page descriptions.
+- **Verification evidence (2026-11-03):** PR #96 merged, CI green, including the e2e heading change to Progress. New mark in `vault-mark.tsx`, `icon.svg` and `favicon.ico` (also the exe icon).
 
 ## F11 — Synthetic Data & Evaluation
 - **Verification evidence (E-E2E-2, 2026-10-28):** covered by the Playwright suite in `tests/e2e/` (`02-investigate`); 13 of 13 tests passed in 5 consecutive fresh runs on Windows 11 (Chromium, desktop and Pixel 7 profiles).
@@ -1647,5 +1650,6 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 
 #### F12.14 — Desktop app download that checks for updates
 
-- **Priority:** P0 · **Owner:** luke · **Status:** IN_PROGRESS · **Dependencies:** F12.12
+- **Priority:** P0 · **Owner:** luke · **Status:** DONE · **Dependencies:** F12.12
 - **Description:** Luke asked (2026-11-02) for a file he can download from GitHub that runs on his computer in its own window, not in a browser tab, and that updates. VAULT.exe already opens its own window. It now asks GitHub for the newest release when it opens (an administrator can turn this off; nothing about the documents is sent) and offers the download. A version tag builds the installer and portable zip and attaches them to a draft release; Luke publishes it.
+- **Verification evidence (2026-11-03):** PR #97 merged, CI green. `tests/unit/test_updates.py` (GitHub faked): newer offered, same or older not, no release, offline, switched off, rate-limit fallback, auth. Live check against GitHub returned no published release yet. Tag `v0.2.0` pushed; the Release workflow builds the installer and zip into a draft release, which Luke publishes.
