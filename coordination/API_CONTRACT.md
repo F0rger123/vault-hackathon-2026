@@ -128,6 +128,15 @@ Every response carries `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY
 - `GET /signin-log/verify` returns `{intact, entries, first_bad_id}`. Permission: `audit:read`.
 - A disabled account answers like a wrong password, and its tokens stop working.
 
+### Inviting people (F09.21)
+- `GET /users/roles` returns `[{role, summary, allowed: [{id, label}], not_allowed: [{id, label}]}]`, viewer first. Built from the same `ROLE_PERMISSIONS` table the server enforces, with plain-English labels. Permission: `users:manage`.
+- `POST /users/invites` (`{username, role, note?, steps?}`) → 201 `{id, username, role, note, steps, created_by, created_at, expires_at, code}`. `steps` is any of `passkey`, `face`, `voice` (extra steps the person sets up later). `code` is 20 characters of Crockford base32 in groups of four, returned only here; the server keeps its SHA-256 hash. One use, 48 hours. 409 if the name is taken or already has an invite waiting; 422 for a bad name, role or step. Permission: `users:manage`.
+- `GET /users/invites` lists invites still waiting (not used, withdrawn or expired), without codes. `DELETE /users/invites/{id}` withdraws one (`{revoked: true}`, 404 if nothing is waiting under that id). Permission: `users:manage`.
+- `GET /auth/invite/{code}` (public) → `{username, role, invited_by, expires_at, min_password}`. `POST /auth/invite/{code}` (public, `{password}`) creates the account, sets the password, uses up the invite and returns a session like `/auth/login`. Both refuse other origins (403), share a 5-per-minute limit per client address (429), and answer 404 with one message for unknown, used, withdrawn and expired codes. 409 if someone took the name meanwhile; 422 for a short password. Typed codes are case-insensitive and ignore dashes; O reads as 0, I and L as 1.
+- The UI link is `/join#CODE`: the code sits after `#`, so it is never sent to the web server.
+- `POST /users` also takes `requested_steps` (same values). `GET /users` rows and `GET /auth/steps` carry `requested_steps` / `requested`: steps an admin asked for that switch on automatically when the person sets each one up (passkey added, face or key phrase saved). Asking for any step also makes the password a required step.
+- Audit: `user.invite`, `user.invite_revoke`, `auth.invite_open`, `auth.invite_accept` (allowed and denied, never the code or password), and `signin.steps` with `requested_by_admin`. The sign-in log records `method: invite`.
+
 ### `GET /tokens` (F09.8)
 - **Permission:** `users:manage` (admin)
 - **Response 200:** `[{id, username, role, label, created_at, expires_at, revoked, revoked_at, last_used_at, expired}]`.

@@ -735,8 +735,57 @@ export interface ManagedUser {
   require_passkey: boolean;
   require_face: boolean;
   steps: SignInStep[];
+  /** F09.21: steps an admin asked for that switch on once this person sets them up. */
+  requested_steps?: ExtraStep[];
   created_at: number;
   last_sign_in: { ts: number; method: string } | null;
+}
+
+// ---------- F09.21: inviting people ----------
+
+/** Steps an admin can ask for on top of the password; each is set up by the person on their own device. */
+export type ExtraStep = "passkey" | "face" | "voice";
+
+export interface RoleInfo {
+  role: Role;
+  summary: string;
+  allowed: { id: string; label: string }[];
+  not_allowed: { id: string; label: string }[];
+}
+
+export interface Invite {
+  id: number;
+  username: string;
+  role: Role;
+  note: string;
+  steps: ExtraStep[];
+  created_by: string;
+  created_at: number;
+  expires_at: number;
+}
+
+/** Returned once, when the invite is made. Only a hash of `code` is kept on the server. */
+export interface InviteCreated extends Invite {
+  code: string;
+}
+
+export interface InvitePreview {
+  username: string;
+  role: Role;
+  invited_by: string;
+  expires_at: number;
+  min_password: number;
+}
+
+export interface StepsStatus {
+  required: SignInStep[];
+  set_up: Record<SignInStep, boolean>;
+  requested?: ExtraStep[];
+}
+
+/** The page an invited person opens. The code sits after `#`, so it never reaches any server's request log. */
+export function inviteLink(code: string, origin = typeof window === "undefined" ? "" : window.location.origin): string {
+  return `${origin}/join#${code}`;
 }
 
 export interface SigninEntry {
@@ -752,7 +801,15 @@ export interface SigninEntry {
 
 export const vault = {
   users: () => api<ManagedUser[]>("/users"),
-  addUser: (username: string, role: string, password: string) => post<ManagedUser>("/users", { username, role, password }),
+  addUser: (username: string, role: string, password: string, requested_steps: ExtraStep[] = []) =>
+    post<ManagedUser>("/users", { username, role, password, requested_steps }),
+  roles: () => api<RoleInfo[]>("/users/roles"),
+  invites: () => api<Invite[]>("/users/invites"),
+  createInvite: (body: { username: string; role: string; note: string; steps: ExtraStep[] }) => post<InviteCreated>("/users/invites", body),
+  revokeInvite: (id: number) => del<{ revoked: boolean }>(`/users/invites/${id}`),
+  invitePreview: (code: string) => api<InvitePreview>(`/auth/invite/${encodeURIComponent(code)}`),
+  acceptInvite: (code: string, password: string) => post<SignedIn>(`/auth/invite/${encodeURIComponent(code)}`, { password }),
+  mySteps: () => api<StepsStatus>("/auth/steps"),
   changeUser: (id: number, change: { role?: string; disabled?: boolean; steps?: SignInStep[] }) =>
     api<ManagedUser>(`/users/${id}`, { method: "PATCH", body: JSON.stringify(change) }),
   resetPassword: (id: number, password: string) => put<{ sessions_ended: number }>(`/users/${id}/password`, { password }),

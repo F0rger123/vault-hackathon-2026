@@ -133,6 +133,22 @@ ends the attempt.
    them up with your saved takes by dynamic time warping. No recording is sent or kept. **Delete my key phrase**
    removes it. **Honest limit:** a recording of you saying the phrase would pass, so it is always an extra step.
 
+### Invite someone
+1. Sign in as an admin. Security > People > **Invite someone**.
+2. Answer the five questions: the username (and an optional note only admins see); the role, with the exact list
+   of what that role can and cannot do; any extra sign-in steps; and how they get in. Back, Next and the numbered
+   trail move between questions; Enter goes to the next one and Escape closes.
+3. Leave **One-time invite link** chosen and press **Create invite**. Copy the link (or the code), or scan the QR
+   code with a phone. The QR code is drawn by VAULT itself; the link is never sent to a QR service.
+4. Open the link in a private window (or another browser). It says who invited you and as what. Choose a password
+   (10 characters or more), type it again, and you land signed in on Security with a welcome note.
+5. Check: open the same link again (refused: it works once). Under People the invite has left "Invites waiting"
+   and the person is listed. **Withdraw** an unused invite and its link stops working. Links expire after 48 hours.
+6. Extra steps: if you ticked face check, passkey or key phrase, the person sees "Your administrator asked you to
+   also set up..." on Security. Each step switches on by itself the moment they set it up there; until then their
+   password is enough. They have to set these up themselves because each one needs their own device, face or voice.
+7. Prefer handing over a password? Choose **Set a temporary password instead** at the fourth question.
+
 ### Hardware you could buy (optional)
 These links are Amazon searches, not endorsements; check the seller is the maker.
 

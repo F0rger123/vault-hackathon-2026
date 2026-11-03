@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 from backend.api.deps import get_conn, require
 from backend.api.routes import _log_signin
 from backend.api.routes_passkeys import apply_steps
-from backend.security import audit, signin_log, steps
+from backend.security import audit, invites, signin_log, steps
 from backend.security import login as signin
 from backend.security.auth import ROLE_PERMISSIONS, Principal, create_user
 
@@ -25,6 +25,8 @@ class NewUser(BaseModel):
     username: str = Field(min_length=2, max_length=64)
     role: str
     password: str = Field(min_length=signin.MIN_PASSWORD, max_length=200)
+    # F09.21: extra sign-in steps the admin wants; each switches on once the person has set it up.
+    requested_steps: list[str] = Field(default_factory=list, max_length=3)
 
 
 class UserChange(BaseModel):
@@ -73,6 +75,7 @@ def _public(conn, row) -> dict:
         "require_passkey": bool(row["require_passkey"]),
         "require_face": bool(row["require_face"]),
         "steps": steps.required(row),
+        "requested_steps": invites.requested(conn, row["id"]),
         "created_at": row["created_at"],
         "last_sign_in": dict(last) if last else None,
     }
@@ -96,11 +99,18 @@ def add_user(body: NewUser, conn=Depends(get_conn), p: Principal = Depends(requi
         raise HTTPException(status_code=422, detail="use letters, numbers, dots, dashes, underscores or @ in the name")
     if body.role not in ROLE_PERMISSIONS:
         raise HTTPException(status_code=422, detail="unknown role")
-    if signin.known_user(conn, name):
+    try:
+        extras = invites.requested_extras(body.requested_steps)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    if signin.known_user(conn, name) or invites.open_for_name(conn, name):
         raise HTTPException(status_code=409, detail="that name is already taken")
     uid = create_user(conn, name, body.role)
     signin.set_password(conn, name, body.password)
-    audit.record(conn, p.username, "user.create", "allowed", target=f"user:{name}", detail={"role": body.role})
+    invites.request_steps(conn, uid, extras)
+    audit.record(
+        conn, p.username, "user.create", "allowed", target=f"user:{name}", detail={"role": body.role, "steps": extras}
+    )
     return _public(conn, _user(conn, uid))
 
 
