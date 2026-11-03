@@ -1342,6 +1342,12 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 - **Verification evidence (2026-11-02):** browser timing on the demo. Overview settled 4,881 ms before and 50 to 96 ms after; opening a page 175 to 319 ms before and 43 to 171 ms after; 3D brain 165 fps on the RTX 5070. The before numbers were taken while Muse Glimmer was loading the processor, so not all of the gain is from this change.
 - **Description:** Luke said (2026-11-02) that everything loads slowly. Measured: `/system/providers` took 1.5 to 3 s and `/system/local-models` up to 4.7 s while Ollama was busy, and most pages wait on one of them. The server now answers these from memory and refreshes behind the scenes, and runs `nvidia-smi` only once. The interface shows the last answer at once on a return visit, shares identical requests and loads common data ahead. Motion is quicker, and the agent floor stops drawing when nothing changes. The 3D brain drops its glow on machines that cannot keep up.
 
+#### F04.12 — Keep the model answering after the Ollama update
+
+- **Priority:** P0 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F04.5, F11.4
+- **Description:** The final evaluation on 2026-11-02 found held-out project accuracy at 0.400, down from 0.889. Ollama went from 0.32.1 to 0.40.13 that day, and the extraction schema had no required fields, so Llama 3 left `project` out on 95 of 150 documents. On one test document the same prompt in plain JSON mode returned the project. The schema now requires the scored fields, with null still allowed.
+- **Verification evidence (2026-11-02):** rerun on 150 documents: held-out project back to 0.889, doc_type 0.978, conflicts 10 of 10. Rating accuracy went from 0.839 to 0.814.
+
 ## F11 — Synthetic Data & Evaluation
 - **Verification evidence (E-E2E-2, 2026-10-28):** covered by the Playwright suite in `tests/e2e/` (`02-investigate`); 13 of 13 tests passed in 5 consecutive fresh runs on Windows 11 (Chromium, desktop and Pixel 7 profiles).
 
@@ -1401,12 +1407,13 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 
 #### F11.4 — Full local Meta model evaluation
 - **Description:** Evaluate `llama3:latest` on all 150 documents and record results next to the heuristic baseline.
-- **Priority:** P0 · **Owner:** luke · **Status:** IN_PROGRESS · **Dependencies:** F11.3, F04.2
+- **Priority:** P0 · **Owner:** luke · **Status:** REVIEW · **Dependencies:** F11.3, F04.2
 - **Scope:** `evaluation/results/ollama-*.json`; summary in `docs/EVALUATION_PLAN.md`.
 - **Expected behavior:** Honest numbers, including where the model is worse than the baseline.
 - **Acceptance criteria:** Report committed.
 - **Required tests:** `python -m evaluation.run_eval --collection demo-ollama --provider ollama`.
-- **Blockers:** none. The final run is scheduled for Nov 1, on frozen code.
+- **Blockers:** none.
+- **Final run (2026-11-02):** held-out doc_type 0.978, project 0.889, date 1.000, part recall 1.000, rating accuracy 0.814, conflicts 10 of 10 with no false alarms, 10.5 minutes. See `evaluation/results/SUMMARY.md`. A fresh seed was not rerun on the new Ollama.
 - **Related PR/commit:** —
 - **Verification evidence:** — `E-LLM-2` (on the tuning dataset; a fresh-seed run is still needed).
 - **Dry run (2026-10-28):** fresh seed 2027 on dataset v2. Llama 3 held-out: doc_type 0.918, project 0.857, rating conflicts 10 of 10 at precision 1.0, quantity conflicts 0 of 5. Results are in `evaluation/results/fresh-seed-2027/` and `SUMMARY.md`.
