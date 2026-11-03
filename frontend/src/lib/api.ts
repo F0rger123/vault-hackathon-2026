@@ -620,7 +620,14 @@ export interface Proposal {
   instruction: string;
   plan: { pattern?: string; items?: { document_id: number; filename: string; target: string }[] } & Partial<SharePlan>;
   status: "pending" | "executed" | "rejected";
-  result: { export_dir: string; copied: number; left_out?: number; redactions?: number } | null;
+  result: {
+    export_dir: string;
+    copied: number;
+    left_out?: number;
+    redactions?: number;
+    /** F10.22: each copy written (source document and its path inside the export folder), or why it was skipped. */
+    items?: { document_id: number; filename: string; target: string | null; copied: boolean; reason?: string }[];
+  } | null;
   created_by: number | null;
   created_at: number;
   decided_by: number | null;
@@ -860,7 +867,66 @@ export const vault = {
   audit: (outcome?: string, limit = 200) =>
     api<AuditEntry[]>(`/audit?limit=${limit}${outcome ? `&outcome=${outcome}` : ""}`),
   securitySummary: () => api<SecuritySummary>("/security/summary"),
+  // F10.22: what VAULT actually did to this collection's files, oldest first after `afterId`.
+  activity: (collectionId: number, afterId = 0, opts: { limit?: number; run?: string | null } = {}) => {
+    const q = new URLSearchParams({ after_id: String(afterId), limit: String(opts.limit ?? 100) });
+    if (opts.run) q.set("run", opts.run);
+    return api<ActivityFeed>(`/collections/${collectionId}/activity?${q.toString()}`);
+  },
 };
+
+// ---------- F10.22: the collection's activity feed ----------
+
+export type ActivityAction =
+  | "stored"
+  | "media_stored"
+  | "read"
+  | "reviewed"
+  | "held"
+  | "flagged"
+  | "looked_at"
+  | "sorted"
+  | "checked_conflicts"
+  | "cited"
+  | "fact_checked"
+  | "copied";
+
+export interface ActivityEvent {
+  id: number;
+  ts: number;
+  /** Who did it: "Importer", a reader lane such as "extractor:heuristic#1", a chat helper ("Finder"), "Organizer". */
+  actor: string;
+  action: ActivityAction | (string & {});
+  document_id: number | null;
+  /** "ask-…" for one Ask VAULT reply, "job-N" for a processing run, "proposal-N" for an approved reorganization. */
+  run: string | null;
+  detail: {
+    document_ids?: number[];
+    count?: number;
+    words?: string[];
+    keys?: string[];
+    sort?: string;
+    order?: string;
+    by?: string;
+    verified?: number;
+    cited?: number;
+    filename?: string;
+    media_type?: string;
+    size_bytes?: number;
+    status?: string;
+    target?: string;
+    export_dir?: string;
+    job_id?: number;
+    outcome?: string;
+  };
+}
+
+export interface ActivityFeed {
+  events: ActivityEvent[];
+  last_id: number;
+  latest_id: number;
+  now: number;
+}
 
 /** Download an original with the bearer token and open it in a new tab (links cannot carry the token). */
 export async function openOriginal(documentId: number): Promise<void> {
@@ -928,7 +994,7 @@ export interface TeamHelperPlan {
 }
 
 export type TeamEvent =
-  | { type: "start"; t_ms: number; collection_id: number }
+  | { type: "start"; t_ms: number; collection_id: number; run?: string }
   | { type: "coordinator"; t_ms: number; status: "asking_model" | "merged" | "fallback"; text: string; model?: string; duration_ms?: number }
   | {
       type: "plan";

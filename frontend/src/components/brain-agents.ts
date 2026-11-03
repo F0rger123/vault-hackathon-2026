@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 import type { Activity } from "@/lib/agent-activity";
 
 const SPEED = 2.4; // fractions of the space's radius per second
@@ -36,7 +37,7 @@ export function createSwarm({
   const beamMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 });
   const lane = new Map<string, number>();
 
-  const make = (key: string, material: THREE.Material): Agent => {
+  const make = (key: string, material: THREE.Material, name?: string): Agent => {
     const angle = agents.size * 2.399963; // golden angle, so the craft wait evenly spaced around the core
     const home = new THREE.Vector3(Math.cos(angle), Math.sin(agents.size * 1.3) * 0.35, Math.sin(angle)).multiplyScalar(radius * 0.32);
     const mesh = new THREE.Mesh(geometry, material);
@@ -46,6 +47,16 @@ export function createSwarm({
     beam.visible = false;
     beam.frustumCulled = false;
     scene.add(mesh, beam);
+    if (name) {
+      // F10.22: a helper's craft carries its name, so "Finder" or "Sorter" is visible where it works.
+      const el = document.createElement("div");
+      el.textContent = name;
+      el.className =
+        "whitespace-nowrap rounded-control border border-line-strong bg-black/70 px-1.5 py-px font-mono text-[10px] text-[#f5f5f5]";
+      const tag = new CSS2DObject(el);
+      tag.center.set(0.5, 1.6);
+      mesh.add(tag);
+    }
     const agent: Agent = { mesh, beam, home, queue: [], job: null, target: null, touching: 0 };
     agents.set(key, agent);
     return agent;
@@ -66,10 +77,12 @@ export function createSwarm({
       let key = a.worker as string;
       let label = a.worker === "security" ? "Security gate" : "Reviewer";
       if (a.worker.startsWith("reader:")) ({ key, label } = readerKey(a, slots));
+      if (a.who) label = a.who;
       labels.set(key, label);
-      const agent = agents.get(key) ?? make(key, a.worker.startsWith("reader:") ? white : green);
-      // During a fast replay a craft keeps only its next jobs, so it never falls behind the record.
-      if (agent.queue.length < 3) agent.queue.push(a);
+      const agent = agents.get(key) ?? make(key, a.worker.startsWith("reader:") || a.who ? white : green, a.who);
+      // During a fast replay a craft keeps only its next jobs, so it never falls behind the record. A helper's visit
+      // names up to eight documents at once, so it may queue that many.
+      if (agent.queue.length < (a.who ? 8 : 3)) agent.queue.push(a);
     },
     update(dt: number) {
       for (const [key, agent] of agents) {
@@ -104,6 +117,10 @@ export function createSwarm({
     },
     dispose() {
       for (const agent of agents.values()) {
+        for (const child of [...agent.mesh.children]) {
+          if (child instanceof CSS2DObject) child.element.remove();
+          agent.mesh.remove(child);
+        }
         scene.remove(agent.mesh, agent.beam);
         agent.beam.geometry.dispose();
       }

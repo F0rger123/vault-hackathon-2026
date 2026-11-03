@@ -3,16 +3,20 @@
 
 import type { AgentEvent } from "./api";
 
-export type Worker = "coordinator" | "security" | "reviewer" | `reader:${string}`;
+export type Worker = "coordinator" | "security" | "reviewer" | `reader:${string}` | `helper:${string}`;
 
 export interface Activity {
   id: number;
   ts: number;
   worker: Worker;
-  verb: "planned" | "screened" | "read" | "retried" | "reviewed" | "finished";
+  verb: "planned" | "screened" | "read" | "retried" | "reviewed" | "finished" | (string & {});
   document_id: number | null;
   /** The lane for a reader. */
   lane?: string;
+  /** F10.22: the Ask VAULT helper (or the Organizer) whose recorded activity row this is; labels its craft. */
+  who?: string;
+  /** F10.22: the new export-relative path, when the Organizer's visit writes a copy. */
+  target?: string;
 }
 
 export function activityOf(e: AgentEvent): Activity | null {

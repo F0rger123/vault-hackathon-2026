@@ -361,6 +361,15 @@ Really processes a random sample with the chosen provider (results are saved as 
 - **Permission:** `documents:read`
 - **Response 200:** `{"nodes": [{"id": "doc:12", "kind": "document"|"project"|"doc_type"|"part"|"marking", "label", "weight", "document_id"?, "conflict"?}], "edges": [{"source", "target"}], "documents_total", "documents_shown"}`. At most 400 documents and 60 parts are included.
 
+### `GET /collections/{collection_id}/activity?after_id=&limit=&run=` (F10.22)
+What VAULT actually did to this collection's files, for the live brain. One row per recorded action; the brain moves only when a row arrives.
+- **Permission:** `documents:read`
+- **Query:** `after_id` (≥ 0, default 0), `limit` (1–500, default 100), `run` (optional, `[A-Za-z0-9-]{1,40}`: one Ask VAULT reply `ask-…`, one processing job `job-N`, or one approval `proposal-N`).
+- **Response 200:** `{"events": [{"id", "ts", "actor", "action", "document_id", "run", "detail"}], "last_id", "latest_id", "now"}`. With `after_id` > 0: rows after it, oldest first. With `after_id` = 0: the newest `limit` rows, oldest first. Poll with `after_id = last_id`.
+- **Actions:** `stored` / `media_stored` (actor `Importer`, a file stored: `filename`, `media_type`, `size_bytes`, `status`), `read` / `reviewed` / `held` / `flagged` (a processing job's agents: `job_id`, `outcome`), `looked_at` (Finder: `document_ids` in hit order, `count`, `words`), `sorted` (Sorter: `document_ids` in the order it produced, `sort`, `order`), `checked_conflicts` (Conflict checker: `document_ids`, `count`, `keys`), `cited` (Answer writer: `document_ids` of the numbered sources, `by`), `fact_checked` (Fact checker: `document_ids` of cited sources, `verified`, `cited`), `copied` (actor `Organizer`, one copy written by an approved reorganization: `filename`, `target` relative to the export folder, `export_dir` relative to the data folder).
+- `document_ids` holds at most 60 ids. Rows never contain document text, quotes or paths on disk. The `start` event of `POST /collections/{id}/agent` carries the reply's `run`.
+- **Errors:** 401, 404 (collection), 422
+
 ### `POST /collections/{collection_id}/brain/knowledge` → 201 · `DELETE /collections/{collection_id}/brain/knowledge/{knowledge_id}` (F07.7)
 - **Permission:** `corrections:create`
 - **Body:** `{"kind": "meaning", "term": "QA-7 stamp", "text": "Approved by the quality team"}` or `{"kind": "instruction", "text": "..."}`. Up to 500 characters. Teaching a term again replaces its meaning. Delete retires the entry; it is kept for the record but no longer used. Audited as `brain.teach` and `brain.forget`.
@@ -511,7 +520,7 @@ Ask VAULT. A coordinator reads one message (the same rules as `/chat`, then the 
 - **Body:** `{"message": "…", "previous": <command from the last find> | null, "use_model": true, "provider": "ollama" | "meta_api" | "heuristic" | null, "confirm_remote": false}`. `message` 1–300 chars.
 - **Response 200:** `Content-Type: application/x-ndjson`, one JSON object per line, in this order:
 ```json
-{"type": "start", "t_ms": 0, "collection_id": 1}
+{"type": "start", "t_ms": 0, "collection_id": 1, "run": "ask-3f9a1c2b7d10"}
 {"type": "coordinator", "t_ms": 1, "status": "asking_model", "text": "…", "model": "llama3:latest"}
 {"type": "coordinator", "t_ms": 2, "status": "fallback", "text": "The local model is not running, so the Answer writer uses VAULT's rules instead."}
 {"type": "plan", "t_ms": 3, "source": "rules", "model": null, "duration_ms": 2, "command": {<chat command>},
@@ -594,7 +603,7 @@ Answers a natural-language question using only evidence from one collection (F06
 ### `POST /proposals/{proposal_id}/approve`
 - **Permission:** `proposals:approve` (admin)
 - **Body:** `{"note": ""}` (≤ 500 chars)
-- **Response 200:** Proposal with `status: "executed"` and `result`. Copies files into the export folder; originals are never changed.
+- **Response 200:** Proposal with `status: "executed"` and `result`. Copies files into the export folder; originals are never changed. For a reorganization, `result.items` (F10.22) lists each file: `{"document_id", "filename", "target" (path inside the export folder, or null), "copied", "reason"?}`; each copy written is also an activity row (`copied`, run `proposal-{id}`).
 - **Errors:** 401, 403, 404, 409 (already decided), 422
 
 ### `POST /proposals/{proposal_id}/reject`

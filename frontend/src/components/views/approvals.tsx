@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { atLeast, errorText, vault, type LayoutSuggestion, type Proposal, type ProviderName } from "@/lib/api";
 import { dateTime, formatNumber } from "@/lib/format";
@@ -192,6 +193,8 @@ function ProposalCard({ p, canDecide, onDecided }: { p: Proposal; canDecide: boo
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState<"approve" | "reject" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // F10.22: the copies this browser just asked for, straight from the approval's response.
+  const [justWritten, setJustWritten] = useState(false);
   const share = p.kind === "share_pack";
   const items = share ? [] : ((p.plan.items ?? []) as { document_id: number; filename: string; target: string }[]);
   const folders = new Set(items.map((i) => i.target.split("/").slice(0, -1).join("/"))).size;
@@ -200,7 +203,8 @@ function ProposalCard({ p, canDecide, onDecided }: { p: Proposal; canDecide: boo
     setBusy(d);
     setError(null);
     try {
-      await vault.decide(p.id, d, note);
+      const done = await vault.decide(p.id, d, note);
+      setJustWritten(d === "approve" && !!done.result?.items);
       onDecided();
     } catch (e) {
       setError(errorText(e));
@@ -243,6 +247,9 @@ function ProposalCard({ p, canDecide, onDecided }: { p: Proposal; canDecide: boo
             : "The originals were not touched."}
         </p>
       )}
+      {!share && p.status === "executed" && p.result?.items && (
+        <CopiesWritten proposalId={p.id} items={p.result.items} open={justWritten} />
+      )}
       {p.status === "rejected" && p.decided_at && <p className="mt-2 text-sm text-muted">Rejected {dateTime(p.decided_at)}. Nothing was copied.</p>}
 
       {share && p.plan.items && p.plan.summary && <SharePlanView plan={p.plan as Parameters<typeof SharePlanView>[0]["plan"]} />}
@@ -279,5 +286,55 @@ function ProposalCard({ p, canDecide, onDecided }: { p: Proposal; canDecide: boo
         ))}
       {error && <Notice className="mt-3">Couldn&apos;t record the decision: {error}</Notice>}
     </Panel>
+  );
+}
+
+/**
+ * F10.22: each copy the approval wrote, from the server's own answer: the source file, its new path inside the export
+ * folder, and a tick for every copy the server confirmed. Nothing here is simulated; files it skipped say why.
+ */
+function CopiesWritten({
+  proposalId,
+  items,
+  open,
+}: {
+  proposalId: number;
+  items: NonNullable<NonNullable<Proposal["result"]>["items"]>;
+  open: boolean;
+}) {
+  const written = items.filter((i) => i.copied).length;
+  return (
+    <details className="mt-3 overflow-hidden rounded-control border border-line" open={open}>
+      <summary className="cursor-pointer px-3 py-2 text-sm font-medium">
+        Copies written: {formatNumber(written)} of {formatNumber(items.length)}
+      </summary>
+      <div className="border-t border-line px-3 py-2">
+        <p className="mb-2 text-xs text-muted">
+          Listed from the server&apos;s reply to the approval. Each tick is a copy it wrote and confirmed.{" "}
+          <Link href={`/brain?run=proposal-${proposalId}`} className="underline underline-offset-4 hover:text-ink">
+            Watch them in the brain
+          </Link>
+        </p>
+        <ol aria-label={`Copies written for proposal ${proposalId}`} className="flex max-h-72 flex-col gap-1 overflow-auto text-sm">
+          {items.map((i, n) => (
+            <li key={`${i.document_id}-${n}`} data-copy={i.copied ? "written" : "skipped"} className="flex min-w-0 items-start gap-2">
+              <span aria-hidden className={cx("mt-0.5 w-4 shrink-0 font-mono", i.copied ? "text-green" : "text-redline")}>
+                {i.copied ? "\u2713" : "\u2715"}
+              </span>
+              <span className="min-w-0 flex-1 break-words">
+                <span className="font-mono text-[13px]">{i.filename}</span>
+                <span className="text-muted"> {"\u2192"} </span>
+                {i.copied ? (
+                  <span className="font-mono text-[13px]">{i.target}</span>
+                ) : (
+                  <span className="text-muted">not copied: {i.reason ?? "skipped"}</span>
+                )}
+                <span className="sr-only">{i.copied ? " (written)" : " (skipped)"}</span>
+              </span>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </details>
   );
 }

@@ -23,6 +23,7 @@ Every run starts from the same state. The dev servers on ports 8000 and 3000 are
 | `01-sign-in` | A bad token is refused, a good token signs in, overview counts and privacy posture, sign out (F10.1, F10.2) |
 | `02-investigate` | Findings with verified quotes, filtered search, one document of each type in the drawer, Ask panel citations (F10.4–F10.6, F10.10) |
 | `025-ask` | Ask VAULT: helper cards finish from real events, the answer's source opens its document, the thread survives a reload, phone width (F10.20) |
+| `0585-live-brain` | A chat question's Finder and Fact checker rows appear in the brain's activity ticker, the brain says it is idle, "Watch in the brain" shows only that reply's record, phone width (F10.22) |
 | `03-security` | Remote inference is off and viewers cannot change it. A viewer upload is refused by the server and shows in the audit log (F10.9) |
 | `04-setup-run` | Upload, analyst run with the rules lane, live board to completion, admin measurement (F10.3, F10.7) |
 | `05-approvals` | An analyst cannot approve; an admin approves and copies are exported (F10.8) |
