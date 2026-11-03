@@ -38,6 +38,6 @@ def test_narrowing_steps(client, tokens, dataset):
     assert all(not h["media_type"].startswith("image/") for h in hits(q="valve", media="document"))
 
     assert client.get(f"{API}/search", params={"year": "20x4"}, headers=a).status_code == 422
-    assert client.get(f"{API}/search", params={"media": "video"}, headers=a).status_code == 422
+    assert client.get(f"{API}/search", params={"media": "movies"}, headers=a).status_code == 422
     # Operators typed into "leave out" are treated as words, never as FTS syntax.
     assert isinstance(hits(q="valve", exclude='NEAR( " OR *'), list)

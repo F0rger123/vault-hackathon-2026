@@ -12,14 +12,14 @@ import stat
 from dataclasses import dataclass
 from pathlib import Path
 
-from PIL import Image
 from pypdf import PdfReader
 
 from backend.core.config import Settings
+from backend.ingest.media import is_media, page_text, probe
 from backend.ingest.office import office_pages
 from backend.security.active_content import detect as detect_active_content
 from backend.security.files import FileRejected, validate_upload
-from backend.storage.db import now, transaction
+from backend.storage.db import dumps, now, transaction
 
 TEXT_PAGE_CHARS = 4000
 
@@ -52,16 +52,9 @@ def extract_pages(data: bytes, media_type: str, max_pages: int) -> list[str]:
         if len(pages) > max_pages:
             raise FileRejected(f"Office file has more than {max_pages} pages")
         return pages
-    if media_type.startswith("image/"):
-        try:
-            with Image.open(io.BytesIO(data)) as img:
-                img.verify()
-            with Image.open(io.BytesIO(data)) as img:
-                w, h = img.size
-        except Exception as exc:
-            raise FileRejected("image could not be decoded") from exc
-        # Image text needs OCR or a vision model; record dimensions so the page is searchable by type.
-        return [f"[image {w}x{h} px; visual content not yet analysed]"]
+    if is_media(media_type):
+        # VAULT does not look inside photos, video or sound; the one page holds the file's details (F11.8).
+        return [page_text(probe(data, media_type))]
     text = data.decode("utf-8", errors="replace")
     chunks = [text[i : i + TEXT_PAGE_CHARS] for i in range(0, len(text), TEXT_PAGE_CHARS)] or [""]
     if len(chunks) > max_pages:
@@ -95,7 +88,12 @@ def ingest_bytes(
             existing["id"], existing["filename"], sha, True, existing["page_count"], existing["media_type"]
         )
 
-    pages = extract_pages(data, media_type, settings.max_pages_per_document)
+    media_info = probe(data, media_type) if is_media(media_type) else None
+    pages = (
+        [page_text(media_info, safe_name)]
+        if media_info
+        else extract_pages(data, media_type, settings.max_pages_per_document)
+    )
     # F09.13: files that could run something when a person opens them are held until an admin releases them.
     active = detect_active_content(data, media_type)
     status, held = ("quarantined", "Held by the security gate: " + "; ".join(active)) if active else ("ingested", None)
@@ -103,7 +101,7 @@ def ingest_bytes(
     with transaction(conn):
         cur = conn.execute(
             """INSERT INTO documents (collection_id, filename, sha256, size_bytes, media_type, page_count,
-                   stored_path, status, error, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                   stored_path, status, error, created_at, media_info) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 collection_id,
                 safe_name,
@@ -115,6 +113,7 @@ def ingest_bytes(
                 status,
                 held,
                 now(),
+                dumps(media_info) if media_info else None,
             ),
         )
         doc_id = cur.lastrowid

@@ -297,6 +297,11 @@ MIGRATIONS: list[str] = [
     ALTER TABLE users ADD COLUMN require_password INTEGER NOT NULL DEFAULT 0;
     ALTER TABLE users ADD COLUMN require_voice INTEGER NOT NULL DEFAULT 0;
     """,
+    # 11: F11.8, photos, video and sound. The details read from the file's own header (length, size in pixels,
+    # date taken, camera), as JSON. NULL for documents. Nothing inside the picture or recording is stored.
+    """
+    ALTER TABLE documents ADD COLUMN media_info TEXT;
+    """,
 ]
 
 

@@ -241,6 +241,7 @@ Whether GitHub has a newer published release than this server's version.
 ### `POST /collections/{collection_id}/documents`
 - **Permission:** `documents:upload`
 - **Body:** `multipart/form-data` with one or more `files` fields (max 500 per request; each up to `VAULT_MAX_UPLOAD_MB`, default 50 MB). Accepted types by content: PDF, PNG, JPEG, UTF-8 text with extension `.txt .md .csv .json .log`, and ZIP content named `.docx`, `.xlsx` or `.pptx` (stored with the Office media type). Other archives and macro-enabled Office files are rejected.
+- **F11.8 photos, video and sound:** video `.mp4 .m4v` (`video/mp4`), `.mov` (`video/quicktime`), `.webm` (`video/webm`), `.avi` (`video/x-msvideo`); audio `.wav` (`audio/wav`), `.mp3` (`audio/mpeg`), `.m4a` (`audio/mp4`), `.ogg .oga .opus` (`audio/ogg`). The first bytes must match the extension (an MP4 named `.wav`, text named `.mp4` or a program named `.mov` is rejected with the reason); same size limit as other files. Their details are read from the file's own header and stored as `media_info`; nothing is ever sent to a model.
 - **Response 200:**
 ```json
 {"accepted": [{"document_id": 1, "filename": "ALP-DWG-0001.pdf", "sha256": "…", "duplicate": false,
@@ -294,7 +295,8 @@ Really processes a random sample with the chosen provider (results are saved as 
 ### `GET /documents`
 - **Permission:** `documents:read`
 - **Query:** `collection_id` (optional), `limit` 1–500 (default 50), `offset` ≥ 0
-- **Response 200:** list of `{"id", "collection_id", "filename", "sha256", "size_bytes", "media_type", "page_count", "status", "created_at"}`. `status`: `ingested | processed | error`.
+- **Response 200:** list of `{"id", "collection_id", "filename", "sha256", "size_bytes", "media_type", "page_count", "status", "created_at", "kind", "media_info"}`. `status`: `ingested | processed | error`.
+- **F11.8:** `kind` is `document | photo | video | audio` (from the media type). `media_info` is `null` for documents; for a photo, video or sound file it holds what VAULT read from the header, any key may be missing: `{"kind": "video", "format": "mov", "duration_s": 42.0, "width": 1280, "height": 720, "taken": "2024-04-01T09:30:00"}`; photos add `"camera"`, sound adds `"sample_rate"`, `"channels"` (and `"bitrate"` for MP3, `"codec"` for Ogg). Photos, video and sound are read by no model: their extraction has `"provider": "none"`, `"model": "not read: photo|video|audio"`, `doc_date` = the date taken when the file has one, and runs never queue them again.
 - **Errors:** 401, 403, 422
 
 ### `GET /documents/{document_id}`
@@ -438,6 +440,8 @@ Matches in `snippet` are wrapped in `[[` and `]]`; render them as highlights and
 - **Errors:** 401, 403, 422
 
 **F06.7 narrowing parameters on `GET /search`:** `year` (YYYY), `media` (`image` or `document`), and `exclude`. A document containing any word in `exclude` is left out. The words are quoted, so typed operators are treated as words.
+
+**F11.8 kinds and sorting on `GET /search`:** `media` also takes `photo` (same as `image`), `video`, `audio` and `media` (any of the three). `year` also matches a photo's or video's date taken. `sort` is `relevance` (default) `| name | size | duration | date | taken`, `order` `asc | desc` (default: `name` ascending, the rest descending); rows without the value sort last. Each row adds `"kind"`, `"size_bytes"` and `"media_info"` (as on `GET /documents`). When `q` is not empty and the search covers photos, video or sound, the response adds `"note": "Photos, video and sound are found by name, date and details, not by what is in them."` A media file's one page holds its name and details, so word searches find it by those only. The chat command's `media` takes `image`, `photo`, `video`, `audio` or `document`, and its `sort` adds `duration` and `size` ("find videos", "photos from 2024 sorted by date", "longest audio first", "show me pictures", "voice memos").
 
 ### `GET /collections/{collection_id}/findings`
 - **Permission:** `findings:read`

@@ -36,6 +36,7 @@ from backend.core.secrets_store import clear_key, key_status, store_key
 from backend.indexing import assistant
 from backend.indexing.investigate import investigate
 from backend.indexing.search import search as run_search
+from backend.ingest.media import NOT_READ_NOTE, kind_of
 from backend.ingest.service import ensure_collection, ingest_bytes
 from backend.providers import PROVIDER_NAMES, get_provider
 from backend.providers.base import ProviderError
@@ -686,26 +687,34 @@ def list_documents(
     _: Principal = Depends(require("documents:read")),
 ) -> list[dict]:
     sql = (
-        "SELECT id, collection_id, filename, sha256, size_bytes, media_type, page_count, status, created_at "
-        "FROM documents"
+        "SELECT id, collection_id, filename, sha256, size_bytes, media_type, page_count, status, created_at, "
+        "media_info FROM documents"
     )
     args: list = []
     if collection_id is not None:
         sql += " WHERE collection_id = ?"
         args.append(collection_id)
     sql += " ORDER BY id LIMIT ? OFFSET ?"
-    return [dict(r) for r in conn.execute(sql, [*args, limit, offset]).fetchall()]
+    return [_with_kind(dict(r)) for r in conn.execute(sql, [*args, limit, offset]).fetchall()]
+
+
+def _with_kind(doc: dict) -> dict:
+    """F11.8: every document row says what kind of file it is, and a photo, video or sound file its details."""
+    doc["kind"] = kind_of(doc["media_type"])
+    doc["media_info"] = loads(doc.get("media_info"), None)
+    return doc
 
 
 @router.get("/documents/{document_id}")
 def get_document(document_id: int, conn=Depends(get_conn), _: Principal = Depends(require("documents:read"))):
     doc = _row(
         conn.execute(
-            "SELECT id, collection_id, filename, sha256, size_bytes, media_type, page_count, status, error, created_at "
-            "FROM documents WHERE id = ?",
+            "SELECT id, collection_id, filename, sha256, size_bytes, media_type, page_count, status, error, "
+            "created_at, media_info FROM documents WHERE id = ?",
             (document_id,),
         ).fetchone()
     )
+    _with_kind(doc)
     x = conn.execute(
         "SELECT * FROM extractions WHERE document_id = ? ORDER BY id DESC LIMIT 1", (document_id,)
     ).fetchone()
@@ -965,14 +974,22 @@ def search(
     limit: int = Query(50, ge=1, le=200),
     exclude: str = Query("", max_length=300),
     year: str | None = Query(None, pattern=r"^\d{4}$"),
-    media: str | None = Query(None, pattern="^(image|document)$"),
+    media: str | None = Query(None, pattern="^(image|photo|video|audio|document|media)$"),
+    sort: str = Query("relevance", pattern="^(relevance|name|size|duration|date|taken)$"),
+    order: str = Query("", pattern="^(asc|desc|)$"),
     conn=Depends(get_conn),
     _: Principal = Depends(require("search")),
 ) -> dict:
     results = run_search(
-        conn, q, collection_id, doc_type, project, date_from, date_to, part_number, limit, exclude, year, media
-    )
-    return {"query": q, "count": len(results), "results": results}
+        conn, q, collection_id, doc_type, project, date_from, date_to, part_number, limit, exclude, year, media,
+        sort, order,
+    )  # fmt: skip
+    out: dict = {"query": q, "count": len(results), "results": results}
+    if q.strip() and (
+        media in ("image", "photo", "video", "audio", "media") or any(r["kind"] != "document" for r in results)
+    ):
+        out["note"] = NOT_READ_NOTE
+    return out
 
 
 class ChatMessage(BaseModel):

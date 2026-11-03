@@ -1581,6 +1581,29 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 - **Priority:** P1 · **Owner:** luke · **Status:** DONE · **Dependencies:** F11.1
 - **Description:** Luke asked (2026-11-03) for a large set of fake files, photos, videos and sound to test with. `scripts/make_test_files.py` writes 427 deterministic files (136 MB) with a manifest of the expected result for each and 26 planted conflicts. It found a real bug: names over 180 characters lost their extension and were refused; fixed in `sanitize_filename`.
 
+#### F11.8 — Photos, video and sound: stored, described, found and sorted (never read)
+
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F11.7, F06.7, F06.8
+- **Description:** VAULT accepts video (MP4, MOV, WebM, AVI) and sound (WAV, MP3, M4A, OGG) as well as photos, reads only the details in each file's own header, and makes them findable and sortable by kind, length, date taken, size and name. Nothing inside them is read, and nothing is sent to a model. Adds a `--size demo` test set.
+- **Implementation scope:**
+  - `backend/security/files.py`: magic bytes must match the extension (RIFF WAVE/AVI, ISO `ftyp` or a QuickTime first atom with `.mp4 .m4v .mov .m4a`, EBML with `webm`, `OggS`, ID3 or a legal MPEG Layer III frame header); same size limit.
+  - `backend/ingest/media.py`: bounded parsers with the standard library and Pillow only (photo size, EXIF date taken and camera; WAV via `wave` with a RIFF fallback; MP3 frame header and Xing; MP4/MOV `mvhd`, `tkhd`, `hdlr`, `mdhd`; AVI `avih`; WebM EBML Info and Tracks; Ogg Vorbis/Opus granule). They return fewer details, never an error, on a bad header.
+  - Migration 11: `documents.media_info` (JSON). The extraction is provider `none`, model `not read: photo|video|audio`, `doc_date` = date taken, so runs never queue them again.
+  - Search: `media` = `photo | video | audio | document | media` (`image` still works), `sort` = `name | size | duration | date | taken`, `year` also matches the date taken; rows add `kind`, `size_bytes`, `media_info`; a `note` says media are found by name, date and details only.
+  - Chat rules: "find videos", "photos from 2024 sorted by date", "longest audio first", "show me pictures", "voice memos", "biggest videos", "shortest first".
+  - Investigate: "Kind of file" and "Sort by" filters, kind chips in Narrow down, a type badge and a details line ("Video · 0:42 · 1280×720") in results, chat rows and the document drawer.
+  - `scripts/make_test_files.py --size demo|full`: stamped inspection PDFs (APPROVED, QC PASSED, REJECTED seals and sticker badges), drawings with revision clouds, revision triangles and numbered callouts, Pillow site photos with tape measures, arrows, markers, stickers, EXIF dates 2023–2025 and fictional cameras, hand-written Photo-JPEG MOV and MJPEG AVI (H.264 MP4 and WebM too when ffmpeg exists), WAV voice-memo stand-ins and silent MP3; every manifest entry has `outcome` (`read | stored-with-metadata | refused | held`) and the expected `media` details.
+- **Acceptance criteria:** media upload accepted with matching magic bytes and refused otherwise; details stored and shown; media never re-queued or sent to a model; find and sort by kind, duration, date taken, size and name in search and chat; demo set about 120 files under 60 MB.
+- **Required tests:** `tests/unit/test_media.py`, `tests/integration/test_media_files.py`, `tests/unit/test_make_test_files.py`, `tests/integration/test_narrow_search.py`.
+- **Blockers:** none
+- **Related PR/commit:** branch `luke/F11.8-media-files`
+- **Verification evidence (2026-11-03):**
+  - **pytest:** 320 passed (full suite), including `test_media.py` (parsers on tiny built files, junk never raises, upload gate refuses text named `.mp4`, WAV named `.mp4`, MP4 named `.wav`, a program named `.mov`), `test_media_files.py` (upload, details on the document, `not read: video|audio|photo`, second run queues 0 of 9, search and chat sorts) and `test_make_test_files.py` (every manifest outcome and media detail matches what VAULT reads).
+  - **ruff check / format --check, bandit -ll:** clean. **Frontend:** lint, typegen + tsc, production build pass. **e2e:** 27 of 27 (ports 8420/3420).
+  - **Demo set:** `--size demo` wrote 126 files, 11.9 MB, in about 7 s (outcomes: 69 read, 37 stored-with-metadata, 18 refused, 2 held). Ingested with the CLI and read with `heuristic`: 109 added, 1 duplicate, 18 refused with the expected reasons, 107 read in 2 s, 2 held; media extractions are `none / not read: photo` 25, `video` 6, `audio` 6. Full set: 482 files, 139.0 MB, every file agrees with its manifest entry.
+  - **Real files:** ffmpeg decodes the hand-made Photo-JPEG MOV (60 frames, 6.0 s) and silent MP3 without errors; VAULT's parser gives the same length and size for ffmpeg-made H.264 MP4 and VP8 WebM.
+  - **Not checked:** the Investigate filters and badges were not looked at in a browser (the e2e Investigate specs pass); `media_info` is filled only for files uploaded after migration 11, so photos stored earlier show no details until uploaded again.
+
 ## F12 — Deployment & Submission
 
 #### F12.9 — One-command start and guided first run
