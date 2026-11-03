@@ -207,8 +207,8 @@ export function SessionGate({
     return (
       <div className="grid min-h-[70dvh] place-items-center text-sm text-muted" role="status">
         <span className="vault-dial-spin flex flex-col items-center gap-3">
-          <VaultMark className="h-10 w-10 animate-pulse" />
-          Opening the vault
+          <VaultMark className="h-12 w-12" />
+          <span className="loader-label">Opening VAULT</span>
         </span>
       </div>
     );

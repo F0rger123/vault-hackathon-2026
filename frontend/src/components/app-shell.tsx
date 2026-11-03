@@ -4,10 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { errorText, setToken, vault, type AuthOptions, type SignedIn } from "@/lib/api";
+import { useLoad } from "@/lib/use-load";
 import { signInWithPasskey, passkeysSupported } from "@/lib/passkeys";
 import { MatrixRain } from "./matrix-rain";
 import { UnlockSequence, type UnlockPhase } from "./unlock-sequence";
 import { CollectionSwitcher } from "./collection-switcher";
+import { ChatBox } from "./chat-box";
 import { CommandPalette } from "./command-palette";
 import { SetupWizard } from "./setup-wizard";
 import { PostureBadge } from "./security-posture";
@@ -25,17 +27,19 @@ const ICONS: Record<string, ReactNode> = {
   "/brain": <path d="M4 4.5a1.5 1.5 0 1 0 0-.01M12 3.5a1.5 1.5 0 1 0 0-.01M8 12.5a1.5 1.5 0 1 0 0-.01M5.3 4.7 10.6 3.8M4.7 5.8l2.6 5.4M11.4 5l-2.7 6" />,
   "/approvals": <path d="M3 2.5h10v11H3zM5.5 8l2 2 3.5-4" />,
   "/security": <path d="M8 1.8 13 4v4c0 3-2.2 5.2-5 6.2C5.2 13.2 3 11 3 8V4l5-2.2Z" />,
+  "/models": <path d="M4 2.5h8v4H4zM4 9.5h8v4H4zM6 4.5h.01M6 11.5h.01M9 4.5h1.5M9 11.5h1.5" />,
 };
 
 const NAV = [
   { href: "/", label: "Overview" },
-  { href: "/setup", label: "Set up a run" },
-  { href: "/run", label: "Live run board" },
+  { href: "/setup", label: "Add files" },
+  { href: "/run", label: "Progress" },
   { href: "/investigate", label: "Investigate" },
   { href: "/training", label: "Training" },
   { href: "/brain", label: "Brain" },
   { href: "/approvals", label: "Approvals" },
   { href: "/security", label: "Security" },
+  { href: "/models", label: "Models" },
 ] as const;
 
 // Section headings in the rail, so each place is found by what you want to do.
@@ -46,6 +50,24 @@ export function sheetNumber(href: string): number {
 }
 export const SHEET_COUNT = NAV.length;
 
+
+/** Whether the model VAULT reads with is downloaded, in one line under the wordmark (F03.9). */
+function ModelBadge() {
+  const models = useLoad("local-models", vault.localModels, 30000);
+  if (!models.data) return null;
+  const active = models.data.models.find((m) => m.used_by_vault);
+  const [tone, text] = !models.data.reachable
+    ? ["bg-amber", "Ollama is not running"]
+    : active
+      ? ["bg-green", `${active.name.replace(":latest", "")} downloaded`]
+      : ["bg-redline", "Model not downloaded"];
+  return (
+    <Link href="/models" className="mt-1.5 flex items-center gap-2 text-xs text-muted hover:text-ink">
+      <span aria-hidden className={cx("h-1.5 w-1.5 rounded-full", tone)} />
+      {text}
+    </Link>
+  );
+}
 
 function Wordmark() {
   return (
@@ -261,6 +283,7 @@ function Chrome({ children }: { children: ReactNode }) {
               Private. Runs on this machine.
             </p>
             <PostureBadge />
+            <ModelBadge />
           </div>
           <NavLinks />
           <button
@@ -314,6 +337,7 @@ function Chrome({ children }: { children: ReactNode }) {
         {ready && <DemoBanner />}
         {children}
       </main>
+      {ready && <ChatBox />}
     </div>
   );
 }

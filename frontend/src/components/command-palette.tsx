@@ -8,13 +8,14 @@ import { cx } from "./ui";
 /** Every place and common action, described in the words people search with. */
 const ENTRIES: { href: string; label: string; hint: string; words: string }[] = [
   { href: "/", label: "Overview", hint: "Counts, runs, this computer and its Meta models", words: "home dashboard models install gpu hardware" },
-  { href: "/setup", label: "Set up a run", hint: "Add files or a folder, then read them", words: "upload import add documents files folder read start" },
-  { href: "/run", label: "Live run board", hint: "Watch the agents work, see the summary, ask the coordinator", words: "progress running job agents chat summary" },
+  { href: "/setup", label: "Add files", hint: "Add files or a folder, then read them", words: "upload import add documents files folder read start" },
+  { href: "/run", label: "Progress", hint: "Watch the agents work, see the summary, ask the coordinator", words: "progress running job agents chat summary" },
   { href: "/investigate", label: "Investigate", hint: "Ask questions, search, narrow down, see conflicts, export a table", words: "search find ask question conflicts photos export csv" },
   { href: "/training", label: "Training", hint: "Test how well it reads, quiz it, teach it, re-test", words: "quiz grade teach accuracy score test" },
   { href: "/brain", label: "Brain", hint: "What VAULT knows, its questions, the 3D map", words: "knowledge map graph learn meaning questions 3d" },
   { href: "/approvals", label: "Approvals", hint: "Organize folders and share packs, approved by an admin", words: "organize folders share redact buyer export" },
   { href: "/welcome", label: "Setup guide", hint: "Unlock with face or a USB key, check this computer, install models", words: "welcome first run install wizard face fingerprint key" },
+  { href: "/models", label: "Models", hint: "Which AI models are downloaded, and download more", words: "models download installed llama ollama ready" },
   { href: "/security", label: "Security", hint: "Protection checklist, held files, passkeys, audit log", words: "passkey face fingerprint yubikey audit quarantine remote key" },
 ];
 

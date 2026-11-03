@@ -28,7 +28,7 @@ export function OverviewView() {
       <TitleBlock
         href="/"
         title="Overview"
-        description="What is in this vault, where its documents can go, and what the agents have found."
+        description="Your documents, what VAULT found, and what needs you."
       />
 
       <GettingStarted />
@@ -57,14 +57,14 @@ export function OverviewView() {
             title="Runs"
             aside={
               <Link href="/setup" className="text-blue underline-offset-4 hover:underline">
-                Set up a run
+                Add files
               </Link>
             }
           >
             <LoadError error={jobs.error} status={jobs.status} what="runs" />
             {jobs.data && active.length === 0 && (
               <Empty>
-                No runs in progress. Go to <Link href="/setup" className="text-blue underline">Set up a run</Link> to
+                No runs in progress. Go to <Link href="/setup" className="text-blue underline">Add files</Link> to
                 process this collection.
               </Empty>
             )}

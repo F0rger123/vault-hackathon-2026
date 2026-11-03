@@ -107,7 +107,7 @@ export function DocumentDrawer({ documentId, onClose }: { documentId: number | n
               <section>
                 <h3 className="mb-2 text-sm font-semibold">Extracted fields</h3>
                 {!x ? (
-                  <Empty>This document hasn&apos;t been processed yet. Start a run on the Set up a run sheet.</Empty>
+                  <Empty>This document hasn&apos;t been processed yet. Start a run on the Add files page.</Empty>
                 ) : (
                   <>
                     <dl className="grid grid-cols-[8rem_minmax(0,1fr)] border-t border-line text-sm">

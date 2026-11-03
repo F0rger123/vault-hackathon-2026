@@ -22,6 +22,7 @@ import { useSession } from "../session";
 import { LocalModelsCard, QuickStart } from "../first-run";
 import { TitleBlock } from "../title-block";
 import { Button, cx, Empty, Field, inputClass, LoadError, Notice, Panel, Tag } from "../ui";
+import { Loader } from "../loader";
 
 function Step({ n, title, intro, children, last }: { n: number; title: string; intro: ReactNode; children: ReactNode; last?: boolean }) {
   return (
@@ -55,8 +56,8 @@ export function SetupView() {
     <>
       <TitleBlock
         href="/setup"
-        title="Set up a run"
-        description="Add your files and press one button. Everything else on this page is optional fine-tuning."
+        title="Add files"
+        description="Add your files and press one button. The rest is optional."
       />
       {!collection ? (
         <NewCollection />
@@ -319,7 +320,7 @@ function TeachByExample({ docs, docsError, canEdit }: { docs: DocumentRow[] | un
         </Field>
         <ul aria-label="Matching documents" className="mt-2 max-h-48 overflow-y-auto rounded-control border border-line">
           {docs && matches.length === 0 && <li className="px-3 py-2 text-sm text-muted">No file names match.</li>}
-          {!docs && !docsError && <li className="px-3 py-2 text-sm text-muted">Loading documents</li>}
+          {!docs && !docsError && <li className="px-3 py-2"><Loader label="Loading documents" /></li>}
           {matches.map((d) => (
             <li key={d.id}>
               <button

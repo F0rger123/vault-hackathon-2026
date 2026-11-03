@@ -31,7 +31,7 @@ This is the word-for-word script and click path for the hackathon video. The tim
 **Say:**
 > "VAULT is an app on this laptop. I sign in with my face, and the face never leaves the device. It checks the hardware and installs the Meta Llama models that fit, so no document ever leaves the machine."
 
-### 0:40–1:05 · Reading with Llama (live run board)
+### 0:40–1:05 · Reading with Llama (Progress page)
 
 **Show:**
 - Start a run on a small collection with **Read new documents with Llama 3**.

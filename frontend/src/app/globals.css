@@ -250,9 +250,16 @@ progress {
 }
 .skeleton {
   border-radius: 6px;
-  background: linear-gradient(90deg, var(--raised) 25%, color-mix(in srgb, var(--ink) 9%, var(--raised)) 50%, var(--raised) 75%);
+  background: linear-gradient(
+    90deg,
+    var(--raised) 30%,
+    color-mix(in srgb, var(--ink) 8%, var(--raised)) 46%,
+    color-mix(in srgb, var(--green) 22%, var(--raised)) 50%,
+    color-mix(in srgb, var(--ink) 8%, var(--raised)) 54%,
+    var(--raised) 70%
+  );
   background-size: 200% 100%;
-  animation: shimmer 1.6s linear infinite;
+  animation: shimmer 1.3s linear infinite;
 }
 
 /* A running job's progress bar carries slow diagonal stripes, so "working" never looks frozen. */
@@ -284,24 +291,53 @@ progress {
 }
 
 /* The logo's dial turns a notch when you hover the wordmark, like a vault combination. */
-.vault-dial {
-  transform-origin: 16px 16px;
-  transition: transform 0.7s var(--ease-out-soft);
+/* Logo: the ring draws itself, then the light comes on. On hover the light glows; while loading it breathes. */
+.vault-led {
+  transform-origin: 23.3px 8.7px;
+  transition: filter 0.3s, transform 0.3s var(--ease-out-soft);
 }
-a:hover .vault-dial,
-.vault-dial-spin .vault-dial {
-  transform: rotate(45deg);
+a:hover .vault-led {
+  filter: drop-shadow(0 0 2px var(--green));
+  transform: scale(1.15);
 }
-@keyframes dial-open {
+.vault-mark-intro .vault-ring,
+.vault-dial-intro .vault-ring {
+  stroke-dasharray: 100;
+  animation: ring-draw 0.9s var(--ease-out-soft) both;
+}
+.vault-mark-intro .vault-led,
+.vault-dial-intro .vault-led {
+  animation: led-on 0.5s 0.75s ease-out both;
+}
+.vault-dial-spin .vault-ring {
+  stroke-dasharray: 100;
+  animation: ring-draw 1.4s var(--ease-out-soft) infinite alternate;
+}
+.vault-dial-spin .vault-led {
+  animation: led-breathe 1.4s ease-in-out infinite;
+}
+@keyframes ring-draw {
   from {
-    transform: rotate(-90deg);
+    stroke-dashoffset: 100;
   }
   to {
-    transform: none;
+    stroke-dashoffset: 0;
   }
 }
-.vault-dial-intro .vault-dial {
-  animation: dial-open 1.1s var(--ease-out-soft) both;
+@keyframes led-on {
+  from {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.4);
+  }
+}
+@keyframes led-breathe {
+  50% {
+    opacity: 0.35;
+  }
 }
 
 /* The motion language: quick to start, gentle to settle, like a well-damped door. */
@@ -639,7 +675,67 @@ section.rounded-card:hover {
   transform-origin: bottom left;
 }
 
+/* F10.18: loading dial. Bolts light in turn round the dial, the same eight as the logo. */
+.loader-dial rect {
+  fill: currentColor;
+  opacity: 0.18;
+  animation: bolt 0.8s linear infinite;
+}
+@keyframes bolt {
+  0% {
+    opacity: 1;
+    fill: var(--green);
+  }
+  60%,
+  100% {
+    opacity: 0.18;
+  }
+}
+.loader-label {
+  background: linear-gradient(90deg, var(--muted) 0%, var(--ink) 50%, var(--muted) 100%) 0 0 / 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: label-sweep 1.6s linear infinite;
+}
+@keyframes label-sweep {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* F06.8: the chat box rises from its button; each message and result row settles in. */
+.chat-panel {
+  transform-origin: bottom right;
+  animation: chat-open 0.22s var(--ease-out-soft) both;
+}
+@keyframes chat-open {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+}
+.chat-launch {
+  animation: fade-in 0.3s ease-out both;
+}
+.chat-msg {
+  animation: chat-msg 0.2s var(--ease-out-soft) both;
+}
+@keyframes chat-msg {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+.chat-row {
+  animation: fade-in 0.25s ease-out both;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .loader-dial rect {
+    animation: none;
+    opacity: 0.6;
+  }
   *,
   *::before,
   *::after {

@@ -4,7 +4,7 @@ import { signedIn } from "./helpers";
 // F10.3 and F10.7: upload files, start a run with the rule-based lane, watch it finish on the live board.
 test("upload five files, start a rule-based run and watch it complete", async ({ page }) => {
   await signedIn(page, "analyst", "/setup");
-  await expect(page.getByRole("heading", { name: "Set up a run" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Add files" })).toBeVisible();
   // F12.9 and F03.6: the one-button start and the local-models card are the first things on the page.
   await expect(page.getByRole("heading", { name: "Quick start" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "This computer" })).toBeVisible();
@@ -27,7 +27,7 @@ test("upload five files, start a rule-based run and watch it complete", async ({
   await page.getByRole("button", { name: "Start run" }).click();
 
   await expect(page).toHaveURL(/\/run\?job=\d+/);
-  await expect(page.getByRole("heading", { name: "Live run board" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Progress" })).toBeVisible();
   const status = page.getByRole("region", { name: "Run status" });
   await expect(status).toContainText(/Completed/, { timeout: 45_000 });
   // F05.10: the 150 seeded documents were already read by the rules baseline, so only the 5 new ones are read.

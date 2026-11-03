@@ -1,29 +1,25 @@
 import { cx } from "./ui";
 
-/** Logo mark: a vault door. A dial ring with eight bolt marks around a keyhole, on a solid ink tile. */
-const DIAL_TICKS = [
-  [16.0, 8.6, 16.0, 6.8],
-  [21.23, 10.77, 22.51, 9.49],
-  [23.4, 16.0, 25.2, 16.0],
-  [21.23, 21.23, 22.51, 22.51],
-  [16.0, 23.4, 16.0, 25.2],
-  [10.77, 21.23, 9.49, 22.51],
-  [8.6, 16.0, 6.8, 16.0],
-  [10.77, 10.77, 9.49, 9.49],
-] as const;
-
+/**
+ * Logo mark (F10.18): a vault door seen head on. A heavy ring around a keyhole, open at one corner where a green
+ * light shows it is on and local. Bold enough to read at 16 px.
+ */
 export function VaultMark({ className, intro }: { className?: string; intro?: boolean }) {
   return (
-    <svg aria-hidden viewBox="0 0 32 32" className={cx(className, intro && "vault-dial-intro")}>
-      <rect width="32" height="32" rx="8" fill="var(--ink)" />
-      <g className="vault-dial" stroke="var(--paper)" strokeLinecap="round">
-        <circle cx="16" cy="16" r="11" fill="none" strokeWidth="1.5" />
-        {DIAL_TICKS.map(([x1, y1, x2, y2], i) => (
-          <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} strokeWidth={i % 2 ? 1.1 : 1.6} />
-        ))}
-      </g>
-      <circle cx="16" cy="14.4" r="2.4" fill="var(--paper)" />
-      <path d="M14.9 15.6h2.2l0.9 5.2h-4z" fill="var(--paper)" />
+    <svg aria-hidden viewBox="0 0 32 32" className={cx("vault-mark", className, intro && "vault-mark-intro")}>
+      <rect width="32" height="32" rx="7" fill="var(--ink)" />
+      <path
+        className="vault-ring"
+        d="M19.7 7.25A9.5 9.5 0 1 0 24.75 12.3"
+        pathLength={100}
+        fill="none"
+        stroke="var(--paper)"
+        strokeWidth="3.2"
+        strokeLinecap="round"
+      />
+      <circle cx="16" cy="14" r="2.9" fill="var(--paper)" />
+      <path d="M14.5 15.6h3l1.1 5.9h-5.2z" fill="var(--paper)" />
+      <circle className="vault-led" cx="23.3" cy="8.7" r="2.1" fill="var(--green)" />
     </svg>
   );
 }

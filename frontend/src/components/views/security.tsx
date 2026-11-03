@@ -19,7 +19,7 @@ export function SecurityView() {
       <TitleBlock
         href="/security"
         title="Security"
-        description="Where document text may go, what the security agent caught, and every action recorded in the audit log."
+        description="Who signed in, what was blocked, and where documents may go."
       />
       <div className="mb-6">
         <SecurityPosture />

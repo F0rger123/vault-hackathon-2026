@@ -50,14 +50,14 @@ export function ModelInstaller({ admin: forceAdmin }: { admin?: boolean } = {}) 
   return (
     <div className="mt-5 flex flex-col gap-3 border-t border-line pt-5 text-sm">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="font-semibold">Meta models for this computer</h3>
+        <h3 className="font-semibold">Meta models you can download</h3>
         {admin && recommendedLeft.length > 0 && (
           <Button
             variant="primary"
             busy={pending === "recommended"}
             onClick={() => act("recommended", () => Promise.all(recommendedLeft.map((n) => vault.installModel(n))))}
           >
-            Install the recommended set
+            Download the recommended set
           </Button>
         )}
       </div>
@@ -82,7 +82,7 @@ export function ModelInstaller({ admin: forceAdmin }: { admin?: boolean } = {}) 
           />
         ))}
       </ul>
-      {!admin && <p className="text-xs text-muted">An admin can install models and choose the one VAULT reads with.</p>}
+      {!admin && <p className="text-xs text-muted">An admin can download models and choose the one VAULT reads with.</p>}
       {error && <Notice>{error}</Notice>}
     </div>
   );
@@ -117,7 +117,7 @@ function ModelRow(props: {
           <Tag tone={where.tone}>{where.text}</Tag>
           {admin && !installed && !downloading && m.runs_on !== "too_big" && (
             <Button busy={busy} onClick={props.onInstall}>
-              <span className="whitespace-nowrap">Install ({m.size_gb} GB)</span>
+              <span className="whitespace-nowrap">Download ({m.size_gb} GB)</span>
             </Button>
           )}
           {admin && downloading && (
@@ -130,7 +130,7 @@ function ModelRow(props: {
               Read with this
             </Button>
           )}
-          {installed && (!admin || m.reads !== "text") && <Tag tone="green">Installed</Tag>}
+          {installed && (!admin || m.reads !== "text") && <Tag tone="green">Downloaded</Tag>}
         </span>
       </div>
       <p className="text-xs text-muted">
