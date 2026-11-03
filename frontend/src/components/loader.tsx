@@ -1,4 +1,5 @@
-import { cx } from "./ui";
+// No imports from ./ui: that module is client-only, and this one also renders in server pages (run/page.tsx).
+const cx = (...parts: (string | undefined)[]) => parts.filter(Boolean).join(" ");
 
 /** The loading mark: eight bolts round a vault dial light up in turn. Used wherever something is on its way. */
 export function Loader({ label, className, size = 16 }: { label?: string; className?: string; size?: number }) {
