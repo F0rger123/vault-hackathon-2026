@@ -1158,13 +1158,14 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 
 #### F09.20 — Pick your own sign-in steps, spoken key phrase, camera and microphone checks
 
-- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F09.19
+- **Priority:** P0 · **Owner:** luke · **Status:** DONE · **Dependencies:** F09.19
 - **Description:** Luke asked (2026-11-03) for people to choose two, three or more sign-in steps, working hardware security keys, a face check that refuses poor cameras, and a phrase spoken into the microphone. Built:
   - Any mix of password, passkey, face check and key phrase, asked in order through a short-lived step ticket; a session only after the last step. Admins set it under People. The four fixed levels are replaced by step cards, quick picks, a live preview and a strength meter.
   - Spoken key phrase: MFCC speech features in the browser, dynamic time warping on the server, thresholds calibrated with `scripts/calibrate_voice.py` on Windows' built-in voices. No recording leaves the page.
   - Camera checks (resolution, frame rate, light, focus, face size) and microphone checks (sample rate, muted, clipping, length, noise), measured on the real signal and re-checked by the server.
   - Security keys: step-by-step instructions in the screen; a passkey can be a later step after the password.
   - The microphone was blocked by VAULT's own `Permissions-Policy`; now `microphone=(self)`.
+- **Related PR/commit:** PR #101, merged 2026-11-03 with all CI checks green.
 - **Verification evidence (2026-11-03):** `tests/security/test_sign_in_steps.py` (three-step chain, order enforced, wrong answers end it, setup required, admin steps, quality refusals, key phrase accepts the same phrase and voice and refuses other phrases and the other voice). e2e `059-passkeys.spec.ts` adds a virtual USB FIDO2 key used as the second step after a password. **Not verified:** a physical YubiKey, a real webcam, and a real microphone (the preview pane blocks both); the key-phrase bar was calibrated on synthetic speech, so a person's own repeats may need a retake.
 
 ## F10 — User Interface
@@ -1408,7 +1409,7 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 
 #### F10.20 — Ask VAULT: a full chat page where you watch the coordinator hand work to helpers
 
-- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F06.4, F06.8
+- **Priority:** P0 · **Owner:** luke · **Status:** DONE · **Dependencies:** F06.4, F06.8
 - **Description:** a ChatGPT-style page (`/chat`, "Ask VAULT" in the side rail and "Open full chat" in the `/` box). Each reply shows the coordinator's plan and one card per helper, lit by real server events, then the answer with numbered sources that open the document. No mock-ups: every card is one real function call with its measured time.
 - **Implementation scope:**
   - `POST /collections/{id}/agent` (`backend/agents/ask_team.py`, route in `routes_agents.py`) streams NDJSON: `start`, `plan` (rules or local model), `helper` started/progress/finished/failed with `duration_ms` and results, `coordinator` merged/fallback, `answer`, `done`.
@@ -1425,6 +1426,7 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 - **Required tests:** `tests/integration/test_ask_team.py`; e2e `025-ask`.
 - **Blockers:** none
 - **Related PR/commit:** branch `luke/F10.20-agent-chat`
+- **Related PR/commit:** PR #102, merged 2026-11-03 with all CI checks green.
 - **Verification evidence (2026-11-03, Windows 11):**
   - **ruff:** `All checks passed!`, `205 files already formatted`.
   - **pytest:** `294 passed in 297.15s` (full suite, including 3 new tests in `test_ask_team.py`).

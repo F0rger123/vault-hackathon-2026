@@ -139,3 +139,8 @@ Last updated: 2026-11-03
 - **Built:** the repository, backend MVP, dataset, CLI, evaluation and CI.
 - **Merged:** PRs #27–#30. These added the orchestrator, the UI restyle, investigations and the demo reset.
 - **Details:** git history and the `TASKS.md` evidence.
+
+### 2026-11-03: F09.20 and F10.20 merged
+- F09.20 (PR #101): pick any mix of password, passkey, face check and spoken key phrase; camera and mic quality checks; a virtual USB security key in e2e as the second step. Not verified: a physical YubiKey, a real webcam, a real mic.
+- F10.20 (PR #102): `/chat` Ask VAULT page. The coordinator streams its plan and hands work to real helpers, two of them in parallel. Not verified: llama3 writing the answer live.
+- Waiting on Luke: try a real key, the webcam and the mic; record the video; submit by Nov 4, 9 PM ET.
