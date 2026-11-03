@@ -1112,8 +1112,8 @@ class Builder:
             f"Project: Alpha\n{part_line(alpha.parts[5])}\n".encode(),
             "txt",
             "199-character filename",
-            # sanitize_filename cuts names to 180 characters before the extension check, so the .txt is lost.
-            "rejected today: VAULT trims the name to 180 characters, dropping the .txt (likely a VAULT bug)",
+            # Found by this set: names were cut to 180 characters without their extension. Fixed in F11.7.
+            ACCEPTED + "; the stored name is shortened to 180 characters and keeps .txt",
             parts=[alpha.parts[5].number],
         )
         put(
