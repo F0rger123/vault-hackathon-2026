@@ -3,7 +3,8 @@
 This is the word-for-word script and click path for the hackathon video. The timing table and segment statuses are in [`DEMO_STORYBOARD.md`](DEMO_STORYBOARD.md).
 
 - **Target:** 2:50 of footage plus 10 seconds of slack. At a normal speaking pace, about 140 words a minute, the narration below (about 300 words) runs about 2:10, leaving room for pauses and clicks.
-- **Rule:** show only things that really work, on fictional data. If a feature is not merged by Nov 2, cut its lines.
+- **Rule:** show only things that really work, on fictional data. If a feature is not merged when you record, cut its lines.
+- **Official video rules:** the public event pages (dev.meta.ai/events/global-hackathon, cerebralvalley.ai) do not state the video length, hosting or required content (checked 2026-11-03). The Official Rules sit behind the Cerebral Valley portal login. Check there for the length limit, the hosting (YouTube or Loom, public or unlisted) and any required mentions before uploading. Public judging text for the Indie track: "creativity, technical ambition, and whether it works", so the script shows each of these.
 
 ## Before you record
 
@@ -25,11 +26,11 @@ This is the word-for-word script and click path for the hackathon video. The tim
 ### 0:20–0:40 · It runs here (sign in, Overview)
 
 **Show:**
-- The VAULT window. Sign in with **Sign in with face, fingerprint or security key**; Windows Hello appears.
+- The VAULT window. Sign in with your password; the step trail lights up and asks for the **Face check** (and **Key phrase** if you chose it). The camera checks, then the scores go green.
 - On the Overview, scroll to **Meta models for this computer**: the graphics card, the recommended Llama models and the Install buttons.
 
 **Say:**
-> "VAULT is an app on this laptop. I sign in with my face, and the face never leaves the device. It checks the hardware and installs the Meta Llama models that fit, so no document ever leaves the machine."
+> "VAULT is an app on this laptop. Each person picks their own sign-in steps: password, passkey or security key, a face check, a spoken phrase. The face check runs on this computer and only numbers are kept. VAULT checks the hardware and installs the Meta Llama models that fit, so no document ever leaves the machine."
 
 ### 0:40–1:05 · Reading with Llama (Progress page)
 
@@ -41,14 +42,14 @@ This is the word-for-word script and click path for the hackathon video. The tim
 **Say:**
 > "A coordinator hands documents to parallel Llama lanes, and a security gate checks every file first. Every fact Llama extracts must quote its page. Files already read are skipped, and I can ask the coordinator how the run is going."
 
-### 1:05–1:35 · Finding what disagrees (Investigate)
+### 1:05–1:35 · Ask VAULT: a coordinator and its helpers
 
 **Show:**
-- **Investigate**: open the BV-7891 conflict card. It shows 600 psi in the inspection and 1500 psi on the drawings, with both quotes "Verified in source".
-- Ask: *"Which parts in Project Alpha have conflicting pressure ratings?"* Click a numbered citation.
+- **Ask VAULT**: press *"Which parts have conflicting pressure ratings?"*. The Coordinator plans; Finder and Conflict checker light up at the same time; Answer writer runs on Llama 3; Fact checker ticks "3 of 3 cited sentences verified". About 16 s live; trim the wait and say so on screen.
+- Click source 1: the drawing opens on the cited line. Optionally switch to **Brain** and watch the helpers fly to the same documents.
 
 **Say:**
-> "This valve is rated 1500 psi on six drawings but was tested at 600. VAULT found it across documents and shows both lines. Ask in plain words, and every sentence of the answer cites a source VAULT has checked."
+> "Ask in plain words. A coordinator agent splits the job: one helper searches, another checks recorded conflicts at the same time, Llama writes the answer, and a fact checker confirms every number appears in a cited line. BV-7891 is rated 1500 psi on the drawings but was tested at 600."
 
 ### 1:35–2:05 · It learns your organization (Brain and Training)
 
