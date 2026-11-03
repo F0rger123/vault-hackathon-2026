@@ -1,7 +1,8 @@
 """Organization proposals: plan, preview, approve, then export copies.
 
 Executing an approved proposal copies originals into a new export folder. Originals and their
-source locations are never moved, renamed or modified.
+source locations are never moved, renamed or modified. Each copy written is listed in the result and recorded
+in the collection's activity feed (F10.22) with its path inside the export folder.
 """
 
 import re
@@ -12,6 +13,7 @@ from backend.core.config import Settings
 from backend.indexing.findings import LATEST_EXTRACTION
 from backend.security.files import original_path, safe_join, sanitize_filename
 from backend.storage.db import dumps, loads, now
+from backend.workers import activity
 
 PATTERN_FIELDS = {"project", "doc_type", "year"}
 DEFAULT_PATTERN = "{project}/{doc_type}/{year}"
@@ -77,10 +79,20 @@ def execute_proposal(conn: sqlite3.Connection, settings: Settings, proposal_id: 
         return execute_share(conn, settings, proposal_id, plan)
     export_root = settings.exports_dir / f"proposal-{proposal_id}"
     export_root.mkdir(parents=True, exist_ok=True)
-    copied, used = 0, set()
+    copied, used, items = 0, set(), []
+    export_rel = export_root.relative_to(settings.data_dir).as_posix()
     for item in plan["items"]:
         doc = conn.execute("SELECT stored_path, status FROM documents WHERE id = ?", (item["document_id"],)).fetchone()
         if not doc or doc["status"] == "quarantined":
+            items.append(
+                {
+                    "document_id": item["document_id"],
+                    "filename": item["filename"],
+                    "target": None,
+                    "copied": False,
+                    "reason": "held by the security gate" if doc else "no longer in the collection",
+                }
+            )
             continue
         target_rel = item["target"]
         stem, dot, ext = target_rel.rpartition(".")
@@ -94,4 +106,18 @@ def execute_proposal(conn: sqlite3.Connection, settings: Settings, proposal_id: 
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(source, target)
         copied += 1
-    return {"export_dir": export_root.relative_to(settings.data_dir).as_posix(), "copied": copied}
+        items.append(
+            {"document_id": item["document_id"], "filename": item["filename"], "target": target_rel, "copied": True}
+        )
+        activity.record(
+            conn,
+            p["collection_id"],
+            "Organizer",
+            "copied",
+            item["document_id"],
+            run=f"proposal-{proposal_id}",
+            filename=item["filename"],
+            target=target_rel,
+            export_dir=export_rel,
+        )
+    return {"export_dir": export_rel, "copied": copied, "items": items}

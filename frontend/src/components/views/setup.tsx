@@ -153,6 +153,7 @@ function Library({ collectionId, canUpload, onUploaded }: { collectionId: number
   const [dragging, setDragging] = useState(false);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<UploadResult | null>(null);
+  const [rows, setRows] = useState<UploadRow[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   return (
@@ -167,7 +168,32 @@ function Library({ collectionId, canUpload, onUploaded }: { collectionId: number
             setError(null);
             setResult(null);
             try {
-              const r = await vault.upload(collectionId, files);
+              // F10.22: one request per file (three at a time), so each row below changes when the server has
+              // really stored and checked that file, rather than one spinner for the whole batch.
+              const queue = files.map((f, i) => ({ f, i }));
+              setRows(files.map((f) => ({ name: f.name, size: f.size, state: "waiting" })));
+              const setRow = (i: number, row: Partial<UploadRow>) =>
+                setRows((rs) => rs.map((r, n) => (n === i ? { ...r, ...row } : r)));
+              const total: UploadResult = { accepted: [], rejected: [] };
+              const worker = async () => {
+                for (let next = queue.shift(); next; next = queue.shift()) {
+                  const { f, i } = next;
+                  setRow(i, { state: "storing" });
+                  try {
+                    const one = await vault.upload(collectionId, [f]);
+                    total.accepted.push(...one.accepted);
+                    total.rejected.push(...one.rejected);
+                    const ok = one.accepted[0];
+                    if (ok) setRow(i, { state: ok.duplicate ? "duplicate" : "stored", accepted: ok });
+                    else setRow(i, { state: "refused", reason: one.rejected[0]?.reason ?? "not accepted" });
+                  } catch (err) {
+                    total.rejected.push({ filename: f.name, reason: errorText(err) });
+                    setRow(i, { state: "refused", reason: errorText(err) });
+                  }
+                }
+              };
+              await Promise.all(Array.from({ length: Math.min(3, files.length) }, worker));
+              const r = total;
               setResult(r);
               setFiles([]);
               if (input.current) input.current.value = "";
@@ -230,6 +256,7 @@ function Library({ collectionId, canUpload, onUploaded }: { collectionId: number
         <p className="text-sm text-muted">Viewers can read the collection. Analysts and admins can add files.</p>
       )}
       {error && <Notice className="mt-3">Upload failed: {error}</Notice>}
+      {rows.length > 0 && <UploadRows rows={rows} />}
       {result && (
         <div className="mt-3 text-sm">
           <p>
@@ -254,6 +281,55 @@ function Library({ collectionId, canUpload, onUploaded }: { collectionId: number
         </div>
       )}
     </Panel>
+  );
+}
+
+interface UploadRow {
+  name: string;
+  size: number;
+  state: "waiting" | "storing" | "stored" | "duplicate" | "refused";
+  accepted?: UploadResult["accepted"][number];
+  reason?: string;
+}
+
+const ROW_STATE: Record<UploadRow["state"], { mark: string; tone: string; word: string }> = {
+  waiting: { mark: "·", tone: "text-muted", word: "Waiting" },
+  storing: { mark: "…", tone: "text-ink", word: "Checking and storing" },
+  stored: { mark: "✓", tone: "text-green", word: "Stored and checked" },
+  duplicate: { mark: "=", tone: "text-muted", word: "Already in the vault" },
+  refused: { mark: "✕", tone: "text-redline", word: "Refused" },
+};
+
+/** F10.22: one line per file, changed only by that file's own upload response. */
+function UploadRows({ rows }: { rows: UploadRow[] }) {
+  const finished = rows.filter((r) => r.state !== "waiting" && r.state !== "storing").length;
+  return (
+    <div className="mt-3">
+      <p className="mb-1 text-xs text-muted" aria-live="polite">
+        {finished} of {rows.length} {rows.length === 1 ? "file" : "files"} answered by the server
+      </p>
+      <ol aria-label="Files being stored" className="flex max-h-64 flex-col gap-1 overflow-auto text-sm">
+        {rows.map((r, i) => {
+          const s = ROW_STATE[r.state];
+          return (
+            <li key={`${r.name}-${i}`} data-upload={r.state} className="flex min-w-0 items-start gap-2">
+              <span aria-hidden className={cx("w-4 shrink-0 text-center font-mono", s.tone)}>
+                {s.mark}
+              </span>
+              <span className="min-w-0 flex-1 break-words">
+                <span className="font-mono text-[13px]">{r.name}</span>{" "}
+                <span className={cx("text-xs", r.state === "refused" ? "text-redline" : "text-muted")}>
+                  {s.word}
+                  {r.accepted && r.state === "stored" &&
+                    `: ${r.accepted.media_type}${r.accepted.page_count ? `, ${r.accepted.page_count} ${r.accepted.page_count === 1 ? "page" : "pages"}` : ""}, fingerprint ${r.accepted.sha256.slice(0, 10)}`}
+                  {r.reason && `: ${r.reason}`}
+                </span>
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
   );
 }
 

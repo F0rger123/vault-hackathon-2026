@@ -9,8 +9,9 @@ import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 import { CSS2DObject, CSS2DRenderer } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 import { activityOf, laneSlots, replayDelays, type Activity } from "@/lib/agent-activity";
-import type { AgentEvent, BrainGraph, BrainNode } from "@/lib/api";
+import type { ActivityEvent, AgentEvent, BrainGraph, BrainNode } from "@/lib/api";
 import { humanize } from "@/lib/format";
+import { documentIds, moves } from "@/lib/live-activity";
 import { createSwarm } from "./brain-agents";
 import { Button, cx, inputClass } from "./ui";
 
@@ -29,6 +30,19 @@ const FLY_SPEED = 220; // world units per second
 const REPLAY_SECONDS = 45;
 const STARS = 1400;
 const SPARKS = 240;
+const EXTRAS = 400; // new nodes for files stored or copies written since the map was drawn
+const VISIT = 8; // documents one helper craft visits for one recorded row
+const LINEUP = 10; // documents the Sorter's ranking lines up
+const LINEUP_MS = { out: 700, hold: 2600, back: 700 };
+
+/** A node the map did not have when it was drawn: a file just stored, or a copy just written. */
+interface Birth {
+  key: string;
+  kind: "stored" | "copy";
+  label: string;
+  /** The document a copy was made from, so it appears beside it with a link. */
+  source?: number;
+}
 
 interface Body extends BrainNode {
   p: THREE.Vector3;
@@ -136,6 +150,9 @@ export default function BrainSpace({
   events,
   runId,
   running,
+  activity,
+  liveFrom = Number.MAX_SAFE_INTEGER,
+  side,
 }: {
   graph: BrainGraph;
   onOpenDocument: (id: number) => void;
@@ -144,6 +161,11 @@ export default function BrainSpace({
   events?: AgentEvent[];
   runId?: number | null;
   running?: boolean;
+  /** F10.22: the collection's activity feed. Rows with an id above `liveFrom` play once, as they arrive. */
+  activity?: ActivityEvent[];
+  liveFrom?: number;
+  /** Shown beside the space, under the selection: the activity ticker. */
+  side?: React.ReactNode;
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -156,7 +178,15 @@ export default function BrainSpace({
   });
   const [selected, setSelected] = useState<string | null>(null);
   const [find, setFind] = useState("");
-  const api = useRef<{ paint: () => void; reset: () => void; focus: (id: string) => void; play: (a: Activity, slots?: number) => void } | null>(null);
+  const api = useRef<{
+    paint: () => void;
+    reset: () => void;
+    focus: (id: string) => void;
+    play: (a: Activity, slots?: number) => void;
+    act: (e: ActivityEvent, motion: boolean) => void;
+  } | null>(null);
+  // Nodes added from the feed survive a redraw of the map (the map is drawn again when a run finishes).
+  const births = useRef<Birth[]>([]);
   const feedRef = useRef<HTMLOListElement>(null);
   const [replaying, setReplaying] = useState(false);
   // The scene reads these on its own schedule, so it keeps the latest values in a ref.
@@ -369,14 +399,159 @@ export default function BrainSpace({
       controls.update();
       lastInput = performance.now();
     };
+    // F10.22: nodes born from the feed (a file stored, a copy written) and the links from a copy to its source.
+    const extraMaterial = new THREE.MeshBasicMaterial();
+    const extraMesh = new THREE.InstancedMesh(sphere, extraMaterial, EXTRAS);
+    extraMesh.count = 0;
+    extraMesh.frustumCulled = false;
+    scene.add(extraMesh);
+    const linkPositions = new Float32Array(EXTRAS * 6);
+    const linkGeometry = new THREE.BufferGeometry();
+    linkGeometry.setAttribute("position", new THREE.BufferAttribute(linkPositions, 3));
+    linkGeometry.setDrawRange(0, 0);
+    const linkMaterial = new THREE.LineBasicMaterial({ color: 0x00e676, transparent: true, opacity: 0.7 });
+    const links = new THREE.LineSegments(linkGeometry, linkMaterial);
+    links.frustumCulled = false;
+    scene.add(links);
+    const extras: { birth: Birth; p: THREE.Vector3; r: number; born: number; tag: CSS2DObject }[] = [];
+    const extraByKey = new Map<string, (typeof extras)[number]>();
+    let linkCount = 0;
+    const green = new THREE.Color(0x00e676);
+    const drawExtras = (clock: number) => {
+      let moving = false;
+      extras.forEach((x, i) => {
+        const age = (clock - x.born) / 900;
+        if (age < 1) moving = true;
+        const grow = age >= 1 ? 1 : 0.2 + 0.8 * (1 - Math.pow(1 - Math.max(age, 0), 3)) + 0.9 * Math.sin(Math.PI * Math.max(age, 0));
+        m4.compose(x.p, one, s3.setScalar(x.r * grow));
+        extraMesh.setMatrixAt(i, m4);
+        extraMesh.setColorAt(i, x.birth.kind === "copy" ? green : palette.ink);
+      });
+      extraMesh.count = extras.length;
+      extraMesh.instanceMatrix.needsUpdate = true;
+      if (extraMesh.instanceColor) extraMesh.instanceColor.needsUpdate = true;
+      return moving;
+    };
+    let extrasMoving = false;
+    const born = (birth: Birth, animate: boolean) => {
+      if (extraByKey.has(birth.key) || extras.length >= EXTRAS) return null;
+      const source = birth.source != null ? (byId.get(`doc:${birth.source}`) ?? extraByKey.get(`doc:${birth.source}`)) : undefined;
+      const n = extras.length;
+      const p = source
+        ? source.p.clone().add(new THREE.Vector3().randomDirection().multiplyScalar(radius * 0.07 + RADIUS.document * 3))
+        : // New files gather on a ring around the space until VAULT reads them and they join their clusters.
+          new THREE.Vector3(Math.cos(n * 2.399963), ((n % 9) - 4) * 0.035, Math.sin(n * 2.399963)).multiplyScalar(radius * 1.08);
+      const el = document.createElement("div");
+      const span = document.createElement("span");
+      span.textContent = birth.label;
+      span.className = cx("block max-w-[220px] truncate whitespace-nowrap font-mono text-[10px]", birth.kind === "copy" ? "text-[#00e676]" : "text-ink");
+      span.style.marginLeft = "14px";
+      span.style.textShadow = "0 0 3px var(--raised), 0 0 3px var(--raised)";
+      el.appendChild(span);
+      const tag = new CSS2DObject(el);
+      tag.center.set(0, 0.5);
+      tag.position.copy(p);
+      scene.add(tag);
+      const x = { birth, p, r: RADIUS.document * (birth.kind === "copy" ? 0.9 : 1.1), born: animate ? performance.now() : -1e9, tag };
+      extras.push(x);
+      extraByKey.set(birth.key, x);
+      // Only the newest few keep their names on screen, so a big import does not bury the space in labels.
+      extras.forEach((e, i) => (e.tag.visible = i >= extras.length - 6));
+      if (source && linkCount < EXTRAS) {
+        linkPositions.set([source.p.x, source.p.y, source.p.z, p.x, p.y, p.z], linkCount * 6);
+        linkCount += 1;
+        linkGeometry.setDrawRange(0, linkCount * 2);
+        linkGeometry.attributes.position.needsUpdate = true;
+        if (animate) {
+          sparks.push({ from: source.p, to: p, t: 0, slot: sparkSlot });
+          sparkSlot = (sparkSlot + 1) % SPARKS;
+        }
+      }
+      extrasMoving = drawExtras(performance.now()) || animate;
+      return x;
+    };
+    // Rebuilding the map keeps what the feed already added, except files that are now read and have their own node.
+    births.current = births.current.filter((b) => !(b.kind === "stored" && byId.has(b.key)));
+    for (const b of births.current) born(b, false);
+
+    // F10.22: the Sorter's ranking. The touched documents line up across the view in the order it produced, then
+    // return to their places.
+    let lineup: { bodies: Body[]; from: THREE.Vector3[]; to: THREE.Vector3[]; t0: number; tags: CSS2DObject[] } | null = null;
+    const endLineup = () => {
+      if (!lineup) return;
+      lineup.bodies.forEach((b, i) => b.p.copy(lineup!.from[i]));
+      for (const t of lineup.tags) {
+        scene.remove(t);
+        t.element.remove();
+      }
+      lineup = null;
+      paint();
+    };
+    const startLineup = (ids: number[]) => {
+      endLineup();
+      const ranked = ids.map((id) => byId.get(`doc:${id}`)).filter((b): b is Body => !!b).slice(0, LINEUP);
+      if (ranked.length < 2) return;
+      const dist = camera.position.distanceTo(controls.target);
+      const centre = controls.target.clone().lerp(camera.position, 0.35);
+      const dir = new THREE.Vector3();
+      camera.getWorldDirection(dir);
+      const across = new THREE.Vector3().crossVectors(dir, camera.up).normalize();
+      // A tall phone screen ranks top to bottom; a wide one left to right.
+      const axis = camera.aspect < 1 ? camera.up.clone().normalize().negate() : across;
+      const span = dist * 0.65 * 0.55 * (camera.aspect < 1 ? 1 : Math.min(camera.aspect, 1.6));
+      const to = ranked.map((_, i) => centre.clone().addScaledVector(axis, -span / 2 + (span * i) / (ranked.length - 1)));
+      const tags = ranked.map((b, i) => {
+        const el = document.createElement("div");
+        el.className = "whitespace-nowrap font-mono text-[10px] text-ink";
+        el.style.marginLeft = "12px";
+        el.style.textShadow = "0 0 3px var(--raised), 0 0 3px var(--raised)";
+        el.textContent = `${i + 1}. ${b.label.length > 26 ? `${b.label.slice(0, 25)}…` : b.label}`;
+        const tag = new CSS2DObject(el);
+        tag.center.set(0, 0.5);
+        scene.add(tag);
+        return tag;
+      });
+      lineup = { bodies: ranked, from: ranked.map((b) => b.p.clone()), to, t0: performance.now(), tags };
+    };
+    const stepLineup = (clock: number) => {
+      if (!lineup) return;
+      const t = clock - lineup.t0;
+      const total = LINEUP_MS.out + LINEUP_MS.hold + LINEUP_MS.back;
+      if (t >= total) return endLineup();
+      const k =
+        t < LINEUP_MS.out
+          ? t / LINEUP_MS.out
+          : t < LINEUP_MS.out + LINEUP_MS.hold
+            ? 1
+            : 1 - (t - LINEUP_MS.out - LINEUP_MS.hold) / LINEUP_MS.back;
+      const e = 1 - Math.pow(1 - Math.min(Math.max(k, 0), 1), 3);
+      lineup.bodies.forEach((b, i) => {
+        b.p.lerpVectors(lineup!.from[i], lineup!.to[i], e);
+        lineup!.tags[i].position.copy(b.p);
+        lineup!.tags[i].visible = e > 0.6;
+      });
+      paint();
+    };
+
     const swarm = createSwarm({
       scene,
       radius,
-      docPosition: (id) => byId.get(`doc:${id}`)?.p ?? null,
+      docPosition: (id) => byId.get(`doc:${id}`)?.p ?? extraByKey.get(`doc:${id}`)?.p ?? null,
       onTouch: (a, who) => {
         const id = `doc:${a.document_id}`;
+        if (a.verb === "copied" && a.target && a.document_id != null) {
+          // The copy appears beside its source when the Organizer's craft reaches it.
+          const b: Birth = { key: `copy:${a.target}`, kind: "copy", label: a.target, source: a.document_id };
+          if (born(b, true)) births.current.push(b);
+        }
         const body = byId.get(id);
         if (!body) return;
+        if (a.who) {
+          // A helper's touch lights the document; the ticker beside the space tells it in words.
+          touched.add(id);
+          flashes.set(id, performance.now());
+          return;
+        }
         touched.add(id);
         flashes.set(id, performance.now());
         for (const other of neighbours.get(id) ?? []) {
@@ -394,7 +569,34 @@ export default function BrainSpace({
         }
       },
     });
-    api.current = { paint, reset, focus, play: (a, slots) => swarm.feed(a, slots) };
+    /** One recorded activity row, drawn. With motion off, new nodes still appear but nothing flies or lines up. */
+    const act = (e: ActivityEvent, motion: boolean) => {
+      const ids = documentIds(e);
+      if (e.action === "stored" || e.action === "media_stored") {
+        if (e.document_id == null || byId.has(`doc:${e.document_id}`)) return;
+        const b: Birth = { key: `doc:${e.document_id}`, kind: "stored", label: e.detail.filename ?? `document ${e.document_id}` };
+        if (born(b, motion)) births.current.push(b);
+        return;
+      }
+      if (e.action === "copied") {
+        const target = e.detail.target;
+        if (!target || e.document_id == null) return;
+        const reachable = byId.has(`doc:${e.document_id}`) || extraByKey.has(`doc:${e.document_id}`);
+        if (!motion || !reachable) {
+          const b: Birth = { key: `copy:${target}`, kind: "copy", label: target, source: e.document_id };
+          if (born(b, motion)) births.current.push(b);
+          return;
+        }
+        swarm.feed({ id: e.id, ts: e.ts, worker: "helper:Organizer", verb: "copied", document_id: e.document_id, who: e.actor, target });
+        return;
+      }
+      if (!motion) return;
+      if (e.action === "sorted") startLineup(ids);
+      for (const id of ids.slice(0, e.action === "sorted" ? 3 : VISIT)) {
+        swarm.feed({ id: e.id, ts: e.ts, worker: `helper:${e.actor}`, verb: e.action, document_id: id, who: e.actor });
+      }
+    };
+    api.current = { paint, reset, focus, play: (a, slots) => swarm.feed(a, slots), act };
 
     // Picking: a ray against the spheres first, then the nearest dot on screen so small documents stay easy to hit.
     const ray = new THREE.Raycaster();
@@ -546,6 +748,8 @@ export default function BrainSpace({
         tag.element.style.filter = far > 0.55 ? `opacity(${Math.max(0.15, 1.3 - far * 1.4)})` : "";
       }
       swarm.update(dt);
+      stepLineup(now);
+      if (extrasMoving) extrasMoving = drawExtras(now);
       // Fly each spark along its link, and let a touched document swell and settle.
       for (let i = sparks.length - 1; i >= 0; i--) {
         const s = sparks[i];
@@ -621,6 +825,15 @@ export default function BrainSpace({
       for (const tag of tags.values()) tag.element.remove();
       labels.domElement.remove();
       swarm.dispose();
+      if (lineup) {
+        lineup.bodies.forEach((b, i) => b.p.copy(lineup!.from[i]));
+        for (const t of lineup.tags) t.element.remove();
+      }
+      for (const x of extras) x.tag.element.remove();
+      extraMesh.dispose();
+      extraMaterial.dispose();
+      linkGeometry.dispose();
+      linkMaterial.dispose();
       composer.dispose();
       starGeometry.dispose();
       starMaterial.dispose();
@@ -675,6 +888,27 @@ export default function BrainSpace({
     return () => list.current.forEach((t) => window.clearTimeout(t));
   }, []);
 
+  // F10.22: each new activity row plays once, when it arrives. Rows from before the page opened never move anything.
+  // Processing reads are flown by the run's own events above, so here only helpers, copies and new files act.
+  const actedTo = useRef(0);
+  const actTimers = useRef<number[]>([]);
+  useEffect(() => {
+    if (!api.current || !activity?.length) return;
+    const motion = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const due = activity.filter((e) => e.id > Math.max(liveFrom, actedTo.current) && moves(e));
+    if (!due.length) return;
+    actedTo.current = due[due.length - 1].id;
+    // Rows that arrive in one poll keep their recorded order and are spaced out a little, so each can be seen.
+    due.forEach((e, i) => {
+      if (i === 0) api.current?.act(e, motion);
+      else actTimers.current.push(window.setTimeout(() => api.current?.act(e, motion), Math.min(i * 450, 6000)));
+    });
+  }, [activity, liveFrom]);
+  useEffect(() => {
+    const list = actTimers;
+    return () => list.current.forEach((t) => window.clearTimeout(t));
+  }, []);
+
   const sel = selected ? nodeById.get(selected) : null;
   const selDocs = sel
     ? [...(neighbours.get(sel.id) ?? [])].map((id) => nodeById.get(id)).filter((n): n is BrainNode => n?.kind === "document")
@@ -715,8 +949,8 @@ export default function BrainSpace({
           Reset view
         </Button>
       </div>
-      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_260px]">
-        <div ref={wrapRef} className="space-scope relative h-[620px] overflow-hidden rounded-control border border-line bg-black">
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <div ref={wrapRef} className="space-scope relative h-[440px] overflow-hidden sm:h-[620px] rounded-control border border-line bg-black">
           <canvas
             ref={canvasRef}
             tabIndex={0}
@@ -734,7 +968,8 @@ export default function BrainSpace({
             Drag to look · Scroll to zoom · Click here, then W A S D or arrows to fly · Q / E down and up
           </p>
         </div>
-        <aside className="flex max-h-[560px] flex-col gap-2 overflow-auto rounded-control border border-line p-3 text-sm">
+        <div className="flex min-w-0 flex-col gap-3 lg:max-h-[620px]">
+        <aside className={cx("flex flex-col gap-2 overflow-auto rounded-control border border-line p-3 text-sm", side ? "max-h-56 shrink-0" : "max-h-[560px]")}>
           {sel && sel.kind !== "document" ? (
             <>
               <p className="font-medium">
@@ -761,6 +996,8 @@ export default function BrainSpace({
             </p>
           )}
         </aside>
+        {side}
+        </div>
       </div>
       {graph.documents_shown < graph.documents_total && (
         <p className="text-xs text-muted">

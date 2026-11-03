@@ -1176,7 +1176,7 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 - **Acceptance criteria:** every new admin route needs `users:manage` with a denied-case test; public routes have the own-origin check and the login-style rate limit; one answer for unknown, used, withdrawn and expired codes; nothing secret in errors or the audit trail; keyboard and phone width work.
 - **Required tests:** `tests/security/test_invites.py`, `frontend/scripts/qr.test.mjs` (`npm run test:qr`), e2e `tests/e2e/specs/0595-invite.spec.ts`.
 - **Blockers:** none
-- **Related PR/commit:** branch `luke/F09.21-invite-wizard` (not pushed yet). Migration 12 (after F11.8's migration 11) adds `invites` and `users.requested_steps`.
+- **Related PR/commit:** branch `luke/F09.21-invite-wizard` (not pushed yet). Migration 13 (after F11.8's 11 and F10.22's 12) adds `invites` and `users.requested_steps`.
 - **Verification evidence (2026-11-03):** `test_invites.py` 8 passed (roles from the enforced table, admins only, accept once and signed in, expired/withdrawn/unknown answer alike, other origin 403, rate limit 429, requested steps switch on through the real key-phrase route, temporary password with requested steps). Full pytest, ruff, eslint, `tsc --noEmit` and `next build` pass. QR encoder: 5 tests pass, including the standard's Reed-Solomon and format/version examples and a round trip through a separate reader for every mask and lengths up to 213 bytes. e2e `0595-invite.spec.ts` passed (Chromium, ports 8410/3410): wizard, copy link, fresh browser joins, signed in as the new analyst, link refused the second time. Checked by eye at 1280 and 390 px wide. **Not verified:** scanning the QR code with a real phone camera (no QR reader is available here; the round-trip test reads the code back in software).
 
 ## F10 — User Interface
@@ -1444,6 +1444,34 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
   - **frontend:** `npm run lint` clean, `npx tsc --noEmit` clean, `npm run build` compiled with `/chat`.
   - **e2e:** `26 passed (2.2m)` (full suite, including `025-ask` on desktop and at 390 px).
   - **Not verified:** a run with Ollama and llama3 answering. Tests and e2e use the rules.
+
+#### F10.22 — Live brain: see files stored, read, looked at, sorted and copied, from a real activity record
+
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F07.8, F10.16, F10.20
+- **Description:** Luke: "There should be no mock-ups when it's creating files, looking through files, sorting it. You should visually see that and also visually see it happening inside of the 3D brain." One activity feed per collection records what VAULT actually does to files, and the Brain draws only that record, live.
+- **Implementation scope:**
+  - Migration 11: `activity` table (`collection_id`, `ts`, `actor`, `action`, `document_id`, `run`, `detail`). Triggers copy in files stored (`stored`, `media_stored` for pictures and media) and per-document processing events (`read`, `reviewed`, `held`, `flagged`), so the import and processing code are unchanged. `backend/workers/activity.py` records and pages it.
+  - Ask VAULT helpers record the documents they used, under the reply's run id (`ask-…`, sent in the `start` event): Finder `looked_at` (hit order), Sorter `sorted` (its order), Conflict checker `checked_conflicts`, Answer writer `cited`, Fact checker `fact_checked`.
+  - Approved reorganizations record each copy (`copied`, export-relative `target`) and return `result.items`.
+  - `GET /collections/{id}/activity?after_id=&limit=&run=` (`documents:read`). Ids, counts, names and export-relative paths only; never document text or disk paths.
+  - Brain: polls every 1.5 s while open. Helper craft labelled with the helper's name fly to the documents in each new row; the Sorter's top ten line up in its order and return; copies appear as green nodes linked to their source, labelled with the new path; new files appear on a ring until read. Rows from before the page opened are listed as "Earlier" and never replayed. Ticker "What VAULT is doing" with times; "Idle: nothing is happening right now" when nothing new arrives. Reduced motion: list only, nothing flies. Phone width works.
+  - Ask VAULT replies link "Watch in the brain" (`/brain?run=ask-…`), which shows only that reply's record, played once. Approvals list each copy written (source → new path, a tick per confirmed copy) from the approval's response, with a link to watch them in the brain. Add files uploads one file per request (three at a time) and each file's line changes on its own response (stored and checked, already in the vault, or refused with the reason).
+- **Acceptance criteria:**
+  - A chat question records Finder, Conflict checker, Answer writer and Fact checker rows whose document ids match the answer's sources; a sorted list records the Sorter's order as shown.
+  - An approval records one `copied` row per file written, matching `result.items`.
+  - Imports and reads are recorded; a duplicate upload records nothing.
+  - The feed pages by `after_id`, is per collection, and refuses no token (401), a bad token (401), a missing collection (404) and invalid parameters (422).
+  - The e2e test sees the Finder row in the brain's ticker after asking in chat.
+- **Required tests:** `tests/integration/test_activity.py`; e2e `0585-live-brain`, `058-brain`, `025-ask`.
+- **Blockers:** none
+- **Related PR/commit:** branch `luke/F10.22-live-brain`
+- **Verification evidence (2026-11-03, Windows 11):**
+  - **ruff:** `All checks passed!`, `211 files already formatted`.
+  - **pytest:** 306 tests, all passed, exit code 0 (full suite with `-q`, including 4 new tests in `test_activity.py`).
+  - **frontend:** `npm run lint` clean, `npx tsc --noEmit` clean, `npm run build` compiled all 13 routes.
+  - **e2e:** `5 passed (1.1m)` for `0585-live-brain`, `058-brain` and `025-ask` (desktop project, ports 8440/3440).
+  - **Seen in a browser (Playwright screenshots, demo data):** Finder and Conflict checker craft at their documents, copies in green with their new paths after an approval, the ticker idle afterwards, the page at 390 px with no sideways scroll.
+  - **Not verified:** the Sorter line-up was not caught on a screenshot (it lasts about 4 s); its order is checked by pytest against the recorded row. A run with Ollama answering was not tried.
 
 #### F10.21 — A sharper look and a better logo; face check set-up with a phone fallback
 

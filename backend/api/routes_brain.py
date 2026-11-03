@@ -2,14 +2,14 @@
 
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from backend.api.deps import get_conn, require
 from backend.api.routes import _collection
 from backend.security import audit
 from backend.security.auth import Principal
-from backend.workers import brain
+from backend.workers import activity, brain
 from backend.workers.brain_graph import graph
 
 router = APIRouter(prefix="/api/v1")
@@ -43,6 +43,20 @@ def get_brain_graph(
 ) -> dict:
     _collection(conn, collection_id)
     return graph(conn, collection_id)
+
+
+@router.get("/collections/{collection_id}/activity")
+def get_activity(
+    collection_id: int,
+    after_id: int = Query(default=0, ge=0),
+    limit: int = Query(default=100, ge=1, le=500),
+    run: str | None = Query(default=None, pattern=r"^[A-Za-z0-9-]{1,40}$"),
+    conn=Depends(get_conn),
+    _: Principal = Depends(require("documents:read")),
+) -> dict:
+    """What VAULT actually did to this collection's files (F10.22), oldest first after `after_id`."""
+    _collection(conn, collection_id)
+    return activity.feed(conn, collection_id, after_id, limit, run)
 
 
 @router.post("/collections/{collection_id}/brain/knowledge", status_code=201)
