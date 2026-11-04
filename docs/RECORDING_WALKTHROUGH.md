@@ -49,7 +49,7 @@ ollama list
 On **Overview** (Demo mode), press **Download Demo Dataset**, then **Quick Demo Dataset**. Unzip it to
 `C:\VAULT-demo\quick`. This is the folder you drop in during the "How it works" segment.
 
-(If that button is not on your Overview yet, the download feature is not merged: use
+(If the download fails, use
 `data\synthetic\v1\files` instead. It is the same fictional archive.)
 
 ### 5. Check the BV-7891 example works
