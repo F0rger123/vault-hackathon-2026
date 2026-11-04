@@ -30,6 +30,7 @@ const ICONS: Record<string, ReactNode> = {
   "/approvals": <path d="M3 2.5h10v11H3zM5.5 8l2 2 3.5-4" />,
   "/security": <path d="M8 1.8 13 4v4c0 3-2.2 5.2-5 6.2C5.2 13.2 3 11 3 8V4l5-2.2Z" />,
   "/models": <path d="M4 2.5h8v4H4zM4 9.5h8v4H4zM6 4.5h.01M6 11.5h.01M9 4.5h1.5M9 11.5h1.5" />,
+  "/guide": <path d="M2.5 3.5c2-.8 3.8-.6 5.5.8 1.7-1.4 3.5-1.6 5.5-.8v9c-2-.8-3.8-.6-5.5.8-1.7-1.4-3.5-1.6-5.5-.8zM8 4.3v9" />,
 };
 
 const NAV = [
@@ -42,10 +43,14 @@ const NAV = [
   { href: "/approvals", label: "Approvals" },
   { href: "/security", label: "Security" },
   { href: "/models", label: "Models" },
+  { href: "/guide", label: "Guide" },
 ] as const;
 
 // Section headings in the rail, so each place is found by what you want to do.
-const GROUP_START: Record<string, string> = { "/": "Work", "/training": "Teach", "/approvals": "Control" };
+const GROUP_START: Record<string, string> = { "/": "Work", "/training": "Teach", "/approvals": "Control", "/guide": "Help" };
+
+// F10.24: pages that use the full width of the window instead of the usual reading width.
+const WIDE_PAGES = ["/approvals"];
 
 export function sheetNumber(href: string): number {
   return NAV.findIndex((n) => n.href === href) + 1;
@@ -283,6 +288,8 @@ function UserBox() {
 function Chrome({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const ready = useMaybeSession() !== null;
+  const pathname = usePathname();
+  const wide = WIDE_PAGES.some((p) => pathname.startsWith(p));
 
   useEffect(() => {
     if (!open) return;
@@ -362,7 +369,7 @@ function Chrome({ children }: { children: ReactNode }) {
       )}
 
       <MatrixRain className="rain-backdrop" />
-      <main id="main" className={cx("page-enter min-w-0", ready && "vault-glow mx-auto w-full max-w-[1480px] px-4 pb-16 pt-6 sm:px-6 lg:px-10 lg:pt-9")}>
+      <main id="main" className={cx("page-enter min-w-0", ready && "vault-glow mx-auto w-full px-4 pb-16 pt-6 sm:px-6 lg:px-10 lg:pt-9", ready && (wide ? "max-w-none" : "max-w-[1480px]"))}>
         {ready && <DemoBanner />}
         {children}
       </main>

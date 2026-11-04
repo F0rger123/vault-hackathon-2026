@@ -23,6 +23,16 @@ Last updated: 2026-11-03
 
 ## Updates
 
+### 2026-11-03 · merges · F10.24, F09.22, F11.9 done
+- **Done:** Luke approved; PRs #110 (approvals and guide), #113 (face liveness and vault door) and #114 (in-app viewer and realistic files) merged after main was merged into each and CI went 8/8 green. VAULT restarted on main.
+- **Started:** F11.10 huge test set (PR #116, about 2,300 files already generated in `data/testset-huge`), classify and redact (its own task ID and session, PR to follow; auth and file handling, so Luke reviews before merge).
+- **Docs:** `docs/TEST_WALKTHROUGH.md` rewritten for the merged features; `docs/VIDEO_SCRIPT.md` updated (huge set in the hook, classify-and-redact alternative marked [if merged]).
+- **Waiting on Luke:** the real-webcam face test (Test my face now, report the numbers, try a photo of your face); a preview in the desktop window.
+
+### 2026-11-03 · F10.24 · review (PR open, do not auto-merge)
+
+- Full-width Approvals with a list and detail, a View only mode (viewers now have `proposals:read`), admin deleting of requests and of copies inside VAULT's export folder (never originals, audited), and a `/guide` page with a Guide link in the rail.
+- Waiting on Luke: review the two DELETE routes (file handling) before merging.
 ### 2026-11-03 · F11.9 · review
 - **Built:** in-app preview in the document drawer (photos with zoom, PDFs, video, sound, extracted text; full-screen drawer; previews audited as `document.view`; held files never preview) and realistic fictional test files (blueprints, photographs, stamped reports, a fictional newspaper). Branch `luke/F11.9-viewer-real-files`.
 - **Why photos "did not display":** the old button opened a blob URL in a new tab; that tab inherits the app's CSP, which blocked video and sound, and the desktop window sends new tabs to the system browser, where the blob does not exist.

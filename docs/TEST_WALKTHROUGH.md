@@ -1,104 +1,109 @@
-# Test everything in about 30 minutes
+# Test everything in about 40 minutes
 
 A checklist in the order to do it. Each step says what to press and what you should see. Tick it, or note what
 went wrong (a screenshot helps). Fictional data only. [`TEST_GUIDE.md`](TEST_GUIDE.md) has the detail behind each
-screen.
+screen, and the in-app **Guide** (side rail, Help) has the same steps.
 
 ## 0. Get ready (3 min)
 
+- [ ] Pull the latest code: `git checkout main`, then `git pull`.
 - [ ] Ollama is running: `ollama ps` answers (start it with `ollama serve` if not).
 - [ ] VAULT is running: `.\start.ps1`, then open http://localhost:3000 in **Chrome or Edge** (cameras and
       microphones work there; some built-in preview panes block them).
-- [ ] The fictional test set exists: `data\testset-demo` (126 files, 12 MB). To remake it:
-      `.venv\Scripts\python scripts\make_test_files.py --size demo --out data\testset-demo`
+- [ ] The fictional test sets exist (make them again any time, they are the same every run):
+  - Small, quick to show: `data\testset-demo` (about 130 files, 18 MB).
+    `.venv\Scripts\python scripts\make_test_files.py --size demo --out data\testset-demo`
+  - Huge, for the "thousands of files" moment: `data\testset-huge` (about 2,000 files).
+    `.venv\Scripts\python scripts\make_test_files.py --size huge --out data\testset-huge`
 
-## 1. Sign in and look around (3 min)
+## 1. Sign in (3 min)
 
-- [ ] The sign-in screen shows the new VAULT logo (a keyhole in four corner marks) and "Your drawings, reports and
-      contracts, read on this computer."
-- [ ] Press **Admin** under Try the demo. You land on **Overview**.
-- [ ] The side rail says "Private. Runs on this machine." and "llama3 downloaded" (if Ollama is on).
-- [ ] Overview numbers: 150 documents, findings in red. Switch the collection or Demo/Real: the numbers change.
-- [ ] Shrink the window to phone width: nothing scrolls sideways; the menu still works.
+- [ ] The sign-in screen shows the VAULT logo and "Your drawings, reports and contracts, read on this computer."
+- [ ] Under Try the demo, press **Admin**: it is only selected. Nothing opens until you press **Continue as
+      Admin**. Try Analyst and Viewer the same way later.
+- [ ] Overview: 150 documents, findings in red. Switch Demo and Real at the top of the side rail: the numbers
+      change. Switch back to Demo.
 
-## 2. Ask VAULT: the main agent and its helpers (4 min)
+## 2. Ask Keeper (5 min)
 
-- [ ] Side rail > **Ask VAULT**. Press *Which parts have conflicting pressure ratings?*
-- [ ] The **Coordinator** card shows its plan. **Finder** and **Conflict checker** light up "At the same time",
-      each with a real duration.
-- [ ] **Answer writer** says "uses the model" and writes with llama3 (about 15 s).
-- [ ] **Fact checker** says how many cited sentences it verified.
-- [ ] The answer names BV-7891 and others with numbered sources. Click a source: the document opens.
-- [ ] Click a helper card: it shows what it did and what it found.
-- [ ] Try: *find videos*, *longest audio first*, *photos from 2024 sorted by date*, *are my models downloaded?*,
-      *open approvals*.
-- [ ] Press **Watch in the brain** under a reply.
+- [ ] Side rail > **Ask Keeper**. Type *Which parts have conflicting pressure ratings?* and press Enter.
+- [ ] The question flies up into the thread. On the right, the brain lights up: Finder and Conflict checker go out
+      to real documents at the same time and bring results back.
+- [ ] The answer types out (Llama, about 15 s). It names BV-7891: 1,500 psi on the drawing, 600 psi tested. Each
+      cited sentence gets a green tick from the fact checker.
+- [ ] A red conflict card shows both quotes side by side. Click a source: the document opens in the drawer.
+- [ ] Try: *longest videos first*, *photos from 2024 sorted by date*, *are my models downloaded?*,
+      *open approvals*. Use the Refine chips and the Export menu in the header.
+- [ ] Thumbs up an answer. The header counts what Keeper has learned. Ask the same question again: it is
+      recalled and checked again.
+- [ ] Old link: open http://localhost:3000/investigate. It sends you to Ask Keeper.
 
-## 3. The brain, live (3 min)
+## 3. Open files in the app (3 min)
 
-- [ ] **Brain**: the 3D map of the collection. Drag to turn, scroll to zoom.
-- [ ] The ticker "What VAULT is doing" says **Idle** when nothing happens. Old events are marked Earlier and do not
-      replay.
-- [ ] Keep Brain open in one tab and ask a question in Ask VAULT in another: helper craft labelled Finder, Conflict
-      checker and so on fly to the real documents; the ticker lists each step.
-- [ ] Answer one of VAULT's open questions on the Brain page; it is used on the next run.
+- [ ] In any result, open a **photo**: it shows in the drawer, with zoom. Press **Full screen**.
+- [ ] Open a **blueprint PDF**, a **stamped inspection report** (APPROVED / REJECTED stamp), a **newspaper**
+      (*The Brackwater Ledger*), a **video** and a **sound** file. Each plays or shows inside VAULT.
+- [ ] **Download** still saves a copy. A held file (for example the PDF with JavaScript) never previews.
+- [ ] In the desktop window (not the browser), try one preview too. Claude could not test the desktop window.
 
-## 4. Add files, including photos, video and sound (5 min)
+## 4. The huge archive (5 min, start it early)
 
-- [ ] Switch to **Real** mode (top of the side rail) and make a new collection, so demo data stays clean.
-- [ ] **Add files**: drop the whole `data\testset-demo` folder.
-- [ ] Each file gets its own line: stored and checked, already in the vault, or refused with the reason. Expect
-      about 18 refused (wrong extensions, empty, corrupt, too big) and 2 held (a PDF with JavaScript, for example).
-- [ ] Press the read button. **Progress** shows the run live: the server check every 3 s, documents left, lanes
-      working. The Brain (other tab) shows new files appearing, then being read.
-- [ ] **Investigate**: Kind of file = Video. Each row shows details like "Video · 0:06 · 320×240". Sort by length.
-- [ ] Kind of file = Photo, sort by date taken. Photos show the fake camera and date.
-- [ ] Search a word that is only in a photo's name: it is found by name. VAULT says photos and videos are found by
-      name, date and details, not by what is inside them.
-- [ ] Open a stamped inspection PDF: the APPROVED / QC PASSED / REJECTED text is searchable.
+- [ ] Switch to **Real** mode and make a new collection called *Huge test*, so demo data stays clean.
+- [ ] **Add files**: drop the whole `data\testset-huge` folder. Each file gets a line: stored, already in the
+      vault, or refused with the reason (wrong type, empty, corrupt, too big). A few are held (hidden scripts).
+- [ ] Press the read button. **Progress** shows the run live. Use the **heuristic** reader for speed; Llama on
+      2,000 files takes a long time, so start it well before recording if you want Llama.
+- [ ] **Brain**: thousands of nodes appear, then fill in as they are read. Drag to turn, scroll to zoom.
+- [ ] Ask Keeper in this collection: *find the newspaper articles*, *inspection reports that were rejected*.
 
-## 5. Findings and approvals (3 min)
+## 5. Classified and redacted (5 min) — only once the classify-and-redact PR is merged
 
-- [ ] Back in **Demo** mode: **Investigate** shows the BV-7891 conflict (600 psi tested, 1500 psi on drawings), both
-      quotes verified.
-- [ ] **Approvals**: approve the waiting request as admin. Each copy written is listed (source to new path) with a
-      tick. Originals never change.
-- [ ] Brain shows the copies as new green nodes next to their sources.
+- [ ] Open a contract with prices or a page with names and phone numbers. Press **Classify and redact**.
+- [ ] Keeper suggests a label (Public, Internal, Confidential or Restricted), the reason, and the parts to black
+      out. Nothing changes yet: it is a request in **Approvals**.
+- [ ] Approve it as Admin. The badge appears on the document; redacted parts show as black bars.
+- [ ] In Ask Keeper type *mark the pricing contracts as confidential*: Keeper makes the request for you.
+- [ ] Sign in as **Viewer**: redacted parts read `[REDACTED ...]`, and Restricted documents do not appear in
+      lists, search or answers at all.
+- [ ] The original file is unchanged (its fingerprint is the same in the document details).
 
-## 6. Invite someone (3 min)
+## 6. Approvals (3 min)
 
-- [ ] **Security > People > Invite someone**. Walk the steps: name, role (the screen lists what that role can and
-      cannot do), sign-in steps, how they get in, review.
-- [ ] Copy the link (or scan the QR with your phone). Open it in a private window: "admin invited you as ...".
-      Choose a password: you land signed in as that person.
-- [ ] Open the link again: it is refused (single use). The invite is gone from "Invites waiting".
+- [ ] **Approvals** fills the whole window: the list on the left, the details on the right.
+- [ ] **View only** tab: open requests and their copies with no buttons. As Viewer, it is the only mode.
+- [ ] As Admin, approve a request: each copy written is listed with a tick. Originals never change.
+- [ ] Delete one copy, then delete a whole request with its copies. The dialog says exactly what goes and that
+      originals are never deleted.
 
-## 7. Your own sign-in steps (6 min)
+## 7. Invite someone (3 min)
+
+- [ ] **Security > People > Invite someone**. Walk the steps: name, role, sign-in steps, how they get in, review.
+- [ ] Copy the link (or scan the QR). Open it in a private window, choose a password: you are signed in as them.
+- [ ] Open the link again: refused (single use).
+
+## 8. Face check and your own sign-in steps (8 min)
 
 Do this in **Real** mode with your own account, not the demo buttons.
 
-- [ ] **Security > How you sign in**. Four step cards: Password, Passkey, Face check, Key phrase.
-- [ ] **Face check > Set up face check.** Allow the camera.
-  - [ ] The camera check runs first (size, frame rate, light, sharpness). A bad camera or dark room is refused with
-        the reason, and you are offered your phone instead.
-  - [ ] A ring follows your face; one segment fills for each accepted reading, then a check mark when VAULT saved it.
-- [ ] **Key phrase > Set up key phrase.** Allow the microphone. Press Speak, say a made-up phrase, pause. Three
-      times. The bars are your real microphone. A noisy room or a too-quiet microphone is refused, with the reason.
-- [ ] **Passkey**: pick This computer (Windows Hello PIN on this laptop), Security key (a YubiKey if you have one),
-      or Phone (scan the QR code). Add it.
-- [ ] Tick Password + Face check + Key phrase (or any mix), check the preview, **Save sign-in steps**.
-- [ ] Sign out, sign in with your password: the trail asks for each step in turn. Try a wrong phrase and someone
-      else's face: refused. Three wrong answers end the attempt.
-- [ ] Untick the extra steps afterwards if you do not want them every time.
+- [ ] **Security > How you sign in > Face check > Set it up again.** Allow the camera. The camera appears within
+      a second or two.
+- [ ] It asks for two moves in a random order (turn left, turn right, look up, blink). The ring fills only on good
+      readings. If the light or the angle is bad, it says why instead of finishing.
+- [ ] Press **Test my face now**. Write down the numbers it shows (match score, liveness) and send them to Claude.
+- [ ] Hold up a photo of your face on your phone to the camera: it should be refused.
+- [ ] Tick Password + Face check, **Save sign-in steps**, sign out, sign in. The outline traces your face, the
+      screen goes dark with scan lines, then the vault door opens.
+- [ ] Key phrase and Passkey: as before. Untick extra steps afterwards if you do not want them every time.
 
-## 8. Security screen (1 min)
+## 9. Attack it (2 min)
 
-- [ ] **Security**: protection checklist, held files, the sign-in log (it shows chains like "Password, then face
-      check, then key phrase"), the audit log.
+- [ ] In a second terminal: `.venv\Scripts\python scripts\attack_demo.py`. Expect **16 of 16 attacks refused**.
+      Sign-ins may be refused from this computer for about a minute afterwards: that is the rate limit.
+- [ ] **Security > Audit log** lists the refusals.
 
-## What is not tested yet by Claude (please report back)
+## What Claude could not test (please report back)
 
-- Your real webcam with the face check, your real microphone with the key phrase.
+- Your real webcam with the face check and the photo-of-a-face test; your real microphone with the key phrase.
+- File previews inside the desktop window.
 - A physical security key, and the phone QR flows on a real phone.
-- Llama answering in the chat is tested; Llama reading a whole new folder is slower and best started before you
-  record.
+- Llama reading the whole huge folder (only the quick heuristic reader was timed).
