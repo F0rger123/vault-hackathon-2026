@@ -6,7 +6,7 @@
 import { useEffect, useRef, useState } from "react";
 import { vault, type ActivityEvent } from "./api";
 
-const POLL_MS = 1500;
+const POLL_MS = 3000; // F12.17: half the requests; the feed still feels live
 const KEEP = 200;
 export const IDLE_AFTER_MS = 6000;
 

@@ -742,27 +742,9 @@ function ResultDetail({ result }: { result: Record<string, unknown> }) {
 
 // ---------- the answer ----------
 
-const WORD_MS = 28;
-const MAX_STREAM_MS = 1400;
-
-/** How many words of the answer are showing. Live replies type out once; restored ones show whole. */
-function useStream(total: number, live: boolean): number {
-  const reduced = useReducedMotion();
-  const animate = live && !reduced && total > 0;
-  const [shown, setShown] = useState(animate ? 0 : total);
-  useEffect(() => {
-    if (!animate) return;
-    const step = Math.max(1, Math.ceil((total * WORD_MS) / MAX_STREAM_MS));
-    const timer = window.setInterval(() => {
-      setShown((n) => {
-        const next = Math.min(total, n + step);
-        if (next >= total) window.clearInterval(timer);
-        return next;
-      });
-    }, WORD_MS);
-    return () => window.clearInterval(timer);
-  }, [animate, total]);
-  return animate ? shown : total;
+/** How many words of the answer are showing. F12.17: always all of them, as soon as the answer arrives. */
+function useStream(total: number): number {
+  return total;
 }
 
 function Answer({
@@ -792,7 +774,7 @@ function Answer({
     }
     return { pieces: p, starts: st, totalWords: n };
   }, [sentences, answer.text]);
-  const shown = useStream(totalWords, live);
+  const shown = useStream(totalWords);
   const streamed = shown >= totalWords;
   const take = (i: number) => {
     const left = shown - starts[i];

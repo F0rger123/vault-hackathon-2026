@@ -7,7 +7,6 @@ import { errorText, needsStep, setToken, vault, type AuthOptions, type SignedIn,
 import { useLoad } from "@/lib/use-load";
 import { signInWithPasskey, passkeysSupported } from "@/lib/passkeys";
 import { SignInSteps } from "./sign-in-steps";
-import { MatrixRain } from "./matrix-rain";
 import { CollectionSwitcher } from "./collection-switcher";
 import { ASK_LABEL } from "@/lib/assistant";
 import { ChatBox } from "./chat-box";
@@ -368,7 +367,6 @@ function Chrome({ children }: { children: ReactNode }) {
         </header>
       )}
 
-      <MatrixRain className="rain-backdrop" />
       <main id="main" className={cx("page-enter min-w-0", ready && "vault-glow mx-auto w-full px-4 pb-16 pt-6 sm:px-6 lg:px-10 lg:pt-9", ready && (wide ? "max-w-none" : "max-w-[1480px]"))}>
         {ready && <DemoBanner />}
         {children}

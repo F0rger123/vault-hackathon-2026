@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState, type ReactNode } from "react";
 import {
@@ -7,8 +8,10 @@ import {
   ApiError,
   atLeast,
   errorText,
+  TERMINAL,
   vault,
   type Capacity,
+  type Job,
   type DocumentRow,
   type Example,
   type ProviderInfo,
@@ -47,7 +50,16 @@ function Step({ n, title, intro, children, last }: { n: number; title: string; i
 export function SetupView() {
   const { collection, me } = useSession();
   const providers = useLoad("providers", vault.providers, 15000);
-  const docs = useLoad(collection ? `docs:${collection.id}` : null, () => allDocuments(collection!.id));
+  const jobs = useLoad("jobs", vault.jobs, 3000);
+  const active = (jobs.data ?? []).find(
+    (j) => j.collection_id === collection?.id && j.kind === "process" && !TERMINAL.includes(j.status),
+  );
+  // F12.17: the list refreshes while a run reads this collection, so each file's state changes on screen.
+  const docs = useLoad(
+    collection ? `docs:${collection.id}` : null,
+    () => allDocuments(collection!.id),
+    active ? 3000 : undefined,
+  );
   const caps = useCapacities(providers.data?.providers);
   const localModels = useLoad("local-models", vault.localModels, 30000);
   const [advanced, setAdvanced] = useState(false);
@@ -63,7 +75,18 @@ export function SetupView() {
         <NewCollection />
       ) : (
         <div className="flex flex-col">
-          <Library collectionId={collection.id} canUpload={atLeast(me, "analyst")} onUploaded={docs.reload} />
+          <Library
+            collectionId={collection.id}
+            canUpload={atLeast(me, "analyst")}
+            onUploaded={() => {
+              docs.reload();
+              jobs.reload();
+            }}
+            docs={docs.data}
+            docsError={docs.error}
+            active={active}
+            jobs={jobs.data}
+          />
           {atLeast(me, "analyst") && <QuickStart collectionId={collection.id} documents={collection.documents} />}
           <Panel title="This computer" className="mb-6">
             <LocalModelsCard data={localModels.data} />
@@ -86,7 +109,7 @@ export function SetupView() {
           >
             <MachineCheck providers={providers.data} caps={caps} canCalibrate={atLeast(me, "admin")} />
           </Step>
-          <LaneAndStart providers={providers.data} providersError={providers.error} collectionId={collection.id} caps={caps} />
+          <LaneAndStart providers={providers.data} providersError={providers.error} collectionId={collection.id} caps={caps} active={active} />
           </details>
         </div>
       )}
@@ -146,8 +169,25 @@ function NewCollection() {
   );
 }
 
-function Library({ collectionId, canUpload, onUploaded }: { collectionId: number; canUpload: boolean; onUploaded: () => void }) {
+function Library({
+  collectionId,
+  canUpload,
+  onUploaded,
+  docs,
+  docsError,
+  active,
+  jobs,
+}: {
+  collectionId: number;
+  canUpload: boolean;
+  onUploaded: () => void;
+  docs: DocumentRow[] | undefined;
+  docsError: string | null;
+  active: Job | undefined;
+  jobs: Job[] | undefined;
+}) {
   const { collection, refresh } = useSession();
+  const [auto, setAuto] = useState<AutoNote | null>(null);
   const input = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [dragging, setDragging] = useState(false);
@@ -199,6 +239,26 @@ function Library({ collectionId, canUpload, onUploaded }: { collectionId: number
               if (input.current) input.current.value = "";
               refresh();
               onUploaded();
+              // F12.17: read the new files straight away with the local model. The server never starts a
+              // second run for this collection, and never a remote one.
+              if (r.accepted.some((a) => !a.duplicate)) {
+                try {
+                  const go = await vault.autoprocess(collectionId);
+                  setAuto(
+                    go.started
+                      ? { jobId: go.job?.id ?? null, note: `Reading with ${providerLabel(go.provider ?? "heuristic")}.` }
+                      : go.reason === "already_running"
+                        ? {
+                            jobId: go.job?.id ?? null,
+                            note: "A run was already going, so no second one was started. Press Read new documents when it ends to read the newest files.",
+                          }
+                        : { jobId: null, note: "Nothing new to read." },
+                  );
+                  onUploaded();
+                } catch (err) {
+                  setAuto({ jobId: null, note: `Files are stored, but reading did not start: ${errorText(err)}` });
+                }
+              }
             } catch (err) {
               setError(errorText(err));
             } finally {
@@ -256,6 +316,7 @@ function Library({ collectionId, canUpload, onUploaded }: { collectionId: number
         <p className="text-sm text-muted">Viewers can read the collection. Analysts and admins can add files.</p>
       )}
       {error && <Notice className="mt-3">Upload failed: {error}</Notice>}
+      <ReadingStatus active={active} auto={auto} jobs={jobs} />
       {rows.length > 0 && <UploadRows rows={rows} />}
       {result && (
         <div className="mt-3 text-sm">
@@ -280,7 +341,87 @@ function Library({ collectionId, canUpload, onUploaded }: { collectionId: number
           )}
         </div>
       )}
+      <DocumentList docs={docs} error={docsError} reading={!!active} />
     </Panel>
+  );
+}
+
+interface AutoNote {
+  jobId: number | null;
+  note: string;
+}
+
+/** F12.17: a compact live line for the run reading this collection, then "Done" with a link to Progress. */
+function ReadingStatus({ active, auto, jobs }: { active: Job | undefined; auto: AutoNote | null; jobs: Job[] | undefined }) {
+  const finished = auto?.jobId && !active ? jobs?.find((j) => j.id === auto.jobId && TERMINAL.includes(j.status)) : undefined;
+  const link = active ?? finished;
+  if (!active && !auto) return null;
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-control border border-line bg-raised px-3 py-2 text-sm"
+    >
+      {active ? (
+        <span data-reading="running">
+          Reading {formatNumber(active.done + active.failed)} of {formatNumber(active.total)}…
+        </span>
+      ) : finished ? (
+        <span data-reading="done">
+          Done. Read {formatNumber(finished.done)} of {formatNumber(finished.total)}
+          {finished.failed ? `, ${formatNumber(finished.failed)} could not be read` : ""}.
+        </span>
+      ) : (
+        <span className="text-muted">{auto?.note}</span>
+      )}
+      {active && auto?.note && <span className="text-xs text-muted">{auto.note}</span>}
+      {link && (
+        <Link href={`/run?job=${link.id}`} className="text-blue underline-offset-4 hover:underline">
+          Open Progress
+        </Link>
+      )}
+    </div>
+  );
+}
+
+const DOC_STATE: Record<string, { word: string; tone: "green" | "amber" | "blue" }> = {
+  processed: { word: "Read", tone: "green" },
+  quarantined: { word: "Held by the security gate", tone: "amber" },
+  error: { word: "Could not read", tone: "amber" },
+  failed: { word: "Could not read", tone: "amber" },
+};
+
+const SHOWN = 300;
+
+/** F12.17: every stored file shows here as soon as the server has it, read or not. */
+function DocumentList({ docs, error, reading }: { docs: DocumentRow[] | undefined; error: string | null; reading: boolean }) {
+  if (error) return <Notice className="mt-3">Couldn&apos;t load the file list: {error}</Notice>;
+  if (!docs) return null;
+  if (!docs.length) return <p className="mt-3 text-sm text-muted">No files yet.</p>;
+  const newest = [...docs].reverse().slice(0, SHOWN);
+  return (
+    <div className="mt-4">
+      <ul aria-label="Documents in this collection" className="max-h-80 overflow-y-auto rounded-control border border-line">
+        {newest.map((d) => {
+          const s = DOC_STATE[d.status];
+          return (
+            <li
+              key={d.id}
+              data-doc-status={d.status}
+              className="flex items-center justify-between gap-2 border-b border-line px-3 py-1.5 text-sm last:border-b-0"
+            >
+              <span className="min-w-0 truncate font-mono text-[13px]">{d.filename}</span>
+              {s ? <Tag tone={s.tone}>{s.word}</Tag> : reading ? <Tag tone="blue">Reading</Tag> : <Tag>Not read yet</Tag>}
+            </li>
+          );
+        })}
+      </ul>
+      {docs.length > SHOWN && (
+        <p className="mt-1 text-xs text-muted">
+          Showing the newest {SHOWN} of {formatNumber(docs.length)} files.
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -684,11 +825,13 @@ function LaneAndStart({
   providersError,
   collectionId,
   caps,
+  active,
 }: {
   providers: ProvidersResponse | undefined;
   providersError: string | null;
   collectionId: number;
   caps: Caps;
+  active: Job | undefined;
 }) {
   const { me, collection } = useSession();
   const router = useRouter();
@@ -845,6 +988,15 @@ function LaneAndStart({
             {lanes.map((l, i) => `lane ${i + 1}: ${providerLabel(l.provider)} with ${l.concurrency} ${l.concurrency === 1 ? "slot" : "slots"}`).join("; ")}
             {escalate ? `; unclear results escalate to ${providerLabel(escalate)}` : "; unclear results go to a person"}.
           </p>
+          {active && (
+            <Notice tone="info" className="mt-3">
+              A run already started for this collection (run {active.id}).{" "}
+              <Link href={`/run?job=${active.id}`} className="text-blue underline">
+                Open Progress
+              </Link>{" "}
+              to watch it. Starting another now reads the same files twice.
+            </Notice>
+          )}
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <Button
               variant="primary"

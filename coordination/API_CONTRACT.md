@@ -22,7 +22,7 @@ This creates users `admin`, `analyst` and `viewer` and writes their tokens to `d
 |---|---|---|---|
 | `system:read`, `documents:read`, `search`, `findings:read`, `jobs:read`, `proposals:read` (viewer since F10.24) | yes | yes | yes |
 | `documents:upload`, `collections:create`, `jobs:create`, `jobs:cancel`, `proposals:create`, `corrections:create` | no | yes | yes |
-| `proposals:approve`, `settings:write`, `audit:read`, `users:manage`, `documents:classify` (F09.23) | no | no | yes |
+| `proposals:approve`, `settings:write`, `audit:read`, `users:manage`, `documents:classify` (F09.23), `collections:delete` (F12.17) | no | no | yes |
 
 **Classification clearance (F09.23).** Each document has a label `public | internal | confidential | restricted` (`null`
 means unlabelled and counts as `internal`). These are an organisation's own handling levels, not government
@@ -281,6 +281,23 @@ Rejections do not fail the request. `duplicate: true` means identical bytes alre
 - **Errors:** 401, 403 (path imports disabled, or path outside allowed roots), 404, 422
 
 **Collections (F10.11):** `POST /collections` accepts `"is_demo": true`, and every Collection includes `is_demo` (0 or 1). The UI shows demo collections only in Demo mode and the others only in Real mode.
+
+### `DELETE /collections/{collection_id}` (F12.17)
+- **Permission:** `collections:delete` (admin).
+- Removes, in one transaction, the collection and its documents, pages and search index entries, readings, corrections, screenings, examples, redactions, findings, Keeper knowledge, jobs, job items, agent events, activity, saved answers, proposals and runtime estimates. Then deletes each stored copy under `originals/` that no other collection's document still uses (copies are shared by SHA-256). Files outside VAULT's data folder are never touched. Audited as `collection.delete`.
+- Deleting the last demo collection stores `demo_removed = true`, so the demo is not rebuilt (`start.ps1` rebuilds only when `data/demo/vault.db` is missing).
+- **Response:** `{"deleted": 3, "name": "...", "documents": 150, "copies_removed": 150, "copies_kept": 0, "demo": true}`
+- **Errors:** 401, 403, 404, 409 (a job is queued or running for this collection)
+
+### `POST /collections/{collection_id}/autoprocess` → 202 (F12.17)
+- **Permission:** `jobs:create`. The UI calls it after an upload batch that stored at least one new file.
+- Starts one process job over the documents that need reading, with Llama 3 through the local Ollama when VAULT's model is installed and answering (2 slots at most), otherwise the rules baseline (4 slots). Never a remote provider.
+- **Response:** `{"started": true, "reason": "started", "provider": "heuristic", "job": Job}`; or `{"started": false, "reason": "already_running", "job": Job}` when a job is already queued or running for the collection (no second job); or `{"started": false, "reason": "nothing_new", "job": null}`.
+- **Errors:** 401, 403, 404
+
+### `GET /demo/status` · `POST /demo/restore` → 202 (F12.17)
+- `GET` (`system:read`): `{"demo_removed": false, "demo_collections": 1, "can_restore": true}`.
+- `POST` (`collections:delete`): imports `data/synthetic/v1/files` into "Halvern Engineering Archive" (`is_demo = 1`), clears `demo_removed`, and starts a rules-baseline job. Response `{"collection_id": 7, "imported": 150, "rejected": 0, "job": Job | null}`. Errors 401, 403, 503 (dataset not in this install). Audited as `demo.restore`.
 
 ### `GET /collections/{collection_id}/inventory`
 - **Permission:** `documents:read`

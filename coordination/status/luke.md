@@ -23,6 +23,11 @@ Last updated: 2026-11-03
 
 ## Updates
 
+### 2026-11-04 · F12.17 · Uploads show and read themselves, Delete demo data, minimal motion (PR open, do not auto-merge)
+- **Built:** Add files now lists every stored file with its state; after an upload batch the server starts one local run (Llama 3 if installed, else the rules baseline, never remote; never a second run while one is going) and the page shows "Reading N of M…", then "Done", with Open Progress. Admin-only `DELETE /collections/{id}` (`collections:delete`, audited, 409 during a run, keeps stored copies another collection shares), **Delete demo data** and **Restore demo data** on the Overview in Demo mode, **Delete collection** in the collection switcher. Deleting the demo is remembered (`demo_removed`); `start.ps1` only rebuilds the demo when `data/demo/vault.db` is missing. Motion cut: background rain, scrambled titles, count-ups, typed answers and entrance animations removed; spinners, progress bars and the brain (slower idle turn) stay. Issue #123.
+- **Waiting on Luke:** review the PR (it deletes data and files, so it is high-risk).
+- **Root cause of "files don't display":** Add files showed only a count, never the files, and nothing read new files until someone pressed a run button; Ask Keeper and the Brain only know files that were read.
+
 ### 2026-11-04 · F10.25 · Ask Keeper uses the Brain page's 3D brain (PR open, do not auto-merge)
 - **Built:** Ask Keeper now shows `brain-space.tsx` itself in a compact mode (`keeper-space.tsx`), driven by the latest reply's recorded activity rows and streamed events; helper craft have their own colours on both pages; `keeper-brain.tsx` deleted; grouped example prompts, each tested on the demo collection. Leaving Ask Keeper for another page no longer stops a reply (module store); a full reload still does, and says so.
 - **Waiting on Luke:** review the PR; watch one live question on a real GPU for the video.

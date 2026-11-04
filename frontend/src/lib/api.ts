@@ -86,6 +86,35 @@ export interface Capacity {
   calibration: Calibration | null;
 }
 
+export interface CollectionDeleted {
+  deleted: number;
+  name: string;
+  documents: number;
+  copies_removed: number;
+  copies_kept: number;
+  demo: boolean;
+}
+
+export interface AutoProcess {
+  started: boolean;
+  reason: "started" | "already_running" | "nothing_new";
+  provider?: ProviderName;
+  job: Job | null;
+}
+
+export interface DemoStatus {
+  demo_removed: boolean;
+  demo_collections: number;
+  can_restore: boolean;
+}
+
+export interface DemoRestored {
+  collection_id: number;
+  imported: number;
+  rejected: number;
+  job: Job | null;
+}
+
 export interface Collection {
   id: number;
   name: string;
@@ -940,6 +969,12 @@ export const vault = {
   setRemote: (enabled: boolean) => put<{ allow_remote_inference: boolean }>("/settings/remote-inference", { enabled }),
   collections: () => api<Collection[]>("/collections"),
   createCollection: (name: string, is_demo: boolean) => post<Collection>("/collections", { name, is_demo }),
+  // F12.17: admin only. Removes the collection and the stored copies no other collection uses; never files outside VAULT.
+  deleteCollection: (id: number) => del<CollectionDeleted>(`/collections/${id}`),
+  // F12.17: start reading new uploads with the local model (Llama 3 if installed, else the rules baseline).
+  autoprocess: (collectionId: number) => post<AutoProcess>(`/collections/${collectionId}/autoprocess`, {}),
+  demoStatus: () => api<DemoStatus>("/demo/status"),
+  restoreDemo: () => post<DemoRestored>("/demo/restore", {}),
   authOptions: () => api<AuthOptions>("/auth/options"),
   login: (username: string, password: string) => post<SignInResult>("/auth/login", { username, password }),
   demoLogin: (role: Role) => post<SignedIn>("/auth/demo-login", { role }),

@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { atLeast, errorText, vault } from "@/lib/api";
 import { formatNumber } from "@/lib/format";
+import { useDeleteCollections } from "./collection-actions";
 import { useSession } from "./session";
 import { cx, inputClass } from "./ui";
 
@@ -20,6 +21,8 @@ export function CollectionSwitcher({ id }: { id: string }) {
   const root = useRef<HTMLDivElement>(null);
   const listId = useId();
   const canCreate = atLeast(me, "analyst");
+  const canDelete = atLeast(me, "admin");
+  const removeCollections = useDeleteCollections();
 
   useEffect(() => {
     if (!open) return;
@@ -75,12 +78,12 @@ export function CollectionSwitcher({ id }: { id: string }) {
             </span>
           )}
         </span>
-        <svg aria-hidden viewBox="0 0 16 16" className={cx("h-4 w-4 shrink-0 transition-transform", open && "rotate-180")}>
+        <svg aria-hidden viewBox="0 0 16 16" className={cx("h-4 w-4 shrink-0", open && "rotate-180")}>
           <path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.5" />
         </svg>
       </button>
       {open && (
-        <div className="pop-in absolute bottom-full left-0 z-50 mb-2 w-72 max-w-[calc(100vw-2rem)] rounded-card border border-line bg-panel p-1.5 shadow-lift">
+        <div className="absolute bottom-full left-0 z-50 mb-2 w-72 max-w-[calc(100vw-2rem)] rounded-card border border-line bg-panel p-1.5 shadow-lift">
           <ul id={listId} role="listbox" aria-label="Collections" className="flex max-h-72 flex-col overflow-auto">
             {collections.map((c) => (
               <li key={c.id} role="option" aria-selected={c.id === collection?.id}>
@@ -111,6 +114,29 @@ export function CollectionSwitcher({ id }: { id: string }) {
             ))}
             {!collections.length && <li className="px-3 py-2 text-sm text-muted">No {mode} collections yet.</li>}
           </ul>
+          {canDelete && collection && (
+            <div className="mt-1 border-t border-line pt-1.5">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={async () => {
+                  setBusy(true);
+                  setError(null);
+                  try {
+                    if (await removeCollections([collection])) setOpen(false);
+                  } catch (e) {
+                    setError(errorText(e));
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+                className="flex w-full items-center gap-2 rounded-control px-3 py-2 text-left text-sm font-medium text-redline hover:bg-raised disabled:opacity-50"
+              >
+                Delete collection
+              </button>
+              {error && !creating && <p className="px-3 pb-1 text-xs text-redline">{error}</p>}
+            </div>
+          )}
           {canCreate && (
             <div className="mt-1 border-t border-line pt-1.5">
               {creating ? (

@@ -330,7 +330,7 @@ export default function BrainSpace({
     controls.minDistance = 10;
     controls.maxDistance = radius * 6;
     controls.screenSpacePanning = true;
-    controls.autoRotateSpeed = 0.35;
+    controls.autoRotateSpeed = 0.15; // F12.17: a slow idle turn only
     // Clicking a hub glides the view to it, so the cluster comes to you.
     let glide: { from: THREE.Vector3; to: THREE.Vector3; t0: number } | null = null;
     let lastInput = performance.now();

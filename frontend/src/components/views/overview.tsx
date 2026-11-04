@@ -4,6 +4,7 @@ import Link from "next/link";
 import { TERMINAL, vault, type Job, type ProvidersResponse } from "@/lib/api";
 import { formatBytes, formatNumber, laneLabel, providerLabel, statusText, timeAgo } from "@/lib/format";
 import { useLoad } from "@/lib/use-load";
+import { DemoDataControls } from "../collection-actions";
 import { DemoDatasetPanel } from "../demo-dataset";
 import { GettingStarted, LocalModelsCard } from "../first-run";
 import { ModelInstaller } from "../model-installer";
@@ -36,6 +37,7 @@ export function OverviewView() {
 
       <GettingStarted />
 
+      {mode === "demo" && <DemoDataControls />}
       {mode === "demo" && <DemoDatasetPanel />}
 
       <section aria-label="Collection figures" className="mb-8 overflow-hidden rounded-card border border-line bg-panel shadow-panel">

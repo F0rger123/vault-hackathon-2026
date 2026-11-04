@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { type ButtonHTMLAttributes, type ReactNode } from "react";
 
 export function cx(...parts: (string | false | null | undefined)[]): string {
   return parts.filter(Boolean).join(" ");
@@ -213,23 +213,9 @@ export function Skeleton({ className }: { className?: string }) {
   return <span aria-hidden className={cx("skeleton inline-block align-middle", className)} />;
 }
 
-/** Counts a whole number up from zero once, on first show. Plain text for reduced motion or non-numbers. */
+/** F12.17: figures show their real value at once; the count-up from zero was removed. */
 function CountUp({ text }: { text: string }) {
-  const target = Number(text.replace(/,/g, ""));
-  const [shown, setShown] = useState<number | null>(null);
-  useEffect(() => {
-    if (!Number.isFinite(target) || target < 10 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    let frame = 0;
-    const start = performance.now();
-    const tick = (now: number) => {
-      const t = Math.min(1, (now - start) / 650);
-      setShown(Math.round(target * (1 - Math.pow(1 - t, 3))));
-      if (t < 1) frame = requestAnimationFrame(tick);
-    };
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, [target]);
-  return <>{shown === null || shown === target ? text : shown.toLocaleString("en-US")}</>;
+  return <>{text}</>;
 }
 
 export function Figure({ label, value, tone }: { label: string; value: ReactNode; tone?: "red" | "amber" | "green" }) {

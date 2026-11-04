@@ -45,6 +45,7 @@ ROLE_PERMISSIONS: dict[str, set[str]] = {
         "audit:read",
         "users:manage",
         "documents:classify",
+        "collections:delete",
     },
 }
 
@@ -68,6 +69,7 @@ PERMISSION_LABELS: dict[str, str] = {
     "audit:read": "Read the audit trail and the sign-in log",
     "users:manage": "Invite people, change roles and sign-in steps",
     "documents:classify": "Change a document's classification and remove redactions",
+    "collections:delete": "Delete a collection and its stored copies, and remove or restore the demo data",
 }
 
 ROLE_SUMMARIES: dict[str, str] = {
