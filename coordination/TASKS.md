@@ -1606,6 +1606,16 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 - **Verification evidence (E-E2E-2, 2026-10-28):** covered by the Playwright suite in `tests/e2e/` (`02-investigate`); 13 of 13 tests passed in 5 consecutive fresh runs on Windows 11 (Chromium, desktop and Pixel 7 profiles).
 - **Related PR/commit:** PR #103, merged 2026-11-03 with all CI checks green.
 
+#### F10.26 — No pre-filled example prompts in Ask Keeper; README dataset downloads
+
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F10.25, F12.16
+- **Description:** Luke: "don't make it so it has the example prompts inside of the chat already"; he copies them from `docs/DEMO_PROMPTS.md` and sends them himself. Also "put a button on the README" for the fake data: the README links to the `demo-data` release, whose two ZIPs were built by VAULT's own download routes.
+- **Acceptance criteria:** the empty Ask Keeper screen shows no prompt chips; the e2e types the pressure question; both README links download intact ZIPs.
+- **Required tests:** e2e `025-ask`; lint, types.
+- **Blockers:** none
+- **Related PR/commit:** branch `luke/F10.26-no-prompt-chips`; README commit `b6f69ea`; release `demo-data`
+- **Verification evidence (2026-11-04):** both release links downloaded (quick 355,599 bytes, 155 entries; complete 15,156,989 bytes, 280 entries; `testzip()` clean; no secret-like strings).
+
 #### F10.11 — Easy start: sign-in, Demo and Real modes, Meta API key screen
 
 - **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F10.1, F09.8
