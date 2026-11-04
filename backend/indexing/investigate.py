@@ -171,8 +171,14 @@ def matching_findings(conn: sqlite3.Connection, collection_id: int, plan: dict) 
     return out
 
 
-def search_hits(conn: sqlite3.Connection, collection_id: int, plan: dict) -> list[dict]:
-    """Documents that match the question's words, best first, each with the line that matched."""
+def search_hits(
+    conn: sqlite3.Connection, collection_id: int, plan: dict, boost: set[int] | frozenset[int] = frozenset()
+) -> list[dict]:
+    """Documents that match the question's words, best first, each with the line that matched.
+
+    `boost` (F10.23) holds documents cited by answers people liked: they gain half a point, which breaks ties and
+    never outranks a document that matches one more of the question's words.
+    """
     date_from = f"{plan['year']}-01-01" if plan["year"] else None
     date_to = f"{plan['year']}-12-31" if plan["year"] else None
     common = dict(
@@ -192,7 +198,10 @@ def search_hits(conn: sqlite3.Connection, collection_id: int, plan: dict) -> lis
                 hits[h["document_id"]] = (score + 1, h)
     needles = plan["part_numbers"] + plan["terms"]
     out = []
-    for _, h in sorted(hits.values(), key=lambda x: (-x[0], x[1]["document_id"])):
+    ranked = sorted(
+        hits.values(), key=lambda x: (-(x[0] + (0.5 if x[1]["document_id"] in boost else 0)), x[1]["document_id"])
+    )
+    for _, h in ranked:
         page, line = _line_for(conn, h["document_id"], h["page"], needles)
         out.append({**h, "page": page, "line": line})
     return out

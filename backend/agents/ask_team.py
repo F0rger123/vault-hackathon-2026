@@ -1,4 +1,4 @@
-"""Ask VAULT (F10.20): a coordinator reads one message, hands the work to helpers, and reports each step as it runs.
+"""Ask Keeper (F10.20, renamed F10.23): a coordinator reads one message, hands the work to helpers, reports each step.
 
 Every event in the stream stands for a real call: the coordinator's plan comes from the chat rules (or, when they
 understand nothing, from the local model), and each helper wraps one existing function. The timings are measured
@@ -9,6 +9,8 @@ Only the Answer writer (and the optional model planning) uses a language model. 
 Each helper that looks at documents records which ones (in the order it produced) in the collection's activity feed
 (F10.22), under this run's id, so the live brain can show the same work.
 The message is data: it fills the chat command's fixed fields and the investigation's plan, and is never run.
+F10.23: answered questions are stored per collection; a liked answer is recalled for a near-identical question (and
+still re-checked by the helpers), and documents from liked answers get a small boost for the Finder (agents/keeper).
 """
 
 from __future__ import annotations
@@ -22,6 +24,8 @@ from collections.abc import Callable, Iterator
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 
+from backend.agents import keeper
+from backend.agents.keeper import ASSISTANT_NAME
 from backend.core.config import Settings
 from backend.core.hardware import profile_hardware
 from backend.core.local_models import local_models
@@ -57,7 +61,7 @@ PAGE_NAMES = {
     "/": "Overview",
     "/setup": "Set up",
     "/run": "Run board",
-    "/investigate": "Investigate",
+    "/chat": f"Ask {ASSISTANT_NAME}",
     "/training": "Training",
     "/brain": "Brain",
     "/approvals": "Approvals",
@@ -65,6 +69,7 @@ PAGE_NAMES = {
     "/models": "Models",
 }
 PREVIEW = 5
+RULES = f"{ASSISTANT_NAME}'s rules"
 ORDER_WORDS = {
     ("date", "desc"): "newest first",
     ("date", "asc"): "oldest first",
@@ -283,6 +288,8 @@ class Team:
             yield self._event("coordinator", status="fallback", text=note, duration_ms=checked_ms)
         remote = info.locality == "remote"
         cid = self.collection_id
+        liked = keeper.liked_documents(conn, cid)
+        remembered = keeper.recall(conn, cid, question)
 
         def find(c, progress):
             words = plan["terms"] or ["(every document)"]
@@ -290,7 +297,13 @@ class Team:
                 f"Searching for {', '.join(words)}"
                 + (f" with part {', '.join(plan['part_numbers'])}" if plan["part_numbers"] else "")
             )
-            hits = search_hits(c, cid, plan)
+            hits = search_hits(c, cid, plan, liked)
+            boosted = sum(1 for h in hits if h["document_id"] in liked)
+            if boosted:
+                progress(
+                    f"{boosted} of them {'was' if boosted == 1 else 'were'} cited in answers people liked, "
+                    "so they move up a little"
+                )
             shown = [{"document_id": h["document_id"], "filename": h["filename"], "page": h["page"]} for h in hits]
             return f"{len(hits)} matching document{'s' if len(hits) != 1 else ''}", {
                 "hits": hits,
@@ -334,7 +347,7 @@ class Team:
             )
             raw = write_answer(c, cid, question, provider, plan, state["sources"], state["findings"])
             state["raw"] = raw
-            by = info.model if info.is_ai_model and state["sources"] else "VAULT's rules"
+            by = info.model if info.is_ai_model and state["sources"] else RULES
             return f"{len(raw)} sentence{'s' if len(raw) != 1 else ''} by {by}", {
                 "shown": {"sentences": len(raw), "by": by, "provider": info.name},
                 "touched": {
@@ -372,7 +385,7 @@ class Team:
             [
                 Step(
                     "answer",
-                    f"to write the answer ({info.model})" if model_use else "to restate the facts with VAULT's rules",
+                    f"to write the answer ({info.model})" if model_use else f"to restate the facts with {RULES}",
                     answer,
                     model_use,
                 )
@@ -388,6 +401,9 @@ class Team:
             "A question: find the evidence, answer it, check it.",
             question_plan=plan,
         )
+        if remembered:
+            # Shown at once; the helpers below still run, so the recall is checked against today's documents.
+            yield self._event("memory", status="recalled", **remembered)
 
         results: dict = {}
         yield from self._run(first, results)
@@ -425,6 +441,22 @@ class Team:
             return
         yield from self._run(steps[2], results)
         checked = state.get("checked") or []
+        cited_ids = list(dict.fromkeys(src["document_id"] for src in sources if src.get("document_id")))
+        if remembered:
+            still = [d for d in remembered["document_ids"] if d in set(cited_ids)]
+            yield self._event(
+                "memory",
+                status="rechecked",
+                run=remembered["run"],
+                still_cited=len(still),
+                total=len(remembered["document_ids"]),
+            )
+        try:
+            keeper.record(
+                conn, cid, self.run, self.principal.username, question, " ".join(s["text"] for s in checked), cited_ids
+            )
+        except Exception:  # noqa: BLE001 - remembering is a bonus; the answer still goes out
+            log.exception("could not store the answer")
         audit.record(
             conn,
             self.principal.username,
@@ -442,6 +474,7 @@ class Team:
             sources=sources,
             findings=findings,
             withheld_local_only=withheld,
+            run=self.run,
             answered_by={
                 "provider": info.name,
                 "model": info.model,
@@ -525,7 +558,7 @@ class Team:
             ]
             state["rows"] = rows
             if not lm["reachable"]:
-                raise HelperFailed("Ollama is not running, so VAULT cannot see your models.")
+                raise HelperFailed(f"Ollama is not running, so {ASSISTANT_NAME} cannot see your models.")
             return f"{len(rows)} model{'s' if len(rows) != 1 else ''} downloaded", {"shown": {"models": rows}}
 
         steps = [[Step("models", "the message asks about models", ask_ollama)]]
@@ -534,7 +567,7 @@ class Team:
         yield from self._run(steps[0], results)
         lm, rows = state.get("lm") or {}, state.get("rows", [])
         if not lm.get("reachable"):
-            text = "Ollama is not running, so VAULT cannot see your models. Start Ollama, then ask again."
+            text = f"Ollama is not running, so {ASSISTANT_NAME} cannot see your models. Start Ollama, then ask again."
         elif not rows:
             text = "No models are downloaded yet. Open Models to download Llama 3."
         else:

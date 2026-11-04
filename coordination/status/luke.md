@@ -27,6 +27,10 @@ Last updated: 2026-11-03
 - **Built:** a random head-move liveness challenge for the face step and face setup, a smoother capture, the outline, scan and vault-door sign-in sequence, Test my face now, and demo roles that select before signing in.
 - **Waiting on Luke:** review and merge the PR (auth code). Then on the real webcam: Security, Face check, Set it up again, then Test my face now, and note the numbers; sign in with face as a step and watch the door.
 - **Not verified:** the challenge with a real face (fake camera only); thresholds not yet calibrated on real people.
+### 2026-11-03 · F10.23 · Ask Keeper, PR open
+- **Done:** Investigate merged into the chat, now "Ask Keeper" (one name constant per side). Redline conflict cards and media result rows inline, Refine chips, export in the header, `/investigate` redirects with its query. Stream-driven animation sequence, a live SVG brain beside the chat, and learning from thumbs up/down (migration 14, two new routes).
+- **Waiting on Luke:** review and merge the PR; watch one live question for the demo video (the animations were checked by screenshots, not by eye).
+- **Not verified:** answers written by Ollama; the full e2e suite (four specs run).
 
 ### 2026-11-03 · F09.19, F10.19, F11.7 · merged
 - **Merged:** #98. Real sign-in levels (passkey kind choice, confirm-it's-you, webcam face check with the Human library, admin controls), Progress live status, mock-up audit fixes, the fictional test set generator, and `docs/TEST_GUIDE.md`.

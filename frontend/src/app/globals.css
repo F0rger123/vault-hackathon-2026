@@ -746,6 +746,194 @@ section.rounded-card:hover {
   }
 }
 
+/* ---------- F10.23: Ask Keeper, one sequence per reply ----------
+   1 the question flies up from the box and settles; 2 a thinking trace runs until the real plan arrives;
+   3 a pulse runs down the hand-off line when a helper's real "started" event comes in; 4 the answer types out;
+   5 citations pop in and tick when verified; 6 the evidence cards stagger in. Reduced motion turns all of it off
+   (the rule at the end of this file). */
+.ask-fly {
+  animation: ask-fly 0.42s var(--ease-settle) both;
+  transform-origin: 100% 100%;
+}
+@keyframes ask-fly {
+  from {
+    opacity: 0;
+    transform: translateY(48px) scale(0.94);
+  }
+  60% {
+    opacity: 1;
+  }
+}
+.think-trace path {
+  stroke-dasharray: 60 300;
+  animation: think-trace 1.3s linear infinite;
+}
+@keyframes think-trace {
+  from {
+    stroke-dashoffset: 360;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.plan-in {
+  animation: fade-in 0.3s ease-out both;
+}
+.handoff-pulse {
+  position: absolute;
+  left: -2.5px;
+  top: 0;
+  width: 6px;
+  height: 18px;
+  border-radius: 3px;
+  background: linear-gradient(to bottom, transparent, var(--green));
+  box-shadow: 0 0 10px color-mix(in srgb, var(--green) 70%, transparent);
+  animation: handoff-pulse 0.7s var(--ease-out-soft) both;
+  pointer-events: none;
+}
+@keyframes handoff-pulse {
+  from {
+    top: 0;
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  to {
+    top: calc(100% - 18px);
+    opacity: 0;
+  }
+}
+.handoff-step[data-state="live"] > span:first-child,
+.handoff-step[data-state="done"] > span:first-child {
+  background: color-mix(in srgb, var(--green) 55%, var(--line-strong));
+  transition: background 0.4s ease-out;
+}
+.helper-run {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--green) 30%, transparent);
+}
+.tick-draw {
+  stroke-dasharray: 16;
+  animation: tick-draw 0.35s var(--ease-out-soft) both;
+}
+.tick-late {
+  animation-duration: 0.4s;
+}
+@keyframes tick-draw {
+  from {
+    stroke-dashoffset: 16;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.cite-pop {
+  animation: cite-pop 0.32s var(--ease-settle) both;
+}
+@keyframes cite-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  70% {
+    transform: scale(1.12);
+  }
+}
+.result-in {
+  animation: result-in 0.38s var(--ease-settle) both;
+}
+@keyframes result-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+.recall-in {
+  animation: rise 0.4s var(--ease-settle) both;
+}
+.refine-pop {
+  animation: fade-in 0.18s ease-out both;
+}
+.learn-bump {
+  display: inline-block;
+  animation: bump 0.4s var(--ease-out-soft) both;
+}
+.vote-on {
+  animation: cite-pop 0.3s var(--ease-settle) both;
+}
+
+/* The brain beside the chat. Positions are real (documents the helpers reported); only the travel is eased. */
+.kb-doc,
+.kb-craft {
+  transition: transform 0.75s var(--ease-settle);
+}
+.kb-craft-run rect {
+  animation: kb-seek 1.1s ease-in-out infinite;
+}
+@keyframes kb-seek {
+  50% {
+    stroke-width: 2.4;
+  }
+}
+.kb-hit {
+  animation: kb-hit 0.5s var(--ease-settle) both;
+}
+@keyframes kb-hit {
+  from {
+    transform: scale(0.2);
+  }
+  60% {
+    transform: scale(1.6);
+  }
+}
+.kb-beam {
+  stroke-dasharray: 220;
+  animation: kb-draw 0.6s var(--ease-out-soft) both;
+}
+.kb-trail {
+  stroke-dasharray: 5 7;
+  animation:
+    kb-pull 0.9s linear both,
+    fade-in 0.3s ease-out both;
+}
+@keyframes kb-draw {
+  from {
+    stroke-dashoffset: 220;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes kb-pull {
+  from {
+    stroke-dashoffset: 60;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.kb-ring {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: kb-ring 0.9s var(--ease-out-soft) both;
+}
+.kb-ring-late {
+  animation-delay: 0.5s;
+}
+@keyframes kb-ring {
+  from {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(3.2);
+  }
+}
+.kb-rank {
+  animation: fade-in 0.4s ease-out 0.5s both;
+}
+
 /* ---------- F10.21: drawing-sheet details and the face check ---------- */
 
 /* Trim marks: the logo's four corners, set just outside a panel like the crop marks on a drawing sheet. Static. */

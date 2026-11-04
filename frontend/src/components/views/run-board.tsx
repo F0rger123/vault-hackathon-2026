@@ -424,7 +424,7 @@ function StatusStrip({
             </div>
           )}
           {!running && (
-            <Link href="/investigate" className="text-sm font-medium text-blue underline-offset-4 hover:underline">
+            <Link href={`/chat?ask=${encodeURIComponent("Which parts have conflicting ratings?")}`} className="text-sm font-medium text-blue underline-offset-4 hover:underline">
               Review the findings
             </Link>
           )}

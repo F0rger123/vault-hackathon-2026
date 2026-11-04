@@ -357,6 +357,25 @@ MIGRATIONS: list[str] = [
     CREATE INDEX invites_username ON invites(username);
     ALTER TABLE users ADD COLUMN requested_steps TEXT NOT NULL DEFAULT '[]';
     """,
+    # 14: F10.23, what Keeper learns: each answered question with the documents its answer cited (ids only) and the
+    # asker's thumbs up (1) or down (-1). Liked answers are recalled for near-identical questions; liked documents
+    # get a small ranking boost. Additive only.
+    """
+    CREATE TABLE ask_answers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        collection_id INTEGER NOT NULL,
+        run TEXT NOT NULL UNIQUE,
+        username TEXT NOT NULL,
+        question TEXT NOT NULL,
+        words TEXT NOT NULL,
+        answer TEXT NOT NULL,
+        document_ids TEXT NOT NULL DEFAULT '[]',
+        vote INTEGER NOT NULL DEFAULT 0,
+        created_at REAL NOT NULL,
+        voted_at REAL
+    );
+    CREATE INDEX ask_answers_collection ON ask_answers(collection_id, vote);
+    """,
 ]
 
 
