@@ -9,6 +9,7 @@ import { signInWithPasskey, passkeysSupported } from "@/lib/passkeys";
 import { SignInSteps } from "./sign-in-steps";
 import { MatrixRain } from "./matrix-rain";
 import { CollectionSwitcher } from "./collection-switcher";
+import { ASK_LABEL } from "@/lib/assistant";
 import { ChatBox } from "./chat-box";
 import { CommandPalette } from "./command-palette";
 import { SetupWizard } from "./setup-wizard";
@@ -23,7 +24,6 @@ const ICONS: Record<string, ReactNode> = {
   "/": <path d="M2.5 2.5h4.5v4.5H2.5zM9 2.5h4.5v7H9zM2.5 9h4.5v4.5H2.5zM9 11.5h4.5v2H9z" />,
   "/setup": <path d="M3 4h10M3 8h10M3 12h10M6 2.5v3M10 6.5v3M5 10.5v3" />,
   "/run": <path d="M1.5 8h3l2-4.5 3 9 2-4.5h3" />,
-  "/investigate": <path d="M7 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10ZM10.6 10.6l3.4 3.4" />,
   "/chat": <path d="M2.5 3h11v7.5h-6l-3 2.5v-2.5h-2zM5.5 6.5h5M5.5 8.5h3" />,
   "/training": <path d="M2 13.5h12M4 13.5V9M8 13.5V5.5M12 13.5V2.5M3 6.5l4-3 3 2 4-3" />,
   "/brain": <path d="M4 4.5a1.5 1.5 0 1 0 0-.01M12 3.5a1.5 1.5 0 1 0 0-.01M8 12.5a1.5 1.5 0 1 0 0-.01M5.3 4.7 10.6 3.8M4.7 5.8l2.6 5.4M11.4 5l-2.7 6" />,
@@ -37,8 +37,7 @@ const NAV = [
   { href: "/", label: "Overview" },
   { href: "/setup", label: "Add files" },
   { href: "/run", label: "Progress" },
-  { href: "/investigate", label: "Investigate" },
-  { href: "/chat", label: "Ask VAULT" },
+  { href: "/chat", label: ASK_LABEL },
   { href: "/training", label: "Training" },
   { href: "/brain", label: "Brain" },
   { href: "/approvals", label: "Approvals" },
@@ -388,6 +387,25 @@ function KeyIcon() {
   );
 }
 
+/** F09.22: what each demo role can do, in the words of the enforced role table (backend/security/auth.py). */
+const DEMO_ROLES = {
+  admin: {
+    summary: "Can do everything, including approving changes and managing people.",
+    can: ["Read, search and ask about every document", "Add files and run reading jobs", "Approve or reject suggested changes", "Manage people, sign-in steps and settings"],
+    cannot: [],
+  },
+  analyst: {
+    summary: "Can add files, run reading jobs and suggest changes. Cannot approve them or change settings.",
+    can: ["Read, search and ask about every document", "Add files and run reading jobs", "Suggest changes and corrections"],
+    cannot: ["Approve changes", "Change settings or manage people"],
+  },
+  viewer: {
+    summary: "Can look and search, but cannot change anything.",
+    can: ["Read, search and ask about every document", "See findings and job progress"],
+    cannot: ["Add files or run jobs", "Suggest or approve changes"],
+  },
+} as const;
+
 function SignIn({ onSignedIn, message }: { onSignedIn: () => void; message?: string }) {
   const [options, setOptions] = useState<AuthOptions | null>(null);
   const [username, setUsername] = useState("");
@@ -396,6 +414,7 @@ function SignIn({ onSignedIn, message }: { onSignedIn: () => void; message?: str
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [nextStep, setNextStep] = useState<StepNeeded | null>(null);
+  const [demoRole, setDemoRole] = useState<keyof typeof DEMO_ROLES | null>(null);
 
   useEffect(() => {
     vault.authOptions().then(setOptions, () => setOptions({ demo_login: false, password_login: false, passkey_login: false }));
@@ -483,20 +502,58 @@ function SignIn({ onSignedIn, message }: { onSignedIn: () => void; message?: str
                 Try the demo
               </h2>
               <p className="text-xs text-muted">Fictional documents only. Pick a role to see what it can do.</p>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Demo role">
                 {(["admin", "analyst", "viewer"] as const).map((role) => (
-                  <Button
+                  <button
                     key={role}
+                    type="button"
+                    role="radio"
+                    aria-checked={demoRole === role}
                     aria-label={`Demo: ${role}`}
-                    variant={role === "analyst" ? "primary" : "secondary"}
-                    busy={busy === role}
                     disabled={!!busy}
-                    onClick={() => finish(role, () => vault.demoLogin(role))}
+                    onClick={() => setDemoRole(role)}
+                    className={cx(
+                      "press rounded-control border px-3 py-2 text-sm font-medium capitalize transition-colors disabled:opacity-50",
+                      demoRole === role ? "border-green bg-raised text-ink ring-2 ring-green/25" : "border-line-strong text-muted hover:border-ink hover:text-ink",
+                    )}
                   >
-                    <span className="capitalize">{role}</span>
-                  </Button>
+                    {role}
+                  </button>
                 ))}
               </div>
+              {demoRole && (
+                <div key={demoRole} className="animate-rise rounded-control border border-line bg-raised p-3 text-xs">
+                  <p className="text-sm text-ink">{DEMO_ROLES[demoRole].summary}</p>
+                  <ul className="mt-1.5 flex flex-col gap-0.5 text-muted">
+                    {DEMO_ROLES[demoRole].can.map((c) => (
+                      <li key={c}>
+                        <span className="text-green" aria-hidden>
+                          +{" "}
+                        </span>
+                        {c}
+                      </li>
+                    ))}
+                    {DEMO_ROLES[demoRole].cannot.map((c) => (
+                      <li key={c}>
+                        <span className="text-redline" aria-hidden>
+                          −{" "}
+                        </span>
+                        <span className="sr-only">Cannot: </span>
+                        {c}
+                      </li>
+                    ))}
+                  </ul>
+                  <Button
+                    className="mt-3 w-full"
+                    variant="primary"
+                    busy={busy === demoRole}
+                    disabled={!!busy}
+                    onClick={() => finish(demoRole, () => vault.demoLogin(demoRole))}
+                  >
+                    Continue as {demoRole}
+                  </Button>
+                </div>
+              )}
             </section>
           )}
 

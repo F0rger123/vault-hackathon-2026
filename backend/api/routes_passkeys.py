@@ -1,12 +1,14 @@
 """HTTP API v1, part 5: passkey sign-in with face, fingerprint or a hardware key (F09.14)."""
 
+from typing import Literal
+
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from backend.api.deps import get_conn, get_settings, require
-from backend.api.routes import _browser_origin_ok, _log_signin
+from backend.api.routes import FaceLive, _browser_origin_ok, _log_signin
 from backend.core.config import Settings
-from backend.security import audit, face, invites, passkeys, signin_log, steps, voice
+from backend.security import audit, face, invites, liveness, passkeys, signin_log, steps, voice
 from backend.security import login as signin
 from backend.security.auth import Principal, hash_token
 from backend.storage.db import now
@@ -157,30 +159,58 @@ def login(
 # ---------- face check (F09.19) ----------
 
 
-class FaceEnroll(BaseModel):
-    samples: list[list[float]] = Field(min_length=1, max_length=face.MAX_SAMPLES)
-    live: float = Field(ge=0, le=1)
-    real: float = Field(ge=0, le=1)
-    quality: dict[str, float] = Field(default_factory=dict, max_length=12)
+class FaceChallengeFor(BaseModel):
+    purpose: Literal["enroll", "test"]
 
 
 @router.get("/auth/face")
 def face_status(conn=Depends(get_conn), p: Principal = Depends(require("system:read"))) -> dict:
-    return {**face.status(conn, p.user_id), "match": face.MATCH, "live_min": face.LIVE_MIN, "real_min": face.REAL_MIN}
+    return {
+        **face.status(conn, p.user_id),
+        "match": face.MATCH,
+        "live_min": liveness.LIVE_MIN,
+        "real_min": liveness.REAL_MIN,
+    }
+
+
+@router.post("/auth/face/challenge")
+def face_challenge_for_me(body: FaceChallengeFor, p: Principal = Depends(require("system:read"))) -> dict:
+    """F09.22: a challenge for setting up face unlock, or for testing it while signed in."""
+    return liveness.issue(f"user:{p.user_id}", body.purpose)
 
 
 @router.post("/auth/face", status_code=201)
-def face_enroll(body: FaceEnroll, conn=Depends(get_conn), p: Principal = Depends(fresh_session)) -> dict:
-    """Save this person's face fingerprints. Numbers only: the browser never sends a picture."""
+def face_enroll(body: FaceLive, conn=Depends(get_conn), p: Principal = Depends(fresh_session)) -> dict:
+    """Save this person's face fingerprints. Numbers only: the browser never sends a picture.
+
+    F09.22: setting up also answers a liveness challenge, so a photo cannot be enrolled in place of a face.
+    """
     try:
-        face.check_quality(body.quality)
-        n = face.enroll(conn, p.user_id, body.samples, body.live, body.real)
+        embeddings, summary = body.check(f"user:{p.user_id}", "enroll")
+        n = face.enroll(conn, p.user_id, embeddings)
     except face.FaceError as exc:
         audit.record(conn, p.username, "face.enroll", "denied", detail={"reason": str(exc)})
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    audit.record(conn, p.username, "face.enroll", "allowed", detail={"samples": n})
+    audit.record(conn, p.username, "face.enroll", "allowed", detail={"samples": n, "moves": summary["moves"]})
     apply_requested(conn, p)
     return face.status(conn, p.user_id)
+
+
+@router.post("/auth/face/test")
+def face_test(body: FaceLive, conn=Depends(get_conn), p: Principal = Depends(require("system:read"))) -> dict:
+    """F09.22: "Test my face now". The same checks as a sign-in, without signing in; the numbers are shown."""
+    out: dict = {"match": False, "threshold": face.MATCH, "each_min": face.MATCH_EACH}
+    try:
+        embeddings, summary = body.check(f"user:{p.user_id}", "test")
+        out["moves"] = summary["moves"]
+        out |= face.compare(conn, p.user_id, embeddings)
+        face.match(conn, p.user_id, embeddings)
+    except face.FaceError as exc:
+        out["reason"] = str(exc)
+    out["best"] = round(out.get("best", 0.0), 3)
+    out["worst"] = round(out.get("worst", 0.0), 3)
+    audit.record(conn, p.username, "face.test", "allowed" if out["match"] else "denied", detail={"best": out["best"]})
+    return out
 
 
 @router.delete("/auth/face")

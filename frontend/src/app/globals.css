@@ -746,6 +746,194 @@ section.rounded-card:hover {
   }
 }
 
+/* ---------- F10.23: Ask Keeper, one sequence per reply ----------
+   1 the question flies up from the box and settles; 2 a thinking trace runs until the real plan arrives;
+   3 a pulse runs down the hand-off line when a helper's real "started" event comes in; 4 the answer types out;
+   5 citations pop in and tick when verified; 6 the evidence cards stagger in. Reduced motion turns all of it off
+   (the rule at the end of this file). */
+.ask-fly {
+  animation: ask-fly 0.42s var(--ease-settle) both;
+  transform-origin: 100% 100%;
+}
+@keyframes ask-fly {
+  from {
+    opacity: 0;
+    transform: translateY(48px) scale(0.94);
+  }
+  60% {
+    opacity: 1;
+  }
+}
+.think-trace path {
+  stroke-dasharray: 60 300;
+  animation: think-trace 1.3s linear infinite;
+}
+@keyframes think-trace {
+  from {
+    stroke-dashoffset: 360;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.plan-in {
+  animation: fade-in 0.3s ease-out both;
+}
+.handoff-pulse {
+  position: absolute;
+  left: -2.5px;
+  top: 0;
+  width: 6px;
+  height: 18px;
+  border-radius: 3px;
+  background: linear-gradient(to bottom, transparent, var(--green));
+  box-shadow: 0 0 10px color-mix(in srgb, var(--green) 70%, transparent);
+  animation: handoff-pulse 0.7s var(--ease-out-soft) both;
+  pointer-events: none;
+}
+@keyframes handoff-pulse {
+  from {
+    top: 0;
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  to {
+    top: calc(100% - 18px);
+    opacity: 0;
+  }
+}
+.handoff-step[data-state="live"] > span:first-child,
+.handoff-step[data-state="done"] > span:first-child {
+  background: color-mix(in srgb, var(--green) 55%, var(--line-strong));
+  transition: background 0.4s ease-out;
+}
+.helper-run {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--green) 30%, transparent);
+}
+.tick-draw {
+  stroke-dasharray: 16;
+  animation: tick-draw 0.35s var(--ease-out-soft) both;
+}
+.tick-late {
+  animation-duration: 0.4s;
+}
+@keyframes tick-draw {
+  from {
+    stroke-dashoffset: 16;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.cite-pop {
+  animation: cite-pop 0.32s var(--ease-settle) both;
+}
+@keyframes cite-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  70% {
+    transform: scale(1.12);
+  }
+}
+.result-in {
+  animation: result-in 0.38s var(--ease-settle) both;
+}
+@keyframes result-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+.recall-in {
+  animation: rise 0.4s var(--ease-settle) both;
+}
+.refine-pop {
+  animation: fade-in 0.18s ease-out both;
+}
+.learn-bump {
+  display: inline-block;
+  animation: bump 0.4s var(--ease-out-soft) both;
+}
+.vote-on {
+  animation: cite-pop 0.3s var(--ease-settle) both;
+}
+
+/* The brain beside the chat. Positions are real (documents the helpers reported); only the travel is eased. */
+.kb-doc,
+.kb-craft {
+  transition: transform 0.75s var(--ease-settle);
+}
+.kb-craft-run rect {
+  animation: kb-seek 1.1s ease-in-out infinite;
+}
+@keyframes kb-seek {
+  50% {
+    stroke-width: 2.4;
+  }
+}
+.kb-hit {
+  animation: kb-hit 0.5s var(--ease-settle) both;
+}
+@keyframes kb-hit {
+  from {
+    transform: scale(0.2);
+  }
+  60% {
+    transform: scale(1.6);
+  }
+}
+.kb-beam {
+  stroke-dasharray: 220;
+  animation: kb-draw 0.6s var(--ease-out-soft) both;
+}
+.kb-trail {
+  stroke-dasharray: 5 7;
+  animation:
+    kb-pull 0.9s linear both,
+    fade-in 0.3s ease-out both;
+}
+@keyframes kb-draw {
+  from {
+    stroke-dashoffset: 220;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes kb-pull {
+  from {
+    stroke-dashoffset: 60;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.kb-ring {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: kb-ring 0.9s var(--ease-out-soft) both;
+}
+.kb-ring-late {
+  animation-delay: 0.5s;
+}
+@keyframes kb-ring {
+  from {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(3.2);
+  }
+}
+.kb-rank {
+  animation: fade-in 0.4s ease-out 0.5s both;
+}
+
 /* ---------- F10.21: drawing-sheet details and the face check ---------- */
 
 /* Trim marks: the logo's four corners, set just outside a panel like the crop marks on a drawing sheet. Static. */
@@ -890,6 +1078,169 @@ section.rounded-card:hover {
 /* The phone offer: a quiet panel with a drawn phone and QR, shown only when the camera failed its checks. */
 .phone-offer {
   animation: rise 0.4s var(--ease-settle) both;
+}
+
+/* F09.22: the face check's sign-in sequence. The outline and the scan are painted on a canvas from real readings;
+   these are the pieces round it: the move prompt, the red lock-down, and the vault door that opens on the app. */
+.face-prompt {
+  animation: rise 0.35s var(--ease-settle) both;
+}
+.face-arrow {
+  box-shadow: 0 0 24px rgb(0 230 118 / 0.35);
+}
+.face-arrow-left {
+  animation: nudge-left 1s ease-in-out infinite;
+}
+.face-arrow-right {
+  animation: nudge-right 1s ease-in-out infinite;
+}
+.face-arrow-up {
+  animation: nudge-up 1s ease-in-out infinite;
+}
+.face-arrow-blink {
+  animation: blink-cue 1.4s ease-in-out infinite;
+}
+@keyframes nudge-left {
+  50% {
+    transform: translateX(-10px);
+  }
+}
+@keyframes nudge-right {
+  50% {
+    transform: translateX(10px);
+  }
+}
+@keyframes nudge-up {
+  50% {
+    transform: translateY(-8px);
+  }
+}
+@keyframes blink-cue {
+  45%,
+  55% {
+    transform: scaleY(0.2);
+  }
+}
+.face-lockdown {
+  border-color: #ff4d4d;
+  animation: lockdown-shake 0.45s linear both;
+}
+@keyframes lockdown-shake {
+  15%,
+  55% {
+    transform: translateX(-7px);
+  }
+  35%,
+  75% {
+    transform: translateX(7px);
+  }
+  90% {
+    transform: translateX(-2px);
+  }
+}
+.face-lock-shackle {
+  animation: shackle-shut 0.35s 0.1s var(--ease-settle) both;
+}
+@keyframes shackle-shut {
+  from {
+    transform: translateY(-5px);
+  }
+}
+.face-granted {
+  border-color: #00e676;
+  box-shadow: 0 0 0 1px #00e676, 0 0 32px rgb(0 230 118 / 0.25);
+}
+
+.vault-door {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 18px;
+  background: radial-gradient(circle at 50% 45%, #0d0d0d, #000 70%);
+  perspective: 1400px;
+  animation: fade-in 0.2s linear both;
+}
+.vd-svg {
+  width: min(72vmin, 520px);
+  height: min(72vmin, 520px);
+  overflow: visible;
+}
+.vd-label {
+  font-family: var(--font-data), ui-monospace, monospace;
+  font-size: 13px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #00e676;
+}
+.vd-door {
+  transform-box: view-box;
+  transform-origin: -92px 0;
+}
+.vd-wheel {
+  animation: wheel-spin 1.2s var(--ease-settle) both;
+}
+@keyframes wheel-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(270deg);
+  }
+}
+.vd-bolt {
+  animation: bolt-retract 0.45s 0.85s var(--ease-settle) both;
+}
+@keyframes bolt-retract {
+  to {
+    transform: translateY(22px);
+  }
+}
+.vd-ring {
+  animation: ring-fill 1.1s 0.1s var(--ease-out-soft) both;
+}
+@keyframes ring-fill {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.vault-door-open {
+  animation: door-reveal 1.3s ease-in both;
+}
+.vault-door-open .vd-svg {
+  animation: door-swing 1.1s cubic-bezier(0.55, 0, 0.6, 1) both;
+  transform-origin: 14% 50%;
+}
+.vault-door-open .vd-label {
+  animation: fade-out 0.3s linear both;
+}
+@keyframes door-swing {
+  70% {
+    opacity: 1;
+  }
+  to {
+    transform: rotateY(-108deg) scale(1.15);
+    opacity: 0;
+  }
+}
+@keyframes door-reveal {
+  0%,
+  55% {
+    background-color: #000;
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.vault-door-reduced,
+.vault-door-reduced * {
+  animation: none !important;
+}
+.vault-door-reduced.vault-door-open {
+  animation: fade-out 0.35s linear both !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

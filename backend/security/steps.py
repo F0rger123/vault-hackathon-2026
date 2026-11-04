@@ -23,6 +23,7 @@ EXTRA = ("face", "voice")
 LABELS = {"password": "password", "passkey": "passkey", "face": "face check", "voice": "key phrase"}
 TICKET_SECONDS = 180
 WRONG_TRIES = 3
+MAX_CHALLENGES = 5  # F09.22: face challenges one ticket may ask for, so a recorded video cannot wait for its order
 
 _tickets: dict[str, dict] = {}
 _lock = threading.Lock()
@@ -85,6 +86,18 @@ def passed(handle: str, factor: str) -> list[str]:
             ticket["done"].append(factor)
         ticket["expires"] = time.monotonic() + TICKET_SECONDS
         return list(ticket["done"])
+
+
+def take_challenge(handle: str) -> None:
+    """Count a face challenge asked for on this ticket (F09.22). Raises StepError past MAX_CHALLENGES."""
+    with _lock:
+        ticket = _tickets.get(handle)
+        if not ticket or ticket["expires"] < time.monotonic():
+            raise StepError("this sign-in took too long; start again")
+        ticket["challenges"] = ticket.get("challenges", 0) + 1
+        if ticket["challenges"] > MAX_CHALLENGES:
+            _tickets.pop(handle, None)
+            raise StepError("too many face attempts; start again")
 
 
 def finish(handle: str) -> None:

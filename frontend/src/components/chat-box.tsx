@@ -1,5 +1,6 @@
 "use client";
 
+import { ASK_LABEL } from "@/lib/assistant";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -89,19 +90,19 @@ export function ChatBox() {
           className="chat-launch press fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full border border-line-strong bg-panel py-2.5 pl-3.5 pr-4 text-sm font-medium shadow-lift hover:border-ink"
         >
           <ChatIcon />
-          Ask VAULT
+          {ASK_LABEL}
           <kbd className="rounded border border-line px-1.5 font-mono text-[10px] text-muted">/</kbd>
         </button>
       )}
       {open && (
         <section
           role="dialog"
-          aria-label="Ask VAULT"
+          aria-label={ASK_LABEL}
           className="chat-panel fixed inset-x-3 bottom-3 z-40 flex max-h-[78dvh] flex-col rounded-card border border-line-strong bg-panel shadow-lift sm:inset-x-auto sm:right-5 sm:bottom-5 sm:w-[440px]"
         >
           <header className="flex items-center justify-between border-b border-line px-4 py-2.5">
             <h2 className="flex items-center gap-2 text-sm font-semibold">
-              <ChatIcon /> Ask VAULT
+              <ChatIcon /> {ASK_LABEL}
             </h2>
             <div className="flex gap-1">
               <Link

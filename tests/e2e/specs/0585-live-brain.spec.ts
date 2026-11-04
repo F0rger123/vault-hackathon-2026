@@ -1,16 +1,16 @@
 import { expect, test } from "@playwright/test";
 import { signedIn } from "./helpers";
 
-// F10.22: what the Ask VAULT helpers really did is recorded, and the brain's ticker lists it in words.
+// F10.22: what the Ask Keeper helpers really did is recorded, and the brain's ticker lists it in words.
 test("a chat question shows up in the brain's activity ticker", async ({ page }) => {
   await signedIn(page, "viewer", "/chat");
   const input = page.getByLabel("Message");
   await input.fill("Which parts have conflicting pressure ratings?");
   await input.press("Enter");
-  const reply = page.getByRole("article", { name: "VAULT's reply" }).last();
+  const reply = page.getByRole("article", { name: "Keeper's reply" }).last();
   await expect(reply.locator('[data-helper="finder"]')).toHaveAttribute("data-status", "finished", { timeout: 30_000 });
   await expect(reply.locator('[data-helper="facts"]')).toHaveAttribute("data-status", "finished", { timeout: 30_000 });
-  const watch = reply.getByRole("link", { name: "Watch in the brain" });
+  const watch = reply.getByRole("link", { name: "Watch in the 3D brain" });
   await expect(watch).toBeVisible();
   const href = await watch.getAttribute("href");
   expect(href).toMatch(/^\/brain\?run=ask-[0-9a-f]+$/);

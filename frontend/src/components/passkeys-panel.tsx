@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ApiError, del, errorText, needsStep, put, api, setToken, vault, type SignedIn, type SignInResult, type SignInStep, type StepNeeded } from "@/lib/api";
-import { enrollFace } from "@/lib/face";
+import { enrollFace, faceChallengeForMe, testFace, type FaceTest } from "@/lib/face";
 import { dateTime } from "@/lib/format";
 import { addPasskey, passkeysSupported, signInWithPasskey, type PasskeyKind } from "@/lib/passkeys";
 import { useLoad } from "@/lib/use-load";
@@ -84,7 +84,7 @@ export function PasskeysPanel() {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
-  const [capturing, setCapturing] = useState<"face" | "voice" | null>(null);
+  const [capturing, setCapturing] = useState<"face" | "face-test" | "voice" | null>(null);
   const [open, setOpen] = useState<SignInStep | null>(null);
   const [confirm, setConfirm] = useState<(() => Promise<void>) | null>(null);
   const supported = passkeysSupported();
@@ -364,17 +364,44 @@ export function PasskeysPanel() {
             not a photo, then compares your face with the one you set up. It runs on this computer with the open-source
             Human library; only numbers describing your face are stored, never a picture.
           </p>
-          {capturing === "face" ? (
+          {capturing === "face-test" ? (
+            <FaceCapture
+              mode="test"
+              challenge={() => faceChallengeForMe("test").catch((e) => Promise.reject(new Error(errorText(e))))}
+              onCancel={() => setCapturing(null)}
+              onDone={async (a) => {
+                try {
+                  const r = await testFace(a);
+                  if (!r.match) return { ok: false, reason: faceTestText(r) };
+                  window.setTimeout(() => setCapturing(null), 1800);
+                  return { ok: true, note: <FaceTestResult r={r} /> };
+                } catch (e) {
+                  return { ok: false, reason: errorText(e) };
+                }
+              }}
+            />
+          ) : capturing === "face" ? (
             <FaceCapture
               mode="enroll"
+              challenge={() => faceChallengeForMe("enroll").catch((e) => Promise.reject(new Error(errorText(e))))}
               onCancel={() => setCapturing(null)}
               onDone={async (f) => {
-                const saved = await act("face", () => enrollFace(f), "Face check set up. Tick Face check above to require it.");
-                // Saved: let the check mark show for a moment before the camera view closes. Not saved: close now; the
-                // error (or the "confirm it's you" box) shows above.
-                if (saved) window.setTimeout(() => setCapturing(null), 1600);
-                else setCapturing(null);
-                return saved;
+                // F09.22: a refusal (the reason from the server) stays in the camera view with a retry, and the
+                // "confirm it's you" box still shows above when the session is too old to change face unlock.
+                try {
+                  await enrollFace(f);
+                } catch (e) {
+                  if (needsConfirm(e)) {
+                    setCapturing(null);
+                    setConfirm(() => async () => void setCapturing("face"));
+                    return { ok: false, reason: "Confirm it's you first, then set up the face check again.", final: true };
+                  }
+                  return { ok: false, reason: errorText(e) };
+                }
+                reload();
+                setOk("Face check set up. Test it now, then tick Face check above to require it.");
+                window.setTimeout(() => setCapturing(null), 1600);
+                return { ok: true };
               }}
               poorCamera={(problems) => (
                 <PhoneInstead
@@ -394,6 +421,11 @@ export function PasskeysPanel() {
               <Button variant={face.data?.enrolled ? "secondary" : "primary"} busy={busy === "face"} onClick={() => setCapturing("face")}>
                 {face.data?.enrolled ? "Set it up again" : "Set up face check"}
               </Button>
+              {face.data?.enrolled && (
+                <Button variant="primary" onClick={() => setCapturing("face-test")}>
+                  Test my face now
+                </Button>
+              )}
               {face.data?.enrolled && (
                 <Button variant="danger" busy={busy === "face-rm"} onClick={() => act("face-rm", () => del("/auth/face"), "Face data deleted.")}>
                   Delete my face data
@@ -613,5 +645,23 @@ function ConfirmIdentity({ onConfirmed, onCancel }: { onConfirmed: () => Promise
       )}
       {error && <p className="mt-2 text-sm text-redline">{error}</p>}
     </div>
+  );
+}
+
+function faceTestText(r: FaceTest): string {
+  if (r.reason && r.reason !== "the face did not match") return r.reason;
+  return `Your face did not match the saved one: closest ${r.best.toFixed(2)}, VAULT needs ${r.threshold.toFixed(2)} (every reading at least ${r.each_min.toFixed(2)}; lowest ${r.worst.toFixed(2)}). Try in the same light as the setup, or set it up again.`;
+}
+
+/** F09.22: what "Test my face now" found, with the real numbers, so a pass or a fail can be trusted. */
+function FaceTestResult({ r }: { r: FaceTest }) {
+  return (
+    <p role="status" className="rounded-card border border-green/50 bg-raised p-3 text-sm">
+      <span className="font-semibold text-green">It works. </span>
+      <span className="text-muted">
+        Closest match {r.best.toFixed(2)}, VAULT needs {r.threshold.toFixed(2)}; lowest reading {r.worst.toFixed(2)} (needs{" "}
+        {r.each_min.toFixed(2)}). A sign-in would pass.
+      </span>
+    </p>
   );
 }
