@@ -24,7 +24,7 @@ Last updated: 2026-11-03
 ## Updates
 
 ### 2026-11-04 · F10.25 · Ask Keeper uses the Brain page's 3D brain (PR open, do not auto-merge)
-- **Built:** Ask Keeper now shows `brain-space.tsx` itself in a compact mode (`keeper-space.tsx`), driven by the latest reply's recorded activity rows and streamed events; helper craft have their own colours on both pages; `keeper-brain.tsx` deleted; grouped example prompts, each tested on the demo collection.
+- **Built:** Ask Keeper now shows `brain-space.tsx` itself in a compact mode (`keeper-space.tsx`), driven by the latest reply's recorded activity rows and streamed events; helper craft have their own colours on both pages; `keeper-brain.tsx` deleted; grouped example prompts, each tested on the demo collection. Leaving Ask Keeper for another page no longer stops a reply (module store); a full reload still does, and says so.
 - **Waiting on Luke:** review the PR; watch one live question on a real GPU for the video.
 - **Not verified:** motion by eye in a recording; Ollama-written answers.
 

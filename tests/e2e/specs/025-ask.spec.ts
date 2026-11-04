@@ -74,3 +74,18 @@ test("the chat page fits a phone screen, with the brain behind a button", async 
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(0);
 });
+
+// F10.25: the reply belongs to the app, not to the chat page, so visiting another page does not stop it.
+test("a reply keeps going while you visit another page, and is there when you come back", async ({ page }) => {
+  await signedIn(page, "viewer", "/chat");
+  await page.getByRole("button", { name: PRESSURE }).click();
+  // Leave at once, through the app's own navigation (no reload).
+  await page.locator("nav").getByRole("link", { name: "Overview" }).click();
+  await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
+  await page.locator("nav").getByRole("link", { name: "Ask Keeper" }).click();
+  const reply = page.getByRole("article", { name: "Keeper's reply" }).last();
+  await expect(reply.getByText(/s in all/)).toBeVisible({ timeout: 30_000 });
+  await expect(reply).not.toContainText("Stopped");
+  await expect(reply.locator("[data-source]").first()).toBeVisible();
+  await expect(page.getByRole("region", { name: "Keeper's brain" }).locator("[data-cited-doc]").first()).toBeVisible();
+});

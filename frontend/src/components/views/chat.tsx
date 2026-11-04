@@ -4,7 +4,6 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import {
-  askTeam,
   downloadRecords,
   errorText,
   vault,
@@ -17,6 +16,7 @@ import {
 } from "@/lib/api";
 import { ASK_LABEL, ASSISTANT_NAME, ASSISTANT_POSSESSIVE } from "@/lib/assistant";
 import { humanize } from "@/lib/format";
+import { ask, getThread, onReplyFinished, patchTurn, setThread, stopAsking, subscribeThread } from "@/lib/keeper-chat";
 import { helperStates, type HelperState, type VaultTurn } from "@/lib/keeper-turn";
 import { KindBadge, mediaLine, NOT_READ_NOTE } from "@/lib/media";
 import { useLoad } from "@/lib/use-load";
@@ -36,13 +36,6 @@ const KeeperSpace = dynamic(() => import("../keeper-space"), {
   ssr: false,
   loading: () => <Skeleton className="h-[520px] w-full" />,
 });
-
-type Turn = { id: number; who: "you"; text: string } | VaultTurn;
-
-interface Saved {
-  turns: Turn[];
-  last: ChatCommand | null;
-}
 
 // F10.25: example prompts, grouped. Each one was asked on the demo collection and gave an answer with its sources
 // (F10.25, rules provider); `demo` ones name parts or projects that exist only in the demo data.
@@ -80,35 +73,6 @@ const PROMPT_GROUPS: { title: string; prompts: { text: string; demo?: boolean }[
   },
 ];
 
-const storageKey = (collectionId: number) => `vault.chat.${collectionId}`;
-
-function load(collectionId: number): Saved {
-  try {
-    const raw = sessionStorage.getItem(storageKey(collectionId));
-    if (!raw) return { turns: [], last: null };
-    const saved = JSON.parse(raw) as Saved;
-    // A reply that was still running when the page closed will never finish; say so instead of spinning.
-    return {
-      last: saved.last ?? null,
-      turns: (saved.turns ?? []).map((t) =>
-        t.who === "vault"
-          ? { ...t, live: false, ...(t.running ? { running: false, error: t.error ?? "Stopped when the page closed." } : {}) }
-          : t,
-      ),
-    };
-  } catch {
-    return { turns: [], last: null };
-  }
-}
-
-function save(collectionId: number, value: Saved): void {
-  try {
-    sessionStorage.setItem(storageKey(collectionId), JSON.stringify(value));
-  } catch {
-    /* storage full or blocked: the thread lives only in this page */
-  }
-}
-
 const wideQuery = "(min-width: 1024px)";
 const watchWide = (cb: () => void) => {
   const m = window.matchMedia(wideQuery);
@@ -133,7 +97,12 @@ export function ChatView() {
 }
 
 function Ask({ collectionId, demo }: { collectionId: number; demo: boolean }) {
-  const [state, setState] = useState<Saved>(() => (typeof window === "undefined" ? { turns: [], last: null } : load(collectionId)));
+  // F10.25: the thread and its streaming request live in lib/keeper-chat, so leaving this page does not stop a reply.
+  const state = useSyncExternalStore(
+    useCallback((cb: () => void) => subscribeThread(collectionId, cb), [collectionId]),
+    () => getThread(collectionId),
+    () => getThread(collectionId),
+  );
   // ?q= (from an old /investigate link or the palette) fills the box; ?ask= sends it once.
   const [text, setText] = useState(() => (typeof window === "undefined" ? "" : (new URLSearchParams(window.location.search).get("q") ?? "").slice(0, 300)));
   const [doc, setDoc] = useState<number | null>(null);
@@ -142,68 +111,28 @@ function Ask({ collectionId, demo }: { collectionId: number; demo: boolean }) {
   const wide = useSyncExternalStore(watchWide, () => window.matchMedia(wideQuery).matches, () => true);
   const [brainChoice, setBrainChoice] = useState<boolean | null>(null);
   const showBrain = brainChoice ?? wide;
-  const abort = useRef<AbortController | null>(null);
   const end = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
-  const nextId = useRef(state.turns.reduce((m, t) => Math.max(m, t.id), 0) + 1);
   const running = state.turns.some((t) => t.who === "vault" && t.running);
   const latest = [...state.turns].reverse().find((t): t is VaultTurn => t.who === "vault") ?? null;
 
-  useEffect(() => save(collectionId, state), [collectionId, state]);
   useEffect(() => {
     end.current?.scrollIntoView({ block: "end", behavior: "smooth" });
   }, [state.turns]);
-  useEffect(() => () => abort.current?.abort(), []);
-
-  const patch = useCallback((id: number, change: (t: VaultTurn) => Partial<VaultTurn>) => {
-    setState((s) => ({
-      ...s,
-      turns: s.turns.map((t) => (t.id === id && t.who === "vault" ? { ...t, ...change(t) } : t)),
-    }));
-  }, []);
-
-  const lastRef = useRef(state.last);
-  lastRef.current = state.last;
-  const runningRef = useRef(running);
-  runningRef.current = running;
+  const patch = useCallback((id: number, change: (t: VaultTurn) => Partial<VaultTurn>) => patchTurn(collectionId, id, change), [collectionId]);
   const reloadMemory = memory.reload;
+  useEffect(() => onReplyFinished(collectionId, () => {
+    reloadMemory();
+    input.current?.focus();
+  }), [collectionId, reloadMemory]);
 
   const send = useCallback(
-    async (message: string) => {
-      const m = message.trim().slice(0, 300);
-      if (!m || runningRef.current) return;
-      runningRef.current = true;
+    (message: string) => {
+      if (!message.trim() || running) return;
       setText("");
-      const you = nextId.current++;
-      const me = nextId.current++;
-      const previous = lastRef.current;
-      setState((s) => ({
-        ...s,
-        turns: [...s.turns, { id: you, who: "you", text: m }, { id: me, who: "vault", events: [], running: true, live: true }],
-      }));
-      const controller = new AbortController();
-      abort.current = controller;
-      try {
-        await askTeam(
-          collectionId,
-          m,
-          previous,
-          (ev) => {
-            patch(me, (t) => ({ events: [...t.events, ev] }));
-            if (ev.type === "answer" && ev.kind === "find") setState((s) => ({ ...s, last: ev.command }));
-          },
-          controller.signal,
-        );
-        patch(me, () => ({ running: false }));
-        reloadMemory();
-      } catch (e) {
-        patch(me, () => ({ running: false, error: controller.signal.aborted ? "Stopped." : errorText(e) }));
-      } finally {
-        abort.current = null;
-        input.current?.focus();
-      }
+      void ask(collectionId, message);
     },
-    [collectionId, patch, reloadMemory],
+    [collectionId, running],
   );
 
   // ?ask= sends once, then leaves the address bar clean so a reload does not ask again.
@@ -351,7 +280,7 @@ function Ask({ collectionId, demo }: { collectionId: number; demo: boolean }) {
               {running ? (
                 <button
                   type="button"
-                  onClick={() => abort.current?.abort()}
+                  onClick={() => stopAsking(collectionId)}
                   className="press min-h-10 rounded-control border border-line-strong px-3.5 text-sm font-medium"
                 >
                   Stop
@@ -367,7 +296,7 @@ function Ask({ collectionId, demo }: { collectionId: number; demo: boolean }) {
               {state.turns.length > 0 && !running && (
                 <button
                   type="button"
-                  onClick={() => setState({ turns: [], last: null })}
+                  onClick={() => setThread(collectionId, { turns: [], last: null })}
                   className="rounded-control px-1.5 py-0.5 hover:bg-raised hover:text-ink"
                 >
                   Clear chat
