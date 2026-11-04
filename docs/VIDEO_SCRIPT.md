@@ -89,8 +89,9 @@ Switch to Viewer: the bars read REDACTED, and Restricted files are simply gone f
 **Show:** the terminal running `python scripts/attack_demo.py`: each attack refused, all green. Then 2 seconds on
 the GitHub Actions page with the scanners green.
 
-> "We attack it ourselves: stolen tokens, path tricks, zip bombs, hidden instructions inside documents. Every one
-> is refused, and scanners run on every change. We don't claim it's unhackable. We test it."
+> "We attack it ourselves: forged and reused sign-in tokens, programs disguised as PDFs, a zip bomb, SQL
+> injection, password guessing. Sixteen attacks, sixteen refused, and scanners run on every change. We don't
+> claim it's unhackable. We test it."
 
 ### 2:50–3:00 · Close
 
