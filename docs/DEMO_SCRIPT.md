@@ -42,11 +42,11 @@ This is the word-for-word script and click path for the hackathon video. The tim
 **Say:**
 > "A coordinator hands documents to parallel Llama lanes, and a security gate checks every file first. Every fact Llama extracts must quote its page. Files already read are skipped, and I can ask the coordinator how the run is going."
 
-### 1:05–1:35 · Ask VAULT: a coordinator and its helpers
+### 1:05–1:35 · Ask Keeper: a coordinator and its helpers
 
 **Show:**
-- **Ask VAULT**: press *"Which parts have conflicting pressure ratings?"*. The Coordinator plans; Finder and Conflict checker light up at the same time; Answer writer runs on Llama 3; Fact checker ticks "3 of 3 cited sentences verified". About 16 s live; trim the wait and say so on screen.
-- Click source 1: the drawing opens on the cited line. Optionally switch to **Brain** and watch the helpers fly to the same documents.
+- **Ask Keeper** (F10.23: Investigate now lives here): press *"Which parts have conflicting pressure ratings?"*. Keeper plans; a pulse runs down the hand-off line as Finder and Conflict checker light up at the same time; Answer writer runs on Llama 3; the answer types out and each citation ticks once the Fact checker verified it; the redline cards (600 psi vs 1500 psi) slide in under it. On the right, the brain shows each helper flying to the documents it used and the sources trailing back to Keeper. About 16 s live; trim the wait and say so on screen.
+- Click source 1: the drawing opens on the cited line. Press the thumbs up, then ask the same question again: "You asked this before" appears at once, and is checked again against today's documents. The header counts what Keeper has learned.
 
 **Say:**
 > "Ask in plain words. A coordinator agent splits the job: one helper searches, another checks recorded conflicts at the same time, Llama writes the answer, and a fact checker confirms every number appears in a cited line. BV-7891 is rated 1500 psi on the drawings but was tested at 600."

@@ -23,6 +23,11 @@ Last updated: 2026-11-03
 
 ## Updates
 
+### 2026-11-03 · F10.23 · Ask Keeper, PR open
+- **Done:** Investigate merged into the chat, now "Ask Keeper" (one name constant per side). Redline conflict cards and media result rows inline, Refine chips, export in the header, `/investigate` redirects with its query. Stream-driven animation sequence, a live SVG brain beside the chat, and learning from thumbs up/down (migration 14, two new routes).
+- **Waiting on Luke:** review and merge the PR; watch one live question for the demo video (the animations were checked by screenshots, not by eye).
+- **Not verified:** answers written by Ollama; the full e2e suite (four specs run).
+
 ### 2026-11-03 · F09.19, F10.19, F11.7 · merged
 - **Merged:** #98. Real sign-in levels (passkey kind choice, confirm-it's-you, webcam face check with the Human library, admin controls), Progress live status, mock-up audit fixes, the fictional test set generator, and `docs/TEST_GUIDE.md`.
 - **Release:** v0.2.0 published on GitHub.

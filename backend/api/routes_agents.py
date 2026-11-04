@@ -1,13 +1,14 @@
 """HTTP API v1, part 2: agent activity, capacity planning and teach-by-example."""
 
 import json
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from backend.agents import ask_team as ask_team_mod
-from backend.agents import run_chat
+from backend.agents import keeper, run_chat
 from backend.api.deps import effective_settings, get_conn, get_settings, require
 from backend.api.routes import _provider, _row
 from backend.api.schemas import CalibrateRequest, ExampleCreate
@@ -291,7 +292,7 @@ def ask_team(
                 raise ask_team_mod.HelperFailed(str(exc.detail), exc.status_code) from exc
             # The default local model is not running. Fall back to the rules (never to a remote model) and say so.
             provider, info = _provider(stream_conn, settings, "heuristic", False, p.username)
-            note = "The local model is not running, so the Answer writer uses VAULT's rules instead."
+            note = f"The local model is not running, so the Answer writer uses {ask_team_mod.RULES} instead."
         if info.locality == "remote" and not p.can("jobs:create"):
             audit.record(stream_conn, p.username, "ask.run", "denied", detail={"reason": "remote needs analyst"})
             raise ask_team_mod.HelperFailed("asking a remote model needs an analyst or admin", 403)
@@ -308,3 +309,37 @@ def ask_team(
     )
     lines = (json.dumps(ev, default=str) + "\n" for ev in team.events())
     return StreamingResponse(lines, media_type="application/x-ndjson", headers={"X-Accel-Buffering": "no"})
+
+
+# ---------- What Keeper learns (F10.23) ----------
+
+
+class AnswerVote(BaseModel):
+    vote: Literal[-1, 0, 1]
+
+
+@router.get("/collections/{collection_id}/memory")
+def keeper_memory(collection_id: int, conn=Depends(get_conn), _: Principal = Depends(require("search"))) -> dict:
+    """How many answers Keeper has stored and learned from in this collection. Counts only, no answer text."""
+    _row(conn.execute("SELECT id FROM collections WHERE id = ?", (collection_id,)).fetchone())
+    return keeper.stats(conn, collection_id)
+
+
+@router.post("/collections/{collection_id}/answers/{run}/vote")
+def vote_answer(
+    collection_id: int,
+    run: str,
+    body: AnswerVote,
+    conn=Depends(get_conn),
+    p: Principal = Depends(require("search")),
+) -> dict:
+    """Thumbs up (1), down (-1) or neither (0) on your own answer. The answer itself was stored by the server."""
+    if not keeper.RUN_RE.fullmatch(run):
+        raise HTTPException(status_code=404, detail="not found")
+    result = keeper.vote(conn, collection_id, run, p.username, body.vote)
+    if result is None:
+        raise HTTPException(status_code=404, detail="not found")
+    audit.record(
+        conn, p.username, "ask.vote", "allowed", target=f"collection:{collection_id}", detail={"vote": body.vote}
+    )
+    return result

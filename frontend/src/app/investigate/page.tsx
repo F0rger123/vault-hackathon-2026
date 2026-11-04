@@ -1,13 +1,10 @@
-import { PageGate } from "@/components/app-shell";
 import type { Metadata } from "next";
-import { InvestigateView } from "@/components/views/investigate";
+import { InvestigateRedirect } from "@/components/investigate-redirect";
+import { ASK_LABEL } from "@/lib/assistant";
 
-export const metadata: Metadata = { title: "Investigate" };
+// F10.23: Investigate was merged into the chat. Old links (and their query strings) land there.
+export const metadata: Metadata = { title: ASK_LABEL };
 
 export default function Page() {
-  return (
-    <PageGate>
-      <InvestigateView />
-    </PageGate>
-  );
+  return <InvestigateRedirect />;
 }

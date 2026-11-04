@@ -38,7 +38,7 @@ PAGES = {
     "/": ("overview", "home", "dashboard"),
     "/setup": ("set up", "setup", "upload", "add files"),
     "/run": ("run board", "live run", "runs", "progress"),
-    "/investigate": ("investigate", "search page"),
+    "/chat": ("investigate", "search page", "chat", "keeper"),
     "/training": ("training", "quiz"),
     "/brain": ("brain", "knowledge"),
     "/approvals": ("approvals", "approval"),
@@ -57,7 +57,7 @@ _REFINE = re.compile(
     r"without|except|excluding|filter|reverse)\b",
     re.I,
 )
-_GREETING = re.compile(r"^(?:hey|hi|hello|yo|ok|okay|thanks|thank you)?\s*(?:vault)?[\s,.!]*$", re.I)
+_GREETING = re.compile(r"^(?:hey|hi|hello|yo|ok|okay|thanks|thank you)?\s*(?:vault|keeper)?[\s,.!]*$", re.I)
 _EXCLUDE = re.compile(r"\b(?:without|except|excluding|not\s+containing|but\s+not)\s+([\w.-]+)", re.I)
 _SORT = [
     (re.compile(r"\b(?:newest|latest|most\s+recent|recent\s+first)\b", re.I), ("date", "desc")),
@@ -81,7 +81,8 @@ _MEDIA_WORDS = [
     ("photo", re.compile(r"\b(?:photos?|pictures?|images?|pics?|snapshots?)\b", re.I)),
 ]
 _FILLER = set(
-    """hey hi hello vault please can could would you me my i we find search look for up show list get pull all any
+    """hey hi hello vault keeper please can could would you me my i we find search look for up show list get pull all
+    any
     every everything anything stuff the a an of in on at to from with by and or it them those these this that like
     order sort sorted arrange
     only just also now instead first last newest oldest latest earliest recent most date dates year name names type

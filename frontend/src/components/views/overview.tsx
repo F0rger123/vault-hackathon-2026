@@ -98,7 +98,7 @@ export function OverviewView() {
           <Panel
             title="Latest findings"
             aside={
-              <Link href="/investigate" className="text-blue underline-offset-4 hover:underline">
+              <Link href={`/chat?ask=${encodeURIComponent("Which parts have conflicting ratings?")}`} className="text-blue underline-offset-4 hover:underline">
                 See all findings
               </Link>
             }
