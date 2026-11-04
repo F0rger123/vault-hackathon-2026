@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ApiError, errorText, openOriginal, vault, type DocumentDetail, type Screening } from "@/lib/api";
+import { ApiError, downloadOriginal, errorText, vault, type DocumentDetail, type Screening } from "@/lib/api";
 import { formatBytes, humanize, providerLabel } from "@/lib/format";
 import { KindBadge, mediaLine, NOT_READ_NOTE } from "@/lib/media";
 import { useLoad } from "@/lib/use-load";
+import { DocumentPreview } from "./document-preview";
 import { Button, Empty, LoadError, Notice, Tag, VerifiedMark } from "./ui";
 
 interface DrawerData {
@@ -31,6 +32,8 @@ export function DocumentDrawer({ documentId, onClose }: { documentId: number | n
   );
   const [openError, setOpenError] = useState<string | null>(null);
   const [opening, setOpening] = useState(false);
+  // F11.9: a wider drawer for drawings and photos; remembered while the page is open.
+  const [wide, setWide] = useState(false);
 
   useEffect(() => {
     if (documentId === null) return;
@@ -59,7 +62,9 @@ export function DocumentDrawer({ documentId, onClose }: { documentId: number | n
         aria-modal="true"
         aria-labelledby="drawer-title"
         tabIndex={-1}
-        className="drawer-in relative flex h-full w-full max-w-xl flex-col border-l border-line bg-panel shadow-lift outline-none"
+        className={`drawer-in relative flex h-full w-full flex-col border-l border-line bg-panel shadow-lift outline-none ${
+          wide ? "max-w-[min(100vw,1680px)]" : "max-w-3xl"
+        }`}
       >
         <header className="flex items-start justify-between gap-3 border-b border-line px-5 py-4">
           <div className="min-w-0">
@@ -84,130 +89,145 @@ export function DocumentDrawer({ documentId, onClose }: { documentId: number | n
               )
             )}
           </div>
-          <Button variant="secondary" onClick={onClose}>
-            Close
-          </Button>
+          <div className="flex shrink-0 gap-2">
+            <Button
+              className="hidden sm:inline-flex"
+              aria-pressed={wide}
+              onClick={() => setWide((w) => !w)}
+              title={wide ? "Make the drawer narrower" : "Widen the drawer to nearly full screen"}
+            >
+              {wide ? "Narrower" : "Full screen"}
+            </Button>
+            <Button variant="secondary" onClick={onClose}>
+              Close
+            </Button>
+          </div>
         </header>
 
         <div className="flex-1 overflow-y-auto px-5 py-4">
           <LoadError error={error} status={status} what="this document" />
           {current && (
-            <div className="flex flex-col gap-6">
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  variant="primary"
-                  busy={opening}
-                  onClick={async () => {
-                    setOpenError(null);
-                    setOpening(true);
-                    try {
-                      await openOriginal(documentId);
-                    } catch (e) {
-                      setOpenError(errorText(e));
-                    } finally {
-                      setOpening(false);
-                    }
-                  }}
-                >
-                  Open the original
-                </Button>
-                <span className="text-xs text-muted">Opens in a new tab. The download is recorded in the audit log.</span>
-              </div>
-              {openError && <Notice>Couldn&apos;t open the original: {openError}</Notice>}
-
-              <section>
-                <h3 className="mb-2 text-sm font-semibold">Extracted fields</h3>
-                {!x ? (
-                  <Empty>This document hasn&apos;t been processed yet. Start a run on the Add files page.</Empty>
-                ) : (
-                  <>
-                    <dl className="grid grid-cols-[8rem_minmax(0,1fr)] border-t border-line text-sm">
-                      {(
-                        [
-                          ["Document type", humanize(x.data.doc_type)],
-                          ["Project", x.data.project ?? "Not found"],
-                          ["Date", x.data.doc_date ?? "Not found"],
-                          ["Title", x.data.title ?? "Not found"],
-                          ["Summary", x.data.summary ?? "None"],
-                          ["Parties", x.data.parties?.length ? x.data.parties.join(", ") : "None"],
-                          ["Stamps", x.data.stamps?.length ? x.data.stamps.join(", ") : "None"],
-                        ] as const
-                      ).map(([k, v]) => (
-                        <div key={k} className="contents">
-                          <dt className="border-b border-line py-1.5 pr-3 text-muted">{k}</dt>
-                          <dd className="break-words border-b border-line py-1.5">{v}</dd>
-                        </div>
-                      ))}
-                    </dl>
-                    <p className="mt-2 text-xs text-muted">
-                      Read by {providerLabel(x.provider)} ({x.model}) {x.locality === "local" ? "on this machine" : "on a remote service"}{" "}
-                      in {(x.duration_ms / 1000).toFixed(1)} s. {Math.round(x.verified_ratio * 100)}% of quoted evidence was found
-                      in the original text.
-                    </p>
-                  </>
-                )}
+            <div className={wide ? "grid gap-6 lg:grid-cols-[minmax(0,1fr)_26rem]" : "flex flex-col gap-6"}>
+              <section aria-label="Preview" className="flex min-w-0 flex-col gap-2">
+                <DocumentPreview key={current.doc.id} doc={current.doc} tall={wide} />
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    busy={opening}
+                    disabled={current.doc.status === "quarantined"}
+                    onClick={async () => {
+                      setOpenError(null);
+                      setOpening(true);
+                      try {
+                        await downloadOriginal(documentId, current.doc.filename);
+                      } catch (e) {
+                        setOpenError(errorText(e));
+                      } finally {
+                        setOpening(false);
+                      }
+                    }}
+                  >
+                    Download the original
+                  </Button>
+                  <span className="text-xs text-muted">Viewing and downloading are both recorded in the audit log.</span>
+                </div>
+                {openError && <Notice>Couldn&apos;t download the original: {openError}</Notice>}
               </section>
 
-              {x?.data.components && x.data.components.length > 0 && (
+              <div className="flex min-w-0 flex-col gap-6">
                 <section>
-                  <h3 className="mb-2 text-sm font-semibold">Components</h3>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-line text-left text-xs font-medium text-muted">
-                          <th className="py-1.5 pr-3 font-medium">Part number</th>
-                          <th className="py-1.5 pr-3 font-medium">Rating</th>
-                          <th className="py-1.5 font-medium">Quantity</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {x.data.components.map((c, i) => (
-                          <tr key={`${c.part_number}-${i}`} className="border-b border-line">
-                            <td className="py-1.5 pr-3 font-mono">{c.part_number ?? "None"}</td>
-                            <td className="py-1.5 pr-3 tabular-nums">
-                              {c.pressure_rating_psi != null ? `${c.pressure_rating_psi} psi` : "Not stated"}
-                            </td>
-                            <td className="py-1.5 tabular-nums">{c.quantity ?? "Not stated"}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </section>
-              )}
-
-              {x && (
-                <section>
-                  <h3 className="mb-2 text-sm font-semibold">Evidence quotes</h3>
-                  {x.evidence.length === 0 ? (
-                    <Empty>The model quoted no evidence for this document.</Empty>
+                  <h3 className="mb-2 text-sm font-semibold">Extracted fields</h3>
+                  {!x ? (
+                    <Empty>This document hasn&apos;t been processed yet. Start a run on the Add files page.</Empty>
                   ) : (
-                    <ul className="flex flex-col gap-2">
-                      {x.evidence.map((ev, i) => (
-                        <li key={i} className="rounded-control border border-line bg-raised px-3 py-2">
-                          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted">
-                            <span>
-                              {humanize(ev.field)}
-                              {ev.page != null && `, page ${ev.page}`}
-                            </span>
-                            <VerifiedMark verified={ev.verified} />
+                    <>
+                      <dl className="grid grid-cols-[8rem_minmax(0,1fr)] border-t border-line text-sm">
+                        {(
+                          [
+                            ["Document type", humanize(x.data.doc_type)],
+                            ["Project", x.data.project ?? "Not found"],
+                            ["Date", x.data.doc_date ?? "Not found"],
+                            ["Title", x.data.title ?? "Not found"],
+                            ["Summary", x.data.summary ?? "None"],
+                            ["Parties", x.data.parties?.length ? x.data.parties.join(", ") : "None"],
+                            ["Stamps", x.data.stamps?.length ? x.data.stamps.join(", ") : "None"],
+                          ] as const
+                        ).map(([k, v]) => (
+                          <div key={k} className="contents">
+                            <dt className="border-b border-line py-1.5 pr-3 text-muted">{k}</dt>
+                            <dd className="break-words border-b border-line py-1.5">{v}</dd>
                           </div>
-                          <blockquote className="mt-1 break-words font-mono text-[13px]">{ev.quote}</blockquote>
-                        </li>
-                      ))}
-                    </ul>
+                        ))}
+                      </dl>
+                      <p className="mt-2 text-xs text-muted">
+                        Read by {providerLabel(x.provider)} ({x.model}) {x.locality === "local" ? "on this machine" : "on a remote service"}{" "}
+                        in {(x.duration_ms / 1000).toFixed(1)} s. {Math.round(x.verified_ratio * 100)}% of quoted evidence was found
+                        in the original text.
+                      </p>
+                    </>
                   )}
                 </section>
-              )}
 
-              <section>
-                <h3 className="mb-2 text-sm font-semibold">Security screening</h3>
-                {!current.screening ? (
-                  <Empty>Not screened yet. Documents are screened at the start of every run.</Empty>
-                ) : (
-                  <ScreeningView s={current.screening} />
+                {x?.data.components && x.data.components.length > 0 && (
+                  <section>
+                    <h3 className="mb-2 text-sm font-semibold">Components</h3>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-line text-left text-xs font-medium text-muted">
+                            <th className="py-1.5 pr-3 font-medium">Part number</th>
+                            <th className="py-1.5 pr-3 font-medium">Rating</th>
+                            <th className="py-1.5 font-medium">Quantity</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {x.data.components.map((c, i) => (
+                            <tr key={`${c.part_number}-${i}`} className="border-b border-line">
+                              <td className="py-1.5 pr-3 font-mono">{c.part_number ?? "None"}</td>
+                              <td className="py-1.5 pr-3 tabular-nums">
+                                {c.pressure_rating_psi != null ? `${c.pressure_rating_psi} psi` : "Not stated"}
+                              </td>
+                              <td className="py-1.5 tabular-nums">{c.quantity ?? "Not stated"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
                 )}
-              </section>
+
+                {x && (
+                  <section>
+                    <h3 className="mb-2 text-sm font-semibold">Evidence quotes</h3>
+                    {x.evidence.length === 0 ? (
+                      <Empty>The model quoted no evidence for this document.</Empty>
+                    ) : (
+                      <ul className="flex flex-col gap-2">
+                        {x.evidence.map((ev, i) => (
+                          <li key={i} className="rounded-control border border-line bg-raised px-3 py-2">
+                            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted">
+                              <span>
+                                {humanize(ev.field)}
+                                {ev.page != null && `, page ${ev.page}`}
+                              </span>
+                              <VerifiedMark verified={ev.verified} />
+                            </div>
+                            <blockquote className="mt-1 break-words font-mono text-[13px]">{ev.quote}</blockquote>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </section>
+                )}
+
+                <section>
+                  <h3 className="mb-2 text-sm font-semibold">Security screening</h3>
+                  {!current.screening ? (
+                    <Empty>Not screened yet. Documents are screened at the start of every run.</Empty>
+                  ) : (
+                    <ScreeningView s={current.screening} />
+                  )}
+                </section>
+              </div>
             </div>
           )}
         </div>

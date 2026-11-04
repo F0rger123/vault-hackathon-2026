@@ -16,7 +16,8 @@ least one of these.
 ### 0:00–0:18 · The hook
 
 **Show:** black screen, then a fast scroll through a folder of drawings, inspection reports, contracts, site
-photos and newspaper clippings (`data\testset-demo`).
+photos and newspaper clippings (`data\testset-huge`, about 2,300 fictional files; the file count in Explorer's
+status bar sells the scale).
 
 > "Somewhere in this pile, a valve is rated for 1,500 psi on the drawing, and it was tested at 600. One of
 > these is wrong. Finding it means reading thousands of pages by hand. And these files are confidential, so you
@@ -25,7 +26,7 @@ photos and newspaper clippings (`data\testset-demo`).
 ### 0:18–0:40 · Opening the vault
 
 **Show:** the sign-in screen. Type the password. The face check: the outline traces your face, the screen goes
-dark, scan lines sweep, it asks you to turn your head. The vault door spins open into the app. **[if merged]**
+dark, scan lines sweep, it asks you to turn your head. The vault door spins open into the app.
 
 > "This is VAULT. It runs entirely on this laptop. Every person picks their own locks: a password, a passkey or a
 > hardware security key, a spoken phrase, and a face check that asks you to move, so a photo of my face won't
@@ -58,7 +59,7 @@ Click a source: the blueprint opens on screen.
 
 ### 1:50–2:15 · It learns
 
-**Show:** thumbs-up on the answer, the header "Keeper has learned from N answers". **[if merged]** Then the
+**Show:** thumbs-up on the answer, the header "Keeper has learned from N answers". Then the
 Brain: answer one of its questions, *"What does PV stand for?"*, *"Pressure valve."* Then Training: the
 held-out score.
 
@@ -73,6 +74,15 @@ appear with ticks, and as new green nodes in the brain.
 
 > "VAULT never edits your originals. It proposes copies, and a person approves them. Anyone can browse the
 > proposals in view-only mode. Inviting a colleague is a five-step wizard with exactly the permissions you pick."
+
+**Alternative for this slot, if classify-and-redact is merged (use it instead of the paragraph above, same
+length):** **[if merged]** In Ask Keeper type *"mark the pricing contracts as confidential"*. Keeper's request
+appears in Approvals with the label and the parts to black out. Approve it: black bars over the prices and names.
+Switch to Viewer: the bars read REDACTED, and Restricted files are simply gone from the list.
+
+> "Keeper can also spot what's sensitive. It suggests a label, confidential or restricted, and what to black
+> out: prices, names, phone numbers. A person approves it. After that, a viewer never sees those parts, and
+> restricted files don't even show up. The original file is never touched."
 
 ### 2:35–2:50 · We tried to break it
 

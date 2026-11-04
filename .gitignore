@@ -22,6 +22,7 @@ data/e2e/
 # Large fictional drag-in test set from scripts/make_test_files.py; regenerate it, never commit it.
 data/testset/
 data/testset-demo/
+data/testset-huge/
 data/*.db
 *.db
 *.db-wal

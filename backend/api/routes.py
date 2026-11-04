@@ -53,7 +53,7 @@ from backend.workers.importer import candidate_files, create_import_job, import_
 from backend.workers.jobs import create_process_job, documents_to_read
 from backend.workers.layout_request import interpret as interpret_layout
 from backend.workers.processing import may_go_remote, process_document
-from backend.workers.proposals import create_proposal, execute_proposal
+from backend.workers.proposals import create_proposal, execute_proposal, remove_copies
 from backend.workers.records import COLUMNS, collection_records, to_csv
 
 VERSION = "0.2.0"
@@ -900,9 +900,28 @@ def get_page(
     return {**page, "text": text, "redactions": [{**s, "status": "applied"} for s in placed], "redacted": bool(found)}
 
 
+# F11.9: kinds a browser shows by itself (image decoder, PDF viewer, media player). Nothing here can run script in
+# the page: VAULT never accepts SVG or HTML, and text files are previewed from their extracted pages instead.
+PREVIEW_TYPES = {
+    "application/pdf",
+    "image/png",
+    "image/jpeg",
+    "video/mp4",
+    "video/webm",
+    "video/quicktime",
+    "audio/wav",
+    "audio/mpeg",
+    "audio/mp4",
+    "audio/ogg",
+}
+# An original opened on its own (not through the app) can never run anything or be framed by another site.
+ORIGINAL_CSP = "default-src 'none'; frame-ancestors 'none'; sandbox"
+
+
 @router.get("/documents/{document_id}/original")
 def get_original(
     document_id: int,
+    inline: bool = Query(False, description="F11.9: for the in-app preview; audited as document.view"),
     conn=Depends(get_conn),
     settings: Settings = Depends(get_settings),
     p: Principal = Depends(require("documents:read")),
@@ -913,36 +932,31 @@ def get_original(
             "SELECT filename, media_type, stored_path, status FROM documents WHERE id = ?", (document_id,)
         ).fetchone()
     )
+    action = "document.view" if inline else "document.download"
+    target = f"document:{document_id}"
     if not cls.sees_redacted(p.role) and cls.has_redactions(conn, document_id):
         # F09.23: the original still holds what was redacted, so only administrators may open it.
-        audit.record(
-            conn,
-            p.username,
-            "document.download",
-            "denied",
-            target=f"document:{document_id}",
-            detail={"reason": "redacted"},
-        )
+        audit.record(conn, p.username, action, "denied", target=target, detail={"reason": "redacted"})
         raise HTTPException(status_code=403, detail="this document has redactions; read its redacted text instead")
     if doc["status"] == "quarantined":
-        # F09.13: the original may run something when opened; nobody downloads it until an admin releases it.
-        audit.record(
-            conn,
-            p.username,
-            "document.download",
-            "denied",
-            target=f"document:{document_id}",
-            detail={"reason": "quarantined"},
-        )
+        # F09.13: the original may run something when opened; nobody downloads or previews it until it is released.
+        audit.record(conn, p.username, action, "denied", target=target, detail={"reason": "quarantined"})
         raise HTTPException(status_code=423, detail="held by the security gate until an administrator releases it")
+    if inline and doc["media_type"] not in PREVIEW_TYPES:
+        audit.record(conn, p.username, action, "denied", target=target, detail={"reason": "no preview"})
+        raise HTTPException(status_code=415, detail="this kind of file has no preview; open the original instead")
     try:
         path = original_path(settings.data_dir, doc["stored_path"])
     except FileRejected as exc:
-        audit.record(conn, p.username, "document.download", "denied", target=f"document:{document_id}")
+        audit.record(conn, p.username, action, "denied", target=target)
         raise HTTPException(status_code=409, detail=str(exc)) from exc
-    audit.record(conn, p.username, "document.download", "allowed", target=f"document:{document_id}")
+    audit.record(conn, p.username, action, "allowed", target=target)
     return FileResponse(
-        path, media_type=doc["media_type"], filename=doc["filename"], headers={"X-Content-Type-Options": "nosniff"}
+        path,
+        media_type=doc["media_type"],
+        filename=doc["filename"],
+        content_disposition_type="inline" if inline else "attachment",
+        headers={"X-Content-Type-Options": "nosniff", "Content-Security-Policy": ORIGINAL_CSP},
     )
 
 
@@ -1338,6 +1352,10 @@ def _proposal(conn, pid: int) -> dict:
     r = _row(conn.execute("SELECT * FROM proposals WHERE id = ?", (pid,)).fetchone())
     r["plan"] = loads(r["plan"], {})
     r["result"] = loads(r["result"], None)
+    # F10.24: who asked and who decided, by name, so view-only mode can say so without the users list.
+    for key in ("created_by", "decided_by"):
+        u = conn.execute("SELECT username FROM users WHERE id = ?", (r[key],)).fetchone() if r[key] else None
+        r[f"{key}_name"] = u["username"] if u else None
     return r
 
 
@@ -1394,6 +1412,86 @@ def reject(
         classifier.reject(conn, proposal_id, p.username)
     audit.record(conn, p.username, "proposal.reject", "allowed", target=f"proposal:{proposal_id}")
     return _proposal(conn, proposal_id)
+
+
+@router.delete("/proposals/{proposal_id}/copies")
+def delete_proposal_copies(
+    proposal_id: int,
+    target: str | None = Query(None, max_length=600),
+    conn=Depends(get_conn),
+    settings: Settings = Depends(get_settings),
+    p: Principal = Depends(require("proposals:approve")),
+) -> dict:
+    """F10.24: remove the copies an approval wrote, all of them or one by its path inside the export folder.
+
+    Only files inside data/exports/proposal-N (or share-N) can go. Originals are never touched.
+    """
+    prop = _proposal(conn, proposal_id)
+    if prop["status"] != "executed":
+        raise HTTPException(status_code=409, detail="only an approved request has copies to remove")
+    try:
+        removed = remove_copies(settings, proposal_id, prop["kind"], target)
+    except FileRejected as exc:
+        audit.record(
+            conn,
+            p.username,
+            "proposal.copies.delete",
+            "denied",
+            target=f"proposal:{proposal_id}",
+            detail={"why": str(exc)},
+        )
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if target is not None and not removed:
+        raise HTTPException(status_code=404, detail="that copy is not in this request's export folder")
+    result = prop["result"] or {}
+    gone = set(removed)
+    for item in result.get("items") or []:
+        if item.get("target") in gone or target is None:
+            item["removed"] = bool(item.get("copied"))
+    if target is None:
+        result["copies_removed_at"] = now()
+    conn.execute("UPDATE proposals SET result = ? WHERE id = ?", (dumps(result), proposal_id))
+    audit.record(
+        conn,
+        p.username,
+        "proposal.copies.delete",
+        "allowed",
+        target=f"proposal:{proposal_id}",
+        detail={"removed": len(removed), "one": target is not None},
+    )
+    return {"removed": len(removed), "proposal": _proposal(conn, proposal_id)}
+
+
+@router.delete("/proposals/{proposal_id}")
+def delete_proposal(
+    proposal_id: int,
+    copies: bool = False,
+    conn=Depends(get_conn),
+    settings: Settings = Depends(get_settings),
+    p: Principal = Depends(require("proposals:approve")),
+) -> dict:
+    """F10.24: discard a request, pending or decided. With copies=true its exported copies go too. Never originals."""
+    prop = _proposal(conn, proposal_id)
+    removed: list[str] = []
+    if copies and prop["status"] == "executed":
+        try:
+            removed = remove_copies(settings, proposal_id, prop["kind"])
+        except FileRejected as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if prop["kind"] == "classify_redact":
+        # F09.23: discarding the request never lifts a redaction already approved; pending ones are dropped.
+        classifier.reject(conn, proposal_id, p.username)
+        conn.execute("UPDATE main.redactions SET proposal_id = NULL WHERE proposal_id = ?", (proposal_id,))
+    conn.execute("DELETE FROM proposals WHERE id = ?", (proposal_id,))
+    audit.record(
+        conn,
+        p.username,
+        "proposal.delete",
+        "allowed",
+        target=f"proposal:{proposal_id}",
+        detail={"status": prop["status"], "kind": prop["kind"], "copies_removed": len(removed)},
+    )
+    return {"deleted": proposal_id, "copies_removed": len(removed)}
 
 
 # ---------- audit ----------

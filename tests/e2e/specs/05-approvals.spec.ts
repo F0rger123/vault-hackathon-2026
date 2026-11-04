@@ -4,7 +4,7 @@ import { signedIn } from "./helpers";
 // F10.8: an analyst can only propose; an administrator approves and VAULT exports copies.
 test("analyst cannot approve the seeded proposal", async ({ page }) => {
   await signedIn(page, "analyst", "/approvals");
-  await expect(page.getByRole("heading", { name: "Approvals" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Approvals", exact: true })).toBeVisible();
   const main = page.getByRole("main");
   await expect(main).toContainText("Waiting for an administrator");
   await expect(main).toContainText("Only an administrator can approve or reject this proposal.");

@@ -21,6 +21,9 @@ CSP = "; ".join(
         "img-src 'self' blob: data:",
         "font-src 'self'",
         "connect-src 'self'",
+        # F11.9: the document drawer previews PDFs, video and sound from object URLs the page made itself.
+        "media-src 'self' blob:",
+        "frame-src 'self' blob:",
         "object-src 'none'",
         "base-uri 'self'",
         "form-action 'self'",

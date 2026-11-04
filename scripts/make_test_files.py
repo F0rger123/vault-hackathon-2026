@@ -9,9 +9,11 @@ and fictional suppliers. The same seed always gives the same files and the same 
 external ffmpeg may differ between ffmpeg builds; pass --no-ffmpeg for byte-identical output).
 
     python scripts/make_test_files.py --out data/testset --count 400 --seed 7
-    python scripts/make_test_files.py --size demo --out data/testset-demo     # about 120 files, under 60 MB
+    python scripts/make_test_files.py --size demo --out data/testset-demo     # about 130 files, about 18 MB
+    python scripts/make_test_files.py --size huge --out data/testset-huge     # about 2,300 files, about 275 MB
 
-Only the standard library, Pillow and reportlab are used. DOCX/XLSX/PPTX are written as minimal Office Open XML
+Only the standard library, Pillow and reportlab are used; every picture, blueprint, stamp and newspaper is drawn from
+shapes and gradients (F11.9), with no downloaded images or fonts. DOCX/XLSX/PPTX are written as minimal Office Open XML
 with zipfile, which is all VAULT's own reader needs (python-docx, openpyxl and python-pptx are not installed).
 """
 
@@ -40,9 +42,9 @@ from pathlib import Path
 from random import Random
 from xml.sax.saxutils import escape
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont, ImageOps
 from reportlab.lib.pagesizes import landscape, letter
-from reportlab.lib.utils import ImageReader
+from reportlab.lib.utils import ImageReader, simpleSplit
 from reportlab.pdfgen import canvas
 
 # Mirrors backend/core/config.py and backend/ingest/service.py defaults, so the edge cases sit just inside or outside.
@@ -105,10 +107,17 @@ KIND_SHARES = {
     "pdf_stamped": 0.04,
     "pdf_marked_drawings": 0.03,
     "photos_site": 0.06,
+    # F11.9: front pages (PDF, read) and scanned clippings (JPEG, stored with details)
+    "newspapers": 0.02,
 }
-# --size demo: about 120 files, under 60 MB, quick to process, with plenty of photos, video and sound to show.
-SIZES = {"demo": {"count": 64, "large": False}, "full": {"count": 400, "large": True}}
-DEMO_AT_LEAST = {"video": 6, "audio": 6, "photos_site": 12, "pdf_stamped": 6, "pdf_marked_drawings": 4}
+# --size demo: about 130 files, about 18 MB, quick to process, with plenty of photos, video and sound to show.
+SIZES = {
+    "demo": {"count": 64, "large": False},
+    "full": {"count": 400, "large": True},
+    # --size huge: about 2,300 files, about 275 MB, for the "thousands of files" moment. No size-limit files.
+    "huge": {"count": 2000, "large": False},
+}
+DEMO_AT_LEAST = {"video": 6, "audio": 6, "photos_site": 12, "pdf_stamped": 6, "pdf_marked_drawings": 4, "newspapers": 4}
 
 ACCEPTED = "accepted"
 IMAGE = (
@@ -236,43 +245,6 @@ def pdf_text(
             y = start(page)
         c.drawString(50, y, line[:130])
         y -= 13
-    c.showPage()
-    c.save()
-    return buf.getvalue()
-
-
-def pdf_drawing(number: str, project: Project, d: str, rev: str, rng: Random) -> bytes:
-    buf = io.BytesIO()
-    c = canvas.Canvas(buf, pagesize=landscape(letter), invariant=1)
-    w, h = landscape(letter)
-    c.setLineWidth(1.5)
-    c.rect(20, 20, w - 40, h - 40)
-    y = h - 120
-    c.line(60, y, w - 60, y)
-    step = (w - 160) / len(project.parts)
-    c.setFont("Helvetica", 6)
-    for i, p in enumerate(project.parts):
-        x = 90 + i * step
-        if p.number[:2] in ("PV", "BV", "RV"):
-            c.line(x - 10, y - 10, x + 10, y + 10)
-            c.line(x - 10, y + 10, x + 10, y - 10)
-        elif p.number.startswith("HX"):
-            c.rect(x - 14, y - 11, 28, 22)
-        else:
-            c.circle(x, y, 9)
-        c.drawString(x - 16, y + 18, p.number)
-    c.setFont("Helvetica-Bold", 11)
-    c.drawString(40, 300, f"DRAWING NO. {number}   REV {rev}")
-    c.setFont("Helvetica", 9)
-    c.drawString(40, 286, f"Project: {project.name}    Date: {d}    SHEET 1 OF 1")
-    c.drawString(40, 272, f"Drawn: {rng.choice(PEOPLE)}    Checked: {rng.choice(PEOPLE)}")
-    c.setFont("Helvetica-Bold", 9)
-    c.drawString(40, 250, "PARTS LIST")
-    c.setFont("Helvetica", 8)
-    for i, p in enumerate(project.parts):
-        c.drawString(40, 238 - 12 * i, part_line(p))
-    c.setFont("Helvetica-Oblique", 7)
-    c.drawString(40, 28, FOOTER)
     c.showPage()
     c.save()
     return buf.getvalue()
@@ -441,37 +413,282 @@ def pptx(slides: list[list[str]]) -> bytes:
     return _zip(dict(sorted(parts.items())))
 
 
-def noise(rng: Random, size: tuple[int, int], strength: int) -> Image.Image:
-    """Seeded noise (Pillow's effect_noise is not seedable). Built small and scaled up so big photos stay fast."""
-    small = (max(1, size[0] // 4), max(1, size[1] // 4))
-    layer = Image.frombytes("L", small, rng.randbytes(small[0] * small[1])).resize(size)
-    return layer.point(lambda v: 128 + (v - 128) * strength // 128)
+# ---------- F11.9: photographs that look photographed ----------
+# Everything is drawn with Pillow from shapes and gradients: no image or font files are downloaded or bundled.
+
+RGB = tuple[int, int, int]
 
 
-def photo(rng: Random, part: Part, project: Project, size: tuple[int, int], rating: int | None = None) -> Image.Image:
-    """A fake inspection photo: pipe run, valve body, and a nameplate with the part number and rating."""
+def _font(px: float) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
+    return ImageFont.load_default(size=max(8, int(px)))
+
+
+def _tone(c: RGB, d: int) -> RGB:
+    return tuple(max(0, min(255, v + d)) for v in c)  # type: ignore[return-value]
+
+
+def _vgrad(size: tuple[int, int], top: RGB, bottom: RGB) -> Image.Image:
+    mask = Image.linear_gradient("L").resize(size)
+    return Image.composite(Image.new("RGB", size, bottom), Image.new("RGB", size, top), mask)
+
+
+def _shade(length: int, thick: int, dark: RGB, light: RGB, vertical: bool = False) -> Image.Image:
+    """A lit cylinder seen from the side: dark lower edge, bright highlight near the top."""
+    values = []
+    for i in range(max(2, thick)):
+        t = i / max(1, thick - 1)
+        body = 0.22 + 0.78 * max(0.0, math.cos((t - 0.3) * math.pi * 0.95))
+        spec = max(0.0, 1 - abs(t - 0.24) * 10) * 0.4
+        values.append(int(255 * min(1.0, body * 0.8 + spec)))
+    col = Image.new("L", (1, len(values)))
+    col.putdata(values)
+    band = ImageOps.colorize(col, black=dark, white=light).resize((max(1, length), max(1, thick)))
+    return band.transpose(Image.Transpose.ROTATE_90) if vertical else band
+
+
+def _ball(size: tuple[int, int], dark: RGB, light: RGB) -> Image.Image:
+    """A cast body lit from the upper left (a radial gradient pushed off centre)."""
     w, h = size
-    k = w / 640
-    bg = tuple(rng.randint(90, 160) for _ in range(3))
-    img = Image.new("RGB", size, bg)
-    draw = ImageDraw.Draw(img)
-    py = int(h * rng.uniform(0.35, 0.55))
-    draw.rectangle((0, py - int(28 * k), w, py + int(28 * k)), fill=(120, 120, 128), outline=(60, 60, 60))
-    cx = int(w * rng.uniform(0.3, 0.6))
-    draw.ellipse((cx - int(70 * k), py - int(70 * k), cx + int(70 * k), py + int(70 * k)), fill=(150, 40, 35))
-    draw.rectangle((cx - int(8 * k), py - int(140 * k), cx + int(8 * k), py - int(60 * k)), fill=(70, 70, 70))
-    draw.ellipse((cx - int(55 * k), py - int(160 * k), cx + int(55 * k), py - int(130 * k)), fill=(40, 40, 40))
-    nx, ny = int(w * 0.55), int(h * 0.62)
-    draw.rounded_rectangle((nx, ny, nx + int(260 * k), ny + int(130 * k)), radius=int(8 * k), fill=(205, 205, 200))
-    font = ImageFont.load_default(size=int(20 * k))
-    small = ImageFont.load_default(size=int(14 * k))
+    big = ImageOps.invert(Image.radial_gradient("L")).resize((int(w * 1.9), int(h * 1.9)))
+    return ImageOps.colorize(big.crop((int(w * 0.35), int(h * 0.3), int(w * 0.35) + w, int(h * 0.3) + h)), dark, light)
+
+
+def _solve(a: list[list[float]], b: list[float]) -> list[float]:
+    n = len(b)
+    m = [row[:] + [b[i]] for i, row in enumerate(a)]
+    for col in range(n):
+        piv = max(range(col, n), key=lambda r: abs(m[r][col]))
+        m[col], m[piv] = m[piv], m[col]
+        for r in range(n):
+            if r != col and m[r][col]:
+                f = m[r][col] / m[col][col]
+                m[r] = [x - f * y for x, y in zip(m[r], m[col], strict=True)]
+    return [m[i][n] / m[i][i] for i in range(n)]
+
+
+def paste_warped(base: Image.Image, tile: Image.Image, quad: list[tuple[float, float]]) -> None:
+    """Paste an RGBA tile onto base so its corners land on quad (top-left, top-right, bottom-right, bottom-left)."""
+    tw, th = tile.size
+    src = [(0, 0), (tw, 0), (tw, th), (0, th)]
+    a, b = [], []
+    for (x, y), (u, v) in zip(quad, src, strict=True):
+        a += [[x, y, 1, 0, 0, 0, -u * x, -u * y], [0, 0, 0, x, y, 1, -v * x, -v * y]]
+        b += [u, v]
+    warped = tile.transform(base.size, Image.Transform.PERSPECTIVE, _solve(a, b), Image.Resampling.BICUBIC)
+    base.paste(warped, (0, 0), warped)
+
+
+def _soft_shadow(img: Image.Image, shapes: list[tuple[str, tuple]], blur: float, strength: float) -> Image.Image:
+    mask = Image.new("L", img.size, 0)
+    d = ImageDraw.Draw(mask)
+    for kind, box in shapes:
+        (d.ellipse if kind == "ellipse" else d.rectangle)(box, fill=255)
+    mask = mask.filter(ImageFilter.GaussianBlur(blur)).point(lambda v: int(v * strength))
+    return Image.composite(Image.new("RGB", img.size, (12, 12, 14)), img, mask)
+
+
+def grain(rng: Random, img: Image.Image, strength: int) -> Image.Image:
+    """Sensor noise: full-resolution seeded noise blended in soft light, so flat areas are never perfectly flat."""
+    w, h = img.size
+    n = Image.frombytes("L", (w, h), rng.randbytes(w * h)).point(lambda v: 128 + (v - 128) * strength // 128)
+    return ImageChops.soft_light(img, Image.merge("RGB", (n, n, n)))
+
+
+def photographic(rng: Random, img: Image.Image, focus: tuple[int, int, int, int], blur: float) -> Image.Image:
+    """Depth of field around the subject, a key light from one side, vignetting, white balance and grain."""
+    w, h = img.size
+    if blur > 0:
+        soft = img.filter(ImageFilter.GaussianBlur(blur))
+        keep = Image.new("L", img.size, 0)
+        ImageDraw.Draw(keep).rectangle(focus, fill=255)
+        img = Image.composite(img, soft, keep.filter(ImageFilter.GaussianBlur(w / 12)))
+    side = Image.linear_gradient("L").transpose(Image.Transpose.ROTATE_90).resize(img.size)
+    if rng.random() < 0.5:
+        side = ImageOps.mirror(side)
+    img = Image.composite(img.point(lambda v: int(v * 0.62)), img, side.point(lambda v: int(v * 0.55)))
+    vignette = (
+        Image.radial_gradient("L")
+        .resize((int(w * 1.25), int(h * 1.25)))
+        .crop((int(w * 0.125), int(h * 0.125), int(w * 0.125) + w, int(h * 0.125) + h))
+    )
+    img = Image.composite(img.point(lambda v: int(v * 0.35)), img, vignette.point(lambda v: v * v // 400))
+    tint = rng.choice([(255, 244, 228), (246, 250, 255), (255, 250, 240)])
+    img = ImageChops.multiply(img, Image.new("RGB", img.size, tint))
+    return grain(rng, img, rng.choice([34, 44, 56]))
+
+
+def phone_stamp(img: Image.Image, taken: datetime, caption: str | None = None) -> Image.Image:
+    """The orange date a phone or site camera burns into the corner, plus an optional caption and a fictional mark."""
+    w, h = img.size
+    d = ImageDraw.Draw(img)
+    big, small = _font(h * 0.042), _font(h * 0.026)
+    text = taken.strftime("%Y/%m/%d %H:%M")
+    x, y = w - big.getlength(text) - w * 0.03, h - h * 0.075
+    for dx, dy in ((2, 2), (1, 1)):
+        d.text((x + dx, y + dy), text, fill=(40, 20, 0), font=big)
+    d.text((x, y), text, fill=(255, 150, 40), font=big)
+    if caption:
+        d.text((w * 0.025 + 1, h - h * 0.065 + 1), caption, fill=(0, 0, 0), font=small)
+        d.text((w * 0.025, h - h * 0.065), caption, fill=(245, 245, 245), font=small)
+    d.text((w * 0.025, h * 0.02), "FICTIONAL TEST PHOTO", fill=(255, 255, 255), font=small)
+    return img
+
+
+def _gauge(diameter: int, rating: int, reading: float) -> Image.Image:
+    s = diameter
+    tile = Image.new("RGBA", (s, s), (0, 0, 0, 0))
+    rim = _ball((s, s), (70, 72, 78), (235, 238, 242)).convert("RGBA")
+    mask = Image.new("L", (s, s), 0)
+    ImageDraw.Draw(mask).ellipse((0, 0, s - 1, s - 1), fill=255)
+    tile.paste(rim, (0, 0), mask)
+    d = ImageDraw.Draw(tile)
+    inset = int(s * 0.08)
+    d.ellipse((inset, inset, s - inset, s - inset), fill=(246, 244, 236))
+    c, r = s / 2, s / 2 - inset
+    top = rating * 1.5
+    f = _font(s * 0.07)
+    for i in range(31):
+        a = math.radians(225 - 270 * i / 30)
+        r0 = r * (0.78 if i % 5 == 0 else 0.86)
+        d.line((c + r0 * math.cos(a), c - r0 * math.sin(a), c + r * 0.93 * math.cos(a), c - r * 0.93 * math.sin(a)),
+               fill=(25, 25, 25), width=max(1, s // (60 if i % 5 else 40)))  # fmt: skip
+        if i % 10 == 0:
+            label = str(int(top * i / 30))
+            tx, ty = c + r * 0.6 * math.cos(a), c - r * 0.6 * math.sin(a)
+            d.text((tx - f.getlength(label) / 2, ty - s * 0.04), label, fill=(25, 25, 25), font=f)
+    d.text((c - f.getlength("PSI") / 2, c + r * 0.3), "PSI", fill=(60, 60, 60), font=f)
+    a = math.radians(225 - 270 * min(1.0, reading / top))
+    d.line((c, c, c + r * 0.82 * math.cos(a), c - r * 0.82 * math.sin(a)), fill=(200, 25, 20), width=max(2, s // 45))
+    d.ellipse((c - s * 0.05, c - s * 0.05, c + s * 0.05, c + s * 0.05), fill=(30, 30, 30))
+    glare = Image.new("RGBA", (s, s), (0, 0, 0, 0))
+    ImageDraw.Draw(glare).ellipse((s * 0.18, s * 0.12, s * 0.62, s * 0.42), fill=(255, 255, 255, 70))
+    return Image.alpha_composite(tile, glare.filter(ImageFilter.GaussianBlur(s / 30)))
+
+
+def _nameplate(rng: Random, lines: list[str], width: int) -> Image.Image:
+    h = int(width * 0.5)
+    streaks = Image.frombytes("L", (8, h), rng.randbytes(8 * h)).resize((width, h)).point(lambda v: 150 + v // 5)
+    plate = ImageOps.colorize(streaks, (120, 122, 126), (226, 228, 230)).convert("RGBA")
+    d = ImageDraw.Draw(plate)
+    d.rectangle((3, 3, width - 4, h - 4), outline=(90, 92, 96, 255), width=max(1, width // 120))
+    for x, y in ((0.05, 0.08), (0.95, 0.08), (0.05, 0.92), (0.95, 0.92)):
+        cx, cy, rr = width * x, h * y, width * 0.018
+        d.ellipse((cx - rr, cy - rr, cx + rr, cy + rr), fill=(160, 160, 165), outline=(70, 70, 75))
+    y = h * 0.12
+    for i, line in enumerate(lines):
+        f = _font(width * (0.075 if i in (1, 2) else 0.05))
+        d.text((width * 0.08 + 1, y + 1), line, fill=(245, 245, 245), font=f)  # engraved: light lower edge
+        d.text((width * 0.08, y), line, fill=(30, 30, 34), font=f)
+        y += f.size * 1.25 if hasattr(f, "size") else width * 0.08
+    return plate
+
+
+def scene(rng: Random, size: tuple[int, int], part: Part, rating: int, site: bool) -> tuple[Image.Image, dict]:
+    """A plant-room corner: lit wall and floor, a painted pipe with a flanged valve, a pressure gauge on a riser."""
+    w, h = size
+    horizon = int(h * rng.uniform(0.6, 0.7))
+    wall = rng.choice([(172, 168, 158), (150, 158, 152), (180, 174, 162), (142, 148, 156)])
+    img = Image.new("RGB", size)
+    img.paste(_vgrad((w, horizon), _tone(wall, 22), _tone(wall, -28)), (0, 0))
+    d = ImageDraw.Draw(img)
+    if site:  # block wall: mortar joints with a lit lower lip
+        row = max(8, int(h * 0.075))
+        for j, y in enumerate(range(row, horizon, row)):
+            d.line((0, y, w, y), fill=_tone(wall, -45), width=max(1, w // 600))
+            d.line((0, y + 2, w, y + 2), fill=_tone(wall, 12), width=1)
+            off = (j % 2) * w * 0.08
+            for x in range(int(-off), w, int(w * 0.16)):
+                d.line((x, y - row, x, y), fill=_tone(wall, -40), width=max(1, w // 700))
+    floor = rng.choice([(128, 124, 116), (110, 112, 114), (136, 128, 118)])
+    img.paste(_vgrad((w, h - horizon), _tone(floor, -30), _tone(floor, 18)), (0, horizon))
+    vx, vy = w * rng.uniform(0.35, 0.65), horizon - h * 0.45
+    for i in range(-6, 13):
+        bx = w * i / 6
+        t = (horizon - vy) / (h - vy)
+        d.line((vx + (bx - vx) * t, horizon, bx, h), fill=_tone(floor, -34), width=max(1, w // 500))
+    for t in (0.08, 0.22, 0.45, 0.8):
+        y = horizon + (h - horizon) * t
+        d.line((0, y, w, y), fill=_tone(floor, -30), width=max(1, w // 600))
+    # Stains and the dark line where wall meets floor.
+    stains = [("ellipse", (rng.uniform(0, w), rng.uniform(0, horizon), rng.uniform(0, w), rng.uniform(0, horizon)))]
+    stains = [("ellipse", (min(b[0], b[2]), min(b[1], b[3]), max(b[0], b[2]), max(b[1], b[3]))) for _, b in stains]
+    img = _soft_shadow(img, [*stains, ("rect", (0, horizon - 4, w, horizon + h * 0.02))], w / 40, 0.45)
+
+    py = int(horizon - h * rng.uniform(0.2, 0.3)) if site else int(h * rng.uniform(0.42, 0.5))
+    pt = int(h * 0.1)
+    paint = rng.choice(
+        [((40, 48, 60), (160, 176, 196)), ((80, 60, 8), (250, 212, 90)), ((30, 60, 40), (130, 190, 140))]
+    )
+    img = _soft_shadow(img, [("rect", (0, py + pt * 0.3, w, py + pt * 1.1))], pt * 0.5, 0.55)
+    img.paste(_shade(w, pt, *paint), (0, py - pt // 2))
+    d = ImageDraw.Draw(img)
+    for hx in (w * 0.08, w * 0.92):  # hanger rods
+        img.paste(_shade(py - pt // 2, int(w * 0.012) + 2, (40, 40, 44), (170, 170, 176), vertical=True), (int(hx), 0))
+
+    cx = int(w * rng.uniform(0.32, 0.52))
+    body_w, body_h = int(w * 0.17), int(pt * 1.8)
+    metal = rng.choice(
+        [((90, 18, 14), (220, 80, 60)), ((30, 60, 30), (120, 190, 120)), ((50, 52, 58), (190, 194, 200))]
+    )
+    for fx in (cx - body_w // 2 - int(w * 0.03), cx + body_w // 2):
+        fw, fh = int(w * 0.03), int(pt * 2.1)
+        img.paste(_shade(fh, fw, (55, 55, 60), (205, 205, 210), vertical=True), (fx, py - fh // 2))
+        for k in range(4):
+            by = py - fh // 2 + fh * (k + 0.5) / 4
+            br = fw * 0.32
+            d.ellipse((fx + fw / 2 - br, by - br, fx + fw / 2 + br, by + br), fill=(70, 70, 74))
+            d.ellipse((fx + fw / 2 - br / 2, by - br / 1.4, fx + fw / 2, by - br / 3), fill=(200, 200, 205))
+    body = _ball((body_w, body_h), *metal)
+    bmask = Image.new("L", (body_w, body_h), 0)
+    ImageDraw.Draw(bmask).ellipse((0, 0, body_w - 1, body_h - 1), fill=255)
+    img.paste(body, (cx - body_w // 2, py - body_h // 2), bmask)
+    stem_h = int(h * 0.16)
+    img.paste(_shade(stem_h, int(w * 0.022), (40, 40, 44), (200, 200, 206), vertical=True),
+              (cx - int(w * 0.011), py - body_h // 2 - stem_h))  # fmt: skip
+    wy = py - body_h // 2 - stem_h
+    ww, wh = int(w * 0.2), int(h * 0.06)
+    d.ellipse((cx - ww / 2, wy - wh / 2, cx + ww / 2, wy + wh / 2), outline=metal[0], width=max(3, w // 90))
+    d.arc((cx - ww / 2, wy - wh / 2, cx + ww / 2, wy + wh / 2), 190, 300, fill=metal[1], width=max(1, w // 300))
+    for a in (0, 60, 120):
+        r = math.radians(a)
+        d.line((cx - ww / 2 * math.cos(r), wy - wh / 2 * math.sin(r), cx + ww / 2 * math.cos(r),
+                wy + wh / 2 * math.sin(r)), fill=metal[0], width=max(2, w // 220))  # fmt: skip
+    gx = int(cx + w * rng.uniform(0.2, 0.3))
+    riser = int(h * 0.13)
+    img.paste(_shade(riser, int(w * 0.016), (50, 50, 54), (210, 210, 214), vertical=True),
+              (gx - int(w * 0.008), py - pt // 2 - riser))  # fmt: skip
+    gd = int(w * 0.13)
+    gauge = _gauge(gd, rating, rating * rng.uniform(0.35, 0.8))
+    gy = py - pt // 2 - riser - gd + int(gd * 0.15)
+    under = (gx - gd / 2 + gd * 0.08, gy + gd * 0.1, gx + gd / 2 + gd * 0.1, gy + gd * 1.08)
+    img = _soft_shadow(img, [("ellipse", under)], gd / 10, 0.6)
+    img.paste(gauge, (gx - gd // 2, gy), gauge)
+    focus = (cx - body_w, wy - wh, gx + gd, py + body_h)
+    return img, {"py": py, "pt": pt, "cx": cx, "body": (body_w, body_h), "horizon": horizon, "focus": focus, "gx": gx}
+
+
+def photo(
+    rng: Random,
+    part: Part,
+    project: Project,
+    size: tuple[int, int],
+    rating: int | None = None,
+    taken: datetime | None = None,
+) -> Image.Image:
+    """An inspection photo: valve, pipe and gauge, with a metal nameplate showing the part number and rating."""
+    w, h = size
     r = part.rating if rating is None else rating
-    draw.text((nx + int(12 * k), ny + int(10 * k)), f"PART NO {part.number}", fill=(20, 20, 20), font=font)
-    draw.text((nx + int(12 * k), ny + int(40 * k)), f"RATED {r} PSI", fill=(20, 20, 20), font=font)
-    draw.text((nx + int(12 * k), ny + int(72 * k)), f"Project {project.name}", fill=(40, 40, 40), font=small)
-    draw.text((nx + int(12 * k), ny + int(96 * k)), "FICTIONAL TEST PHOTO", fill=(120, 20, 20), font=small)
-    gray = noise(rng, size, rng.choice([20, 40, 70]))
-    return Image.blend(img, Image.merge("RGB", (gray, gray, gray)), 0.18)
+    img, at = scene(rng, size, part, r, site=False)
+    lines = [rng.choice(SUPPLIERS).upper(), f"PART NO {part.number}", f"RATED {r} PSI", part.material.upper(),
+             f"Project {project.name} - FICTIONAL"]  # fmt: skip
+    plate = _nameplate(rng, lines, int(w * 0.3))
+    pw, ph = plate.size
+    nx, ny = at["cx"] - pw * 0.15, at["py"] + at["body"][1] * 0.35
+    skew = pw * rng.uniform(0.04, 0.1)
+    quad = [(nx, ny), (nx + pw, ny + skew), (nx + pw * 0.97, ny + ph + skew * 1.4), (nx + pw * 0.02, ny + ph)]
+    paste_warped(img, plate, quad)
+    img = photographic(rng, img, at["focus"], blur=w / rng.choice([300, 400, 520]))
+    return phone_stamp(img, taken) if taken else img
 
 
 def gauge_frames(rng: Random, part: Part, n: int, size: tuple[int, int] = (320, 240)) -> list[bytes]:
@@ -564,73 +781,200 @@ INK = {"APPROVED": (0.05, 0.45, 0.15), "QC PASSED": (0.05, 0.35, 0.65), "REJECTE
 CAMERAS = [("FictionCam", "FC-2 Site"), ("Nonesuch Optics", "NX-40 (fictional)"), ("FictionCam", "FC-1")]
 
 
-def seal(c: canvas.Canvas, x: float, y: float, word: str, d: str, angle: float) -> None:
-    """A rubber-stamp seal: a double ring for APPROVED and QC PASSED, a boxed stamp for REJECTED."""
-    r, g, b = INK[word]
+PAPER = (1, 1, 1)
+BP_BLUE = (0.07, 0.25, 0.52)
+BP_LINE = (0.92, 0.96, 1.0)
+BP_FAINT = (0.3, 0.5, 0.76)
+MARKUP = (0.98, 0.25, 0.2)
+
+
+def rubber_stamp(
+    c: canvas.Canvas,
+    x: float,
+    y: float,
+    word: str,
+    sub: list[str],
+    color: tuple[float, float, float],
+    angle: float,
+    rng: Random,
+    *,
+    round_: bool,
+    paper: tuple[float, float, float] = PAPER,
+    scale: float = 1.0,
+) -> None:
+    """An inked rubber stamp: rotated, uneven ink, worn speckles. The words stay real text, so VAULT reads them."""
     c.saveState()
     c.translate(x, y)
     c.rotate(angle)
-    c.setStrokeColorRGB(r, g, b)
-    c.setFillColorRGB(r, g, b)
-    if word == "REJECTED":
-        c.setLineWidth(3)
-        c.roundRect(-78, -26, 156, 52, 6)
-        c.setLineWidth(1)
-        c.roundRect(-72, -20, 144, 40, 4)
-        c.setFont("Helvetica-Bold", 20)
-        c.drawCentredString(0, -7, word)
-    else:
-        c.setLineWidth(3)
-        c.circle(0, 0, 54)
-        c.setLineWidth(1)
-        c.circle(0, 0, 46)
-        c.setFont("Helvetica-Bold", 14 if len(word) > 8 else 16)
-        c.drawCentredString(0, -4, word)
-        c.setFont("Helvetica", 7)
-        c.drawCentredString(0, 24, "HALVERN QA")
-        c.drawCentredString(0, -20, d)
+    c.scale(scale, scale)
+    for pass_, alpha in ((0, 0.18), (1, 0.82)):  # a faint offset strike under the main one, as a rocked stamp leaves
+        c.saveState()
+        if pass_ == 0:
+            c.translate(rng.uniform(1, 2.5), rng.uniform(-2, -0.5))
+        c.setStrokeColorRGB(*color)
+        c.setFillColorRGB(*color)
+        c.setStrokeAlpha(alpha)
+        c.setFillAlpha(alpha)
+        if round_:
+            c.setLineWidth(3.2)
+            c.circle(0, 0, 56)
+            c.setLineWidth(1.2)
+            c.circle(0, 0, 47)
+            c.setFont("Helvetica-Bold", 15 if len(word) > 8 else 18)
+            c.drawCentredString(0, -5, word)
+            c.setFont("Helvetica-Bold", 7)
+            if sub:
+                c.drawCentredString(0, 27, sub[0])
+            for i, s in enumerate(sub[1:]):
+                c.drawCentredString(0, -22 - 9 * i, s)
+            for a in (-1, 1):  # stars either side of the word
+                c.circle(a * 38, -1, 1.6, stroke=0, fill=1)
+        else:
+            width = max(150, 13 * len(word) + 30)
+            c.setLineWidth(3.4)
+            c.roundRect(-width / 2, -27, width, 54 + 10 * max(0, len(sub) - 1), 5)
+            c.setLineWidth(1)
+            c.roundRect(-width / 2 + 6, -21, width - 12, 42 + 10 * max(0, len(sub) - 1), 3)
+            c.setFont("Helvetica-Bold", 22)
+            c.drawCentredString(0, -2 + 10 * max(0, len(sub) - 1), word)
+            c.setFont("Helvetica-Bold", 7)
+            for i, s in enumerate(sub):
+                c.drawCentredString(0, -15 + 10 * (len(sub) - 1 - i), s)
+        c.restoreState()
+    # Worn rubber and dry ink: paper-coloured flecks and streaks over the impression.
+    c.setFillColorRGB(*paper)
+    c.setStrokeColorRGB(*paper)
+    c.setFillAlpha(0.95)
+    c.setStrokeAlpha(0.7)
+    reach = 60 if round_ else max(80, 7 * len(word) + 18)
+    for _ in range(170):
+        c.circle(rng.uniform(-reach, reach), rng.uniform(-34, 34), rng.uniform(0.2, 1.1), stroke=0, fill=1)
+    c.setLineWidth(0.6)
+    for _ in range(9):
+        sx, sy = rng.uniform(-reach, reach), rng.uniform(-30, 30)
+        c.line(sx, sy, sx + rng.uniform(4, 16), sy + rng.uniform(-1.5, 1.5))
     c.restoreState()
 
 
-def badge(c: canvas.Canvas, x: float, y: float, text: str, ok: bool) -> None:
-    """A small sticker badge with a tick or a cross."""
+def seal(c: canvas.Canvas, x: float, y: float, word: str, d: str, angle: float, rng: Random | None = None) -> None:
+    """The result stamp on a report: a round seal for APPROVED and QC PASSED, a box for REJECTED."""
+    rng = rng or Random(word)
+    sub = ["HALVERN QA (FICTIONAL)", d] if word != "REJECTED" else [f"NCR RAISED {d}", "RETURN TO SUPPLIER"]
+    rubber_stamp(c, x, y, word, sub, INK[word], angle, rng, round_=word != "REJECTED")
+
+
+def badge(c: canvas.Canvas, x: float, y: float, text: str, ok: bool, angle: float = 0.0) -> None:
+    """A printed sticker badge with a tick or a cross, peeled and stuck on slightly crooked, with a drop shadow."""
     c.saveState()
+    c.translate(x, y)
+    c.rotate(angle)
+    c.setFillColorRGB(0, 0, 0)
+    c.setFillAlpha(0.18)
+    c.roundRect(2, -2.5, 120, 28, 14, stroke=0, fill=1)
+    c.setFillAlpha(1)
     c.setFillColorRGB(*((0.1, 0.55, 0.25) if ok else (0.8, 0.15, 0.1)))
-    c.roundRect(x, y, 112, 24, 12, stroke=0, fill=1)
-    c.setFillColorRGB(1, 1, 1)
-    c.setFont("Helvetica-Bold", 10)
-    c.drawString(x + 26, y + 8, text)
+    c.roundRect(0, 0, 120, 28, 14, stroke=0, fill=1)
     c.setStrokeColorRGB(1, 1, 1)
+    c.setLineWidth(1)
+    c.roundRect(3, 3, 114, 22, 11, stroke=1, fill=0)
+    c.setFillColorRGB(1, 1, 1)
+    c.circle(15, 14, 8, stroke=0, fill=1)
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(29, 10, text)
+    c.setStrokeColorRGB(*((0.1, 0.55, 0.25) if ok else (0.8, 0.15, 0.1)))
     c.setLineWidth(2)
     if ok:
-        c.line(x + 9, y + 12, x + 13, y + 7)
-        c.line(x + 13, y + 7, x + 20, y + 17)
+        c.line(11, 14, 14, 10)
+        c.line(14, 10, 20, 18)
     else:
-        c.line(x + 9, y + 7, x + 19, y + 17)
-        c.line(x + 9, y + 17, x + 19, y + 7)
+        c.line(11, 10, 19, 18)
+        c.line(11, 18, 19, 10)
+    c.setFillColorRGB(1, 1, 1)
+    c.setFillAlpha(0.25)
+    c.roundRect(8, 17, 100, 7, 3.5, stroke=0, fill=1)  # gloss
+    c.restoreState()
+
+
+def _letterhead(c: canvas.Canvas, w: float, h: float, department: str) -> None:
+    """A fictional company letterhead: a drawn monogram (not any real logo), the name and a rule."""
+    c.saveState()
+    c.setFillColorRGB(0.1, 0.2, 0.36)
+    c.roundRect(50, h - 66, 30, 30, 4, stroke=0, fill=1)
+    c.setFillColorRGB(1, 1, 1)
+    c.setFont("Helvetica-Bold", 17)
+    c.drawCentredString(65, h - 57, "H")
+    c.setFillColorRGB(0.1, 0.2, 0.36)
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(88, h - 50, "HALVERN DYNAMICS INC.")
+    c.setFont("Helvetica", 7.5)
+    c.setFillColorRGB(0.35, 0.38, 0.45)
+    c.drawString(88, h - 61, f"{department}  ·  12 Quarry Lane, Brackwater (fictional)")
+    c.setStrokeColorRGB(0.1, 0.2, 0.36)
+    c.setLineWidth(1.4)
+    c.line(50, h - 74, w - 50, h - 74)
+    c.setLineWidth(0.4)
+    c.line(50, h - 77, w - 50, h - 77)
+    c.restoreState()
+
+
+def _signature(c: canvas.Canvas, x: float, y: float, name: str, rng: Random) -> None:
+    c.saveState()
+    c.setStrokeColorRGB(0.1, 0.15, 0.45)
+    c.setLineWidth(0.9)
+    p = c.beginPath()
+    p.moveTo(x, y + 4)
+    px = x
+    for _ in range(7):
+        nx = px + rng.uniform(8, 16)
+        p.curveTo(px + 3, y + rng.uniform(8, 18), nx - 3, y + rng.uniform(-6, 2), nx, y + rng.uniform(0, 8))
+        px = nx
+    c.drawPath(p, stroke=1, fill=0)
+    c.setStrokeColorRGB(0.3, 0.3, 0.3)
+    c.setLineWidth(0.5)
+    c.line(x - 4, y - 3, x + 140, y - 3)
+    c.setFont("Helvetica", 7)
+    c.setFillColorRGB(0.3, 0.3, 0.3)
+    c.drawString(x - 4, y - 12, name)
     c.restoreState()
 
 
 def pdf_stamped(title: str, header: list[str], lines: list[str], word: str, d: str, rng: Random) -> bytes:
-    """An inspection report with a result seal and a sticker badge. The seal words are real text VAULT can read."""
+    """An inspection report on letterhead with a ruled results table, signatures, an inked result stamp and a sticker.
+    Every word, including the stamp, is real text VAULT can read."""
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=letter, invariant=1)
     w, h = letter
-    c.setFont("Helvetica-Bold", 13)
-    c.drawString(50, h - 55, title)
+    c.setFont("Helvetica-Bold", 14)
+    c.drawString(50, h - 102, title)  # first in the file, so it is the title a reader extracts
+    _letterhead(c, w, h, "Quality Assurance")
+    c.setFont("Helvetica", 7.5)
+    c.drawRightString(w - 50, h - 102, "FORM QA-114 rev 6 (fictional)")
+    y = h - 122
+    c.setStrokeColorRGB(0.55, 0.58, 0.62)
+    c.setLineWidth(0.5)
+    c.rect(50, y - 13 * len(header) + 4, w - 100, 13 * len(header) + 6)
     c.setFont("Helvetica", 9)
-    y = h - 75
     for line in header:
-        c.drawString(50, y, line)
+        c.drawString(56, y - 4, line)
         y -= 13
-    y -= 8
+    y -= 22
+    c.setFont("Helvetica", 8.6)
     for line in lines:
-        c.drawString(50, y, line[:110])
-        y -= 13
-    c.drawString(50, y - 10, f"Result: {word}")
-    seal(c, w - 130, 150 + rng.uniform(-20, 40), word, d, rng.uniform(-20, 20))
-    badge(c, 50, 90, "QC PASSED" if word != "REJECTED" else "ON HOLD", word != "REJECTED")
+        if line.endswith(("PASS", "FAIL")):  # table rows get rules and a shaded result cell
+            c.setFillColorRGB(0.95, 0.96, 0.97)
+            c.rect(50, y - 4, w - 100, 13, stroke=0, fill=1)
+            c.setFillColorRGB(0, 0, 0)
+            c.line(50, y - 4, w - 50, y - 4)
+        c.drawString(56, y, line[:110])
+        y -= 14
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(56, y - 10, f"Result: {word}")
+    _signature(c, 70, 128, f"Inspector  ·  {d}", rng)
+    _signature(c, 260, 128, "QA reviewer (fictional)", rng)
+    seal(c, w - 135, 175 + rng.uniform(-20, 40), word, d, rng.uniform(-24, 24), rng)
+    badge(c, 56, 72, "QC PASSED" if word != "REJECTED" else "ON HOLD", word != "REJECTED", rng.uniform(-6, 6))
     c.setFont("Helvetica-Oblique", 7)
+    c.setFillColorRGB(0.3, 0.3, 0.3)
     c.drawString(50, 30, FOOTER)
     c.showPage()
     c.save()
@@ -649,136 +993,554 @@ def revision_cloud(c: canvas.Canvas, x: float, y: float, w: float, h: float, bum
         c.arc(x + w - sx / 2, y + j * sy, x + w + sx / 2, y + (j + 1) * sy, 270, 180)
 
 
-def pdf_marked_drawing(number: str, project: Project, d: str, rev: int, rng: Random) -> bytes:
-    """A drawing with revision clouds, revision triangles, numbered callout balloons and a revision block."""
+def _arrow(c: canvas.Canvas, x: float, y: float, angle: float, size: float = 5) -> None:
+    a = math.radians(angle)
+    p = c.beginPath()
+    p.moveTo(x, y)
+    p.lineTo(x - size * math.cos(a - 0.35), y - size * math.sin(a - 0.35))
+    p.lineTo(x - size * math.cos(a + 0.35), y - size * math.sin(a + 0.35))
+    p.close()
+    c.drawPath(p, stroke=0, fill=1)
+
+
+def _dimension(c: canvas.Canvas, x0: float, x1: float, y: float, label: str, ext_from: float) -> None:
+    """A horizontal dimension: extension lines, a line with arrowheads both ends and the value above it."""
+    c.setLineWidth(0.35)
+    c.line(x0, ext_from, x0, y - 3)
+    c.line(x1, ext_from, x1, y - 3)
+    c.line(x0, y, x1, y)
+    _arrow(c, x0, y, 180, 4)
+    _arrow(c, x1, y, 0, 4)
+    c.setFont("Helvetica", 6)
+    c.drawCentredString((x0 + x1) / 2, y + 2, label)
+
+
+def blueprint_sheet(
+    c: canvas.Canvas, number: str, project: Project, d: str, rev: str, title: str, rng: Random
+) -> list[float]:
+    """A blueprint: blue ground, white linework, zone grid, title block, revision table, a piping run with tagged
+    parts and dimensions, a flange section and notes. Returns the x position of each part on the run."""
+    w, h = landscape(letter)
+    c.setFillColorRGB(*BP_BLUE)
+    c.rect(0, 0, w, h, stroke=0, fill=1)
+    c.setFillColorRGB(1, 1, 1)  # uneven exposure of the print
+    for _ in range(14):
+        c.setFillAlpha(rng.uniform(0.012, 0.035))
+        c.circle(rng.uniform(0, w), rng.uniform(0, h), rng.uniform(60, 220), stroke=0, fill=1)
+    c.setFillAlpha(1)
+    c.setStrokeColorRGB(*BP_FAINT)
+    c.setLineWidth(0.2)
+    for gx in range(36, int(w) - 30, 18):
+        c.line(gx, 30, gx, h - 30)
+    for gy in range(30, int(h) - 30, 18):
+        c.line(30, gy, w - 30, gy)
+    c.setStrokeColorRGB(*BP_LINE)
+    c.setFillColorRGB(*BP_LINE)
+    c.setLineWidth(1.6)
+    c.rect(18, 18, w - 36, h - 36)
+    c.setLineWidth(0.8)
+    c.rect(30, 30, w - 60, h - 60)
+    # Title block, bottom right. Written first so the title is the first line a reader extracts.
+    tx, ty, tw = w - 292, 30, 262
+    c.setFont("Helvetica", 7)
+    c.drawString(tx + 6, ty + 58, title[:44])
+    c.setLineWidth(0.9)
+    c.rect(tx, ty, tw, 96)
+    for yy in (ty + 24, ty + 48, ty + 72):
+        c.line(tx, yy, tx + tw, yy)
+    c.line(tx + 190, ty, tx + 190, ty + 48)
+    c.setFont("Helvetica-Bold", 8)
+    c.drawString(tx + 6, ty + 80, "HALVERN DYNAMICS INC. (FICTIONAL)")
+    c.setFont("Helvetica-Bold", 9)
+    c.drawString(tx + 6, ty + 33, f"DRAWING NO. {number}   REV {rev}")
+    c.setFont("Helvetica", 6.5)
+    c.drawString(tx + 196, ty + 33, "SCALE 1:20")
+    c.drawString(tx + 6, ty + 8, f"Project: {project.name}    Date: {d}    SHEET 1 OF 1")
+    c.drawString(tx + 196, ty + 8, "SIZE B  ·  mm")
+    c.setFont("Helvetica", 7)
+    cols, rows = 8, 6
+    for i in range(cols):  # zone references, as on a real sheet: numbers across, letters down
+        x = 30 + (w - 60) * (i + 0.5) / cols
+        c.drawCentredString(x, 21.5, str(cols - i))
+        c.drawCentredString(x, h - 27, str(cols - i))
+        if i:
+            xx = 30 + (w - 60) * i / cols
+            c.line(xx, 18, xx, 30)
+            c.line(xx, h - 30, xx, h - 18)
+    for j in range(rows):
+        y = 30 + (h - 60) * (j + 0.5) / rows
+        c.drawCentredString(24, y - 2, "ABCDEF"[j])
+        c.drawCentredString(w - 24, y - 2, "ABCDEF"[j])
+        if j:
+            yy = 30 + (h - 60) * j / rows
+            c.line(18, yy, 30, yy)
+            c.line(w - 30, yy, w - 18, yy)
+
+    # Piping run with flow arrows, part symbols, tag balloons and part numbers.
+    y = h - 195
+    c.setLineWidth(2.2)
+    c.line(70, y, w - 70, y)
+    c.setLineWidth(0.8)
+    step = (w - 180) / len(project.parts)
+    xs = []
+    for i, p in enumerate(project.parts):
+        x = 100 + i * step
+        xs.append(x)
+        c.setFillColorRGB(*BP_BLUE)
+        if p.number[:2] in ("PV", "BV", "RV"):
+            path = c.beginPath()
+            path.moveTo(x - 11, y + 9)
+            path.lineTo(x + 11, y - 9)
+            path.lineTo(x + 11, y + 9)
+            path.lineTo(x - 11, y - 9)
+            path.close()
+            c.drawPath(path, stroke=1, fill=1)
+            c.line(x, y, x, y + 16)
+            c.line(x - 6, y + 16, x + 6, y + 16)
+        elif p.number.startswith("HX"):
+            c.rect(x - 15, y - 11, 30, 22, stroke=1, fill=1)
+            c.line(x - 15, y - 11, x + 15, y + 11)
+        else:
+            c.circle(x, y, 10, stroke=1, fill=1)
+        c.setFillColorRGB(*BP_LINE)
+        c.setFont("Helvetica", 6)
+        c.drawCentredString(x, y + 24, p.number)
+        c.circle(x, y + 46, 7.5)
+        c.drawCentredString(x, y + 44, str(i + 1))
+        c.line(x, y + 38.5, x, y + 31)
+        if i:
+            _arrow(c, (x + xs[i - 1]) / 2 + 6, y, 0, 6)
+    pitch = rng.choice([400, 450, 500, 600])
+    for i in range(1, len(xs)):
+        _dimension(c, xs[i - 1], xs[i], y - 34, str(pitch + rng.choice([0, 0, 50, 75])), y - 12)
+    _dimension(c, xs[0], xs[-1], y - 52, f"{pitch * (len(xs) - 1) + 150} OVERALL", y - 38)
+
+    # Section A-A: a flange face with bolt circle and centre lines.
+    fx, fy = w - 170, 238
+    c.setLineWidth(0.9)
+    c.circle(fx, fy, 52)
+    c.circle(fx, fy, 22)
+    c.setLineWidth(0.5)
+    c.setDash([6, 2, 1, 2])
+    c.circle(fx, fy, 38)
+    c.line(fx - 66, fy, fx + 66, fy)
+    c.line(fx, fy - 66, fx, fy + 66)
+    c.setDash()
+    bolts = rng.choice([4, 8, 8, 12])
+    for k in range(bolts):
+        a = 2 * math.pi * k / bolts + math.pi / bolts
+        c.circle(fx + 38 * math.cos(a), fy + 38 * math.sin(a), 4.5)
+    c.setFont("Helvetica-Bold", 8)
+    c.drawCentredString(fx, fy - 82, "SECTION A-A")
+    c.setFont("Helvetica", 6)
+    holes = f"{bolts} HOLES Ø{rng.choice([16, 19, 22])} EQ SP ON Ø{rng.choice([190, 216, 241])} PCD"
+    c.drawString(fx + 44, fy + 46, holes)
+    c.line(fx + 30, fy + 30, fx + 43, fy + 45)
+
+    c.setFont("Helvetica", 7)
+    c.drawString(40, 300, f"Drawn: {rng.choice(PEOPLE)}    Checked: {rng.choice(PEOPLE)}")
+    c.setFont("Helvetica-Bold", 8)
+    c.drawString(40, 282, "PARTS LIST")
+    c.setLineWidth(0.4)
+    c.line(40, 279, 330, 279)
+    c.setFont("Helvetica", 7.5)
+    for i, p in enumerate(project.parts):
+        c.drawString(40, 268 - 11 * i, part_line(p))
+    ny = 268 - 11 * len(project.parts) - 16
+    c.setFont("Helvetica-Bold", 7)
+    c.drawString(40, ny, "NOTES")
+    c.setFont("Helvetica", 6.5)
+    notes = ["1. ALL DIMENSIONS IN MILLIMETRES UNLESS NOTED.", "2. HYDROSTATIC TEST AT 1.5 x RATED PRESSURE.",
+             "3. FLANGE FACES RF, 125-250 AARH.", "4. FICTIONAL TEST DRAWING - NOT FOR CONSTRUCTION."]  # fmt: skip
+    for i, n in enumerate(notes):
+        c.drawString(40, ny - 10 - 9 * i, n)
+    c.setFont("Helvetica-Oblique", 6.5)
+    c.drawString(40, 36, FOOTER)
+    return xs
+
+
+def _revision_table(c: canvas.Canvas, rev: int, d: str, rng: Random, last: str) -> None:
+    w, h = landscape(letter)
+    bx, by, bw = w - 292, h - 46 - 13 * (rev + 1), 262
+    c.setStrokeColorRGB(*BP_LINE)
+    c.setFillColorRGB(*BP_LINE)
+    c.setLineWidth(0.7)
+    c.rect(bx, by, bw, 13 * (rev + 1))
+    for r in range(1, rev + 1):
+        c.line(bx, by + 13 * r, bx + bw, by + 13 * r)
+    c.setFont("Helvetica-Bold", 6.5)
+    c.drawString(bx + 5, by + 13 * rev + 4, "REV   DESCRIPTION                          DATE          BY")
+    c.setFont("Helvetica", 6.5)
+    for r in range(1, rev + 1):
+        what = last if r == rev else rng.choice(["ISSUED FOR REVIEW", "NOTES UPDATED", "ISSUED FOR BID"])
+        c.drawString(bx + 5, by + 13 * (rev - r) + 4, f"{r:<5} {what:<36} {d:<13} {rng.choice(PEOPLE)}")
+
+
+def pdf_drawing(number: str, project: Project, d: str, rev: str, rng: Random) -> bytes:
+    """A clean blueprint of a piping run: title block, zones, dimensions, section view, parts list and revisions."""
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=landscape(letter), invariant=1)
-    w, h = landscape(letter)
-    c.setLineWidth(1.5)
-    c.rect(20, 20, w - 40, h - 40)
-    y = h - 150
-    c.setLineWidth(2)
-    c.line(60, y, w - 60, y)
-    step = (w - 160) / len(project.parts)
-    xs = []
-    c.setFont("Helvetica", 6)
-    for i, p in enumerate(project.parts):
-        x = 90 + i * step
-        xs.append(x)
-        c.setLineWidth(1)
-        c.circle(x, y, 9) if i % 2 else c.rect(x - 9, y - 9, 18, 18)
-        c.drawString(x - 16, y + 18, p.number)
-    changed = rng.sample(range(len(project.parts)), 2)
-    c.setStrokeColorRGB(0.8, 0.1, 0.1)
-    c.setFillColorRGB(0.8, 0.1, 0.1)
-    c.setLineWidth(0.9)
-    for k, idx in enumerate(changed, start=1):
-        cx = xs[idx]
-        revision_cloud(c, cx - 30, y - 28, 60, 64)
-        tri = c.beginPath()
-        tri.moveTo(cx + 34, y + 44)
-        tri.lineTo(cx + 46, y + 44)
-        tri.lineTo(cx + 40, y + 55)
-        tri.close()
-        c.drawPath(tri)
-        c.setFont("Helvetica-Bold", 6)
-        c.drawCentredString(cx + 40, y + 46, str(rev))
-        # A numbered balloon with a leader line to the changed part.
-        bx, by = cx + rng.uniform(-40, 40), y - 90 - 18 * k
-        c.circle(bx, by, 9)
-        c.drawCentredString(bx, by - 2, str(k))
-        c.line(bx, by + 9, cx, y - 28)
-        c.setFont("Helvetica", 7)
-        c.drawString(
-            bx + 14, by - 3, f"{project.parts[idx].number}: {rng.choice(['FIELD VERIFY', 'SEE NOTE 3', 'RELOCATED'])}"
-        )
-    c.setStrokeColorRGB(0, 0, 0)
-    c.setFillColorRGB(0, 0, 0)
-    c.setFont("Helvetica-Bold", 11)
-    c.drawString(40, 270, f"DRAWING NO. {number}   REV {rev}")
-    c.setFont("Helvetica", 9)
-    c.drawString(40, 256, f"Project: {project.name}    Date: {d}    SHEET 1 OF 1")
-    c.setFont("Helvetica-Bold", 9)
-    c.drawString(40, 236, "PARTS LIST")
-    c.setFont("Helvetica", 8)
-    for i, p in enumerate(project.parts):
-        c.drawString(40, 224 - 12 * i, part_line(p))
-    bx, by = w - 290, 40
-    c.rect(bx, by, 250, 16 * (rev + 1))
-    c.setFont("Helvetica-Bold", 7)
-    c.drawString(bx + 6, by + 16 * rev + 5, "REV   DESCRIPTION                          DATE          BY")
-    c.setFont("Helvetica", 7)
-    for r in range(1, rev + 1):
-        what = "CLOUDED ITEMS REVISED" if r == rev else rng.choice(["ISSUED FOR REVIEW", "NOTES UPDATED"])
-        c.drawString(bx + 6, by + 16 * (rev - r) + 5, f"{r:<5} {what:<36} {d:<13} {rng.choice(PEOPLE)}")
-    c.setFont("Helvetica-Oblique", 7)
-    c.drawString(40, 28, FOOTER)
+    blueprint_sheet(c, number, project, d, rev, f"{project.name.upper()} PIPING RUN - GENERAL ARRANGEMENT", rng)
+    _revision_table(c, "ABCDE".index(rev) + 1, d, rng, "ISSUED FOR CONSTRUCTION")
     c.showPage()
     c.save()
     return buf.getvalue()
 
 
+def pdf_marked_drawing(number: str, project: Project, d: str, rev: int, rng: Random) -> bytes:
+    """A blueprint marked up in red: revision clouds, revision triangles, numbered callouts, notes and a stamp."""
+    buf = io.BytesIO()
+    c = canvas.Canvas(buf, pagesize=landscape(letter), invariant=1)
+    w, h = landscape(letter)
+    xs = blueprint_sheet(c, number, project, d, str(rev), f"{project.name.upper()} PIPING RUN - REVISED LAYOUT", rng)
+    _revision_table(c, rev, d, rng, "CLOUDED ITEMS REVISED")
+    y = h - 195
+    changed = rng.sample(range(len(project.parts)), 2)
+    c.setStrokeColorRGB(*MARKUP)
+    c.setFillColorRGB(*MARKUP)
+    c.setLineWidth(1.1)
+    for k, idx in enumerate(changed, start=1):
+        cx = xs[idx]
+        revision_cloud(c, cx - 32, y - 26, 64, 84)
+        tri = c.beginPath()
+        tri.moveTo(cx + 36, y + 50)
+        tri.lineTo(cx + 50, y + 50)
+        tri.lineTo(cx + 43, y + 62)
+        tri.close()
+        c.drawPath(tri)
+        c.setFont("Helvetica-Bold", 6.5)
+        c.drawCentredString(cx + 43, y + 52, str(rev))
+        bx, by = cx + rng.uniform(-40, 40), y - 72 - 19 * k
+        c.circle(bx, by, 9)
+        c.drawCentredString(bx, by - 2, str(k))
+        c.line(bx, by + 9, cx, y - 26)
+        c.setFont("Helvetica-Oblique", 8)
+        c.drawString(
+            bx + 14, by - 3, f"{project.parts[idx].number}: {rng.choice(['FIELD VERIFY', 'SEE NOTE 3', 'RELOCATED'])}"
+        )
+    word = rng.choice(["REVISED", "APPROVED", "AS-BUILT"])
+    rubber_stamp(c, w - 470, 120, word, [f"{d}  {rng.choice(PEOPLE)}", "HALVERN ENG. (FICTIONAL)"], MARKUP,
+                 rng.uniform(-14, 14), rng, round_=False, paper=BP_BLUE)  # fmt: skip
+    c.showPage()
+    c.save()
+    return buf.getvalue()
+
+
+def _tape(length: int, height: int) -> Image.Image:
+    """A flat strip of tape measure (yellow, inch ticks and numbers) to lay onto the floor in perspective."""
+    tape = Image.new("RGBA", (length, height), (236, 196, 40, 255))
+    d = ImageDraw.Draw(tape)
+    inch = length / 48
+    f = _font(height * 0.42)
+    for n in range(49):
+        x = n * inch
+        d.line((x, 0, x, height * (0.55 if n % 4 == 0 else 0.3)), fill=(25, 25, 20), width=max(1, height // 18))
+        if n % 4 == 0 and n:
+            d.text((x + 3, height * 0.4), str(n), fill=(170, 20, 20) if n % 12 == 0 else (25, 25, 20), font=f)
+    d.rectangle((0, 0, length - 1, height - 1), outline=(140, 110, 20), width=1)
+    return tape
+
+
 def site_photo(
-    rng: Random, part: Part, project: Project, size: tuple[int, int], caption: str, sticker: str
+    rng: Random,
+    part: Part,
+    project: Project,
+    size: tuple[int, int],
+    caption: str,
+    sticker: str,
+    taken: datetime | None = None,
 ) -> Image.Image:
-    """A fake site photo: wall, slab and pipe, a tape measure, arrows, numbered markers, labels and a sticker."""
+    """A site photo: block wall, slab, pipe, valve and gauge, a tape measure on the floor and an inspection sticker,
+    then the inspector's markup on top (arrows, labels, numbered markers) and the camera's date stamp."""
     w, h = size
     k = w / 1024
-    img = Image.new("RGB", size, (150, 160, 170))
-    draw = ImageDraw.Draw(img)
-    horizon = int(h * rng.uniform(0.55, 0.65))
-    draw.rectangle((0, 0, w, horizon), fill=tuple(rng.randint(150, 190) for _ in range(3)))
-    for x in range(0, w, int(90 * k)):  # block wall joints
-        draw.line((x, 0, x, horizon), fill=(130, 130, 130), width=max(1, int(2 * k)))
-    draw.rectangle((0, horizon, w, h), fill=(118, 112, 104))
-    py = int(horizon - 110 * k)
-    draw.rectangle((0, py - int(26 * k), w, py + int(26 * k)), fill=(95, 105, 120), outline=(50, 50, 60))
-    fx = int(w * rng.uniform(0.35, 0.6))
-    draw.rectangle((fx - int(14 * k), py - int(46 * k), fx + int(14 * k), py + int(46 * k)), fill=(80, 85, 95))
-    # Tape measure along the slab edge, with inch ticks and numbers.
-    ty = int(horizon + 40 * k)
-    draw.rectangle((int(40 * k), ty, w - int(40 * k), ty + int(34 * k)), fill=(240, 200, 40), outline=(90, 70, 0))
-    small = ImageFont.load_default(size=max(9, int(13 * k)))
-    font = ImageFont.load_default(size=max(11, int(20 * k)))
-    inch = 28 * k
-    n = 0
-    while int(40 * k + n * inch) < w - int(44 * k):
-        x = int(40 * k + n * inch)
-        draw.line((x, ty, x, ty + int((18 if n % 4 == 0 else 9) * k)), fill=(20, 20, 20), width=1)
-        if n % 4 == 0:
-            draw.text((x + 2, ty + int(16 * k)), str(n), fill=(20, 20, 20), font=small)
-        n += 1
-    # Red arrows to the joint and the flange, each with a label.
-    labels = [f"{part.number} flange", rng.choice(["weld seam", "hairline crack", "missing bolt", "paint damage"])]
-    for i, text in enumerate(labels):
-        tx, ty2 = int(w * (0.12 + 0.5 * i)), int(h * 0.12 + i * 50 * k)
-        hx, hy = (fx, py - int(46 * k)) if i == 0 else (int(w * rng.uniform(0.2, 0.8)), horizon - int(8 * k))
-        draw.line((tx + int(60 * k), ty2 + int(30 * k), hx, hy), fill=(220, 20, 20), width=max(2, int(5 * k)))
-        draw.polygon(
-            [(hx, hy), (hx - int(12 * k), hy - int(22 * k)), (hx + int(12 * k), hy - int(22 * k))], fill=(220, 20, 20)
-        )
-        draw.rectangle(
-            (tx, ty2, tx + int(230 * k), ty2 + int(30 * k)), fill=(255, 255, 255), outline=(220, 20, 20), width=2
-        )
-        draw.text((tx + int(8 * k), ty2 + int(5 * k)), text.upper(), fill=(20, 20, 20), font=font)
-        mx, my = hx + int(30 * k), hy - int(40 * k)
-        draw.ellipse(
-            (mx - int(16 * k), my - int(16 * k), mx + int(16 * k), my + int(16 * k)),
-            outline=(255, 230, 0),
-            width=max(2, int(4 * k)),
-        )
-        draw.text((mx - int(5 * k), my - int(10 * k)), str(i + 1), fill=(255, 230, 0), font=font)
-    # Inspection sticker.
-    sx, sy, sr = int(w * 0.84), int(h * 0.2), int(64 * k)
+    img, at = scene(rng, size, part, part.rating, site=True)
+    hz = at["horizon"]
+    # Tape measure lying on the slab, narrower as it goes away from the camera, with its case at the near end.
+    near, far = h - h * 0.08, hz + (h - hz) * 0.35
+    x0, x1 = w * rng.uniform(0.05, 0.2), w * rng.uniform(0.7, 0.9)
+    paste_warped(img, _tape(int(w * 0.9), int(h * 0.05)), [(x0 + w * 0.12, far), (x1, far - h * 0.01),
+                 (x1 + w * 0.05, far + h * 0.03), (x0, near)])  # fmt: skip
+    case = _ball((int(w * 0.11), int(w * 0.1)), (40, 40, 44), (120, 124, 130))
+    cmask = Image.new("L", case.size, 0)
+    ImageDraw.Draw(cmask).rounded_rectangle((0, 0, case.size[0] - 1, case.size[1] - 1), radius=int(w * 0.02), fill=255)
+    img = _soft_shadow(img, [("rect", (x0 - w * 0.08, near - w * 0.02, x0 + w * 0.04, near + w * 0.08))], w / 60, 0.6)
+    img.paste(case, (int(x0 - w * 0.07), int(near - w * 0.06)), cmask)
+    # The inspection sticker is on the pipe itself, so it gets the same light and blur as the scene.
+    d = ImageDraw.Draw(img)
+    sx, sy, sr = int(at["cx"] - w * 0.2), at["py"], int(at["pt"] * 0.42)
     color = (30, 140, 60) if sticker != "HOLD" else (200, 40, 30)
-    draw.ellipse((sx - sr, sy - sr, sx + sr, sy + sr), fill=color, outline=(255, 255, 255), width=max(2, int(4 * k)))
-    draw.text((sx - int(48 * k), sy - int(10 * k)), sticker, fill=(255, 255, 255), font=font)
-    # Caption bar, as a site camera would stamp it.
-    draw.rectangle((0, h - int(34 * k), w, h), fill=(0, 0, 0))
-    draw.text((int(10 * k), h - int(28 * k)), caption, fill=(255, 255, 255), font=font)
-    draw.text((w - int(250 * k), h - int(28 * k)), "FICTIONAL TEST PHOTO", fill=(255, 120, 120), font=font)
-    gray = noise(rng, size, rng.choice([16, 30]))
-    return Image.blend(img, Image.merge("RGB", (gray, gray, gray)), 0.12)
+    d.ellipse((sx - sr, sy - sr, sx + sr, sy + sr), fill=color, outline=(250, 250, 250), width=max(2, int(3 * k)))
+    f = _font(sr * 0.55)
+    d.text((sx - f.getlength(sticker) / 2, sy - sr * 0.3), sticker, fill=(255, 255, 255), font=f)
+    img = photographic(rng, img, at["focus"], blur=w / rng.choice([350, 450, 600]))
+
+    # Markup added later on the inspector's tablet: crisp, never blurred.
+    d = ImageDraw.Draw(img)
+    font = _font(20 * k)
+    hx, hy = at["cx"] - at["body"][0] // 2 - int(w * 0.03), at["py"] - int(at["pt"] * 1.05)
+    targets = [(hx, hy, f"{part.number} flange"),
+               (int(w * rng.uniform(0.25, 0.75)), hz - int(6 * k),
+                rng.choice(["weld seam", "hairline crack", "missing bolt", "paint damage"]))]  # fmt: skip
+    for i, (tx_, ty_, text) in enumerate(targets):
+        lx, ly = int(w * (0.06 + 0.5 * i)), int(h * 0.1 + i * 54 * k)
+        d.line((lx + int(60 * k), ly + int(30 * k), tx_, ty_), fill=(230, 20, 20), width=max(2, int(5 * k)))
+        ang = math.atan2(ty_ - ly - 30 * k, tx_ - lx - 60 * k)
+        tip = [(tx_, ty_)]
+        for da in (2.6, -2.6):
+            tip.append((tx_ + 22 * k * math.cos(ang + da), ty_ + 22 * k * math.sin(ang + da)))
+        d.polygon(tip, fill=(230, 20, 20))
+        tw = font.getlength(text.upper()) + 16 * k
+        d.rectangle((lx, ly, lx + tw, ly + int(30 * k)), fill=(255, 255, 255), outline=(230, 20, 20), width=2)
+        d.text((lx + int(8 * k), ly + int(5 * k)), text.upper(), fill=(20, 20, 20), font=font)
+        mx, my = tx_ + int(30 * k), ty_ - int(40 * k)
+        d.ellipse((mx - int(16 * k), my - int(16 * k), mx + int(16 * k), my + int(16 * k)), outline=(255, 230, 0),
+                  width=max(2, int(4 * k)))  # fmt: skip
+        d.text((mx - int(5 * k), my - int(10 * k)), str(i + 1), fill=(255, 230, 0), font=font)
+    return phone_stamp(img, taken, caption) if taken else img
+
+
+# ---------- F11.9: a fictional local newspaper ----------
+
+PAPER_NAME = "THE BRACKWATER LEDGER"
+
+
+def news_story(rng: Random, projects: list[Project], i: int) -> dict:
+    """Headline, deck and paragraphs about the fictional projects, so a search for a project or part finds them."""
+    proj = projects[i % len(projects)]
+    part = rng.choice(proj.parts)
+    other = projects[(i + 2) % len(projects)]
+    supplier = rng.choice(SUPPLIERS)
+    who, quoted = rng.sample(PEOPLE, 2)
+    kind = i % 3
+    if kind == 0:
+        head = f"Project {proj.name} pipeline passes pressure test after months of delay"
+        deck = f"Inspectors sign off {part.number} {part.description.lower()} rated {part.rating} psi"
+    elif kind == 1:
+        head = f"Supplier recalls batch of {part.description.lower()}s used on Project {proj.name}"
+        deck = f"{supplier} says part {part.number} may not meet its {part.rating} psi rating"
+    else:
+        head = f"Halvern Dynamics opens new test rig at Brackwater yard for Project {other.name}"
+        deck = f"First valves through the rig include {part.number} for Project {proj.name}"
+    opening = {
+        0: [
+            f"BRACKWATER - Work on Project {proj.name} reached a milestone this week when inspectors from Halvern "
+            f"Dynamics Inc. completed hydrostatic testing on the line that runs beside the old quarry road.",
+            f"The tests focused on part {part.number}, a {part.description.lower()} in {part.material} rated "
+            f"{part.rating} psi, supplied by {supplier}. Engineers held the line at one and a half times the rated "
+            f"pressure for the full hold period.",
+            f'"We found nothing that worries us," said {quoted}, who led the inspection team. "Every reading is on '
+            f'the report, and the report is signed."',
+        ],
+        1: [
+            f"BRACKWATER - {supplier} has asked customers to return a batch of {part.description.lower()}s after "
+            f"a test at its own plant found a casting that leaked below its marked rating.",
+            f"Halvern Dynamics confirmed that part {part.number}, rated {part.rating} psi and made in "
+            f"{part.material}, is installed on Project {proj.name}. The company said the affected units would be "
+            f"isolated and swapped before the line is brought back into service.",
+            f'"Nobody was hurt and nothing failed in the field," said {quoted}. "We would rather change a valve '
+            f'than argue about one."',
+        ],
+        2: [
+            f"BRACKWATER - A new pressure test rig opened at the Halvern Dynamics yard on Monday, built to prove "
+            f"valves and flanges for Project {other.name} before they leave the valley.",
+            f"The first unit on the rig was part {part.number}, a {part.description.lower()} for Project "
+            f"{proj.name}, held at {int(part.rating * 1.5)} psi for an hour while engineers logged every reading.",
+            f'"It means we see a problem here, not on site," said {quoted}, who runs the rig. Visitors were shown '
+            f"the control room and the blast wall.",
+        ],
+    }[kind]
+    body = [
+        *opening,
+        f"Residents had raised questions at last month's council meeting about noise from the yard. {who}, a "
+        f"spokesperson for the project, said night work would end by the close of the month.",
+        f"Project {other.name}, the company's second job in the valley, is expected to start its own testing in "
+        f"the spring. Drawings filed with the county list {len(other.parts)} major components.",
+        "The company said the remaining punch-list items are minor and will be cleared before handover. "
+        "A public open day at the yard is planned for early summer.",
+        "This newspaper, its town, its staff and every company and person named are fictional test data.",
+    ]
+    return {"project": proj, "part": part, "head": head, "deck": deck, "by": who, "body": body, "other": other}
+
+
+def _wrap_columns(c: canvas.Canvas, paras: list[str], cols: list[tuple[float, float, float, float]], font: str,
+                  size: float, lead: float) -> None:  # fmt: skip
+    """Flow paragraphs down a list of (x, top, width, bottom) columns."""
+    ci, (x, y, cw, bottom) = 0, cols[0]
+    c.setFont(font, size)
+    for para in paras:
+        for line in simpleSplit(para, font, size, cw):
+            if y < bottom:
+                ci += 1
+                if ci >= len(cols):
+                    return
+                x, y, cw, bottom = cols[ci]
+            c.drawString(x, y, line)
+            y -= lead
+        y -= lead * 0.5
+
+
+def newspaper_pdf(rng: Random, projects: list[Project], i: int, day: datetime) -> bytes:
+    """A front page: masthead, dateline, a lead story with photo and caption across columns, a second story, briefs
+    and a small advert. All text is real text."""
+    buf = io.BytesIO()
+    c = canvas.Canvas(buf, pagesize=(612, 900), invariant=1)
+    w, h = 612, 900
+    c.setFillColorRGB(0.965, 0.95, 0.91)
+    c.rect(0, 0, w, h, stroke=0, fill=1)
+    c.setFillColorRGB(0.08, 0.08, 0.08)
+    c.setStrokeColorRGB(0.08, 0.08, 0.08)
+    c.setFont("Times-Bold", 38)
+    c.drawCentredString(w / 2, h - 78, PAPER_NAME)
+    c.setLineWidth(2.4)
+    c.line(30, h - 92, w - 30, h - 92)
+    c.setLineWidth(0.6)
+    c.line(30, h - 96, w - 30, h - 96)
+    c.line(30, h - 110, w - 30, h - 110)
+    c.setFont("Times-Roman", 8.5)
+    c.drawString(32, h - 106, f"VOL. CXII · NO. {120 + i * 7}")
+    c.drawCentredString(w / 2, h - 106, day.strftime("%A, %B %d, %Y").upper())
+    c.drawRightString(w - 32, h - 106, "BRACKWATER VALLEY'S DAILY SINCE 1911 · 75¢")
+    c.setFont("Times-Italic", 7)
+    c.drawCentredString(w / 2, h - 40, "A fictional newspaper made as VAULT test data. No real town, people or firms.")
+
+    s = news_story(rng, projects, i)
+    lead_w = 3 * 136 + 2 * 12
+    c.setFont("Times-Bold", 27)
+    y = h - 145
+    for line in simpleSplit(s["head"], "Times-Bold", 27, lead_w):
+        c.drawString(30, y, line)
+        y -= 29
+    c.setFont("Times-Italic", 13)
+    for line in simpleSplit(s["deck"], "Times-Italic", 13, lead_w):
+        c.drawString(30, y, line)
+        y -= 15
+    c.setFont("Times-Bold", 8.5)
+    c.drawString(30, y - 4, f"By {s['by'].upper()}  ·  Ledger Staff Writer")
+    y -= 20
+    pic = photo(rng, s["part"], s["project"], (640, 440)).convert("L")
+    ph = 186
+    c.drawImage(ImageReader(pic), 30, y - ph, width=2 * 136 + 12, height=ph)
+    c.setFont("Times-Italic", 7.5)
+    cap = f"Part {s['part'].number} on the Project {s['project'].name} line during testing. Photo: Ledger staff"
+    for k, line in enumerate(simpleSplit(cap, "Times-Italic", 7.5, 2 * 136 + 12)):
+        c.drawString(30, y - ph - 10 - 9 * k, line)
+    top = y - ph - 34
+    cols = [(30, top, 136, 300), (178, top, 136, 300), (326, y, 136, 300)]
+    _wrap_columns(c, s["body"], cols, "Times-Roman", 8.6, 10.4)
+    c.setLineWidth(0.5)
+    c.line(472, h - 120, 472, 40)
+    # Side column: a brief and an advert for a fictional supplier.
+    side = news_story(rng, projects, i + 1)
+    c.setFont("Times-Bold", 13)
+    sy = h - 135
+    for line in simpleSplit(side["head"], "Times-Bold", 13, 124):
+        c.drawString(480, sy, line)
+        sy -= 14
+    _wrap_columns(c, side["body"][:3], [(480, sy - 4, 124, 420)], "Times-Roman", 8, 9.6)
+    c.setLineWidth(1.2)
+    c.rect(480, 300, 124, 105)
+    c.setFont("Helvetica-Bold", 10)
+    c.drawCentredString(542, 385, rng.choice(SUPPLIERS).upper()[:20])
+    c.setFont("Helvetica", 7)
+    advert = ["Valves, flanges and seals", "made in the valley since 1952", "", "(a fictional advert)"]
+    for k, line in enumerate(advert):
+        c.drawCentredString(542, 368 - 10 * k, line)
+    # Lower band: second story across the page.
+    c.setLineWidth(0.6)
+    c.line(30, 290, 466, 290)
+    third = news_story(rng, projects, i + 2)
+    c.setFont("Times-Bold", 13)
+    for k, line in enumerate(simpleSplit(third["head"], "Times-Bold", 13, 436)[:2]):
+        c.drawString(30, 272 - 14 * k, line)
+    _wrap_columns(c, third["body"][:4], [(30, 238, 136, 50), (178, 238, 136, 50), (326, 238, 136, 50)],
+                  "Times-Roman", 8.6, 10.4)  # fmt: skip
+    _wrap_columns(c, ["WEATHER: Dry, light wind, high of 61. Tomorrow: showers.", "INSIDE: Council 3 · Sports 9"],
+                  [(480, 280, 124, 50)], "Times-Bold", 8, 10)  # fmt: skip
+    c.showPage()
+    c.save()
+    return buf.getvalue()
+
+
+def newspaper_scan(rng: Random, projects: list[Project], i: int, day: datetime) -> Image.Image:
+    """A scanned clipping of a lead story: yellowed paper, a fold, halftone photo, cut edges, slightly crooked."""
+    s = news_story(rng, projects, i)
+    w, h = 840, 1560
+    paper = _vgrad((w, h), (236, 228, 205), (222, 210, 182))
+    paper = grain(rng, paper, 40)
+    d = ImageDraw.Draw(paper)
+    ink = (28, 26, 24)
+    mast = _font(50)
+    d.text(((w - mast.getlength(PAPER_NAME)) / 2, 30), PAPER_NAME, fill=ink, font=mast, stroke_width=2, stroke_fill=ink)
+    d.line((40, 112, w - 40, 112), fill=ink, width=4)
+    d.line((40, 120, w - 40, 120), fill=ink, width=1)
+    small = _font(20)
+    d.text((44, 128), day.strftime("%A, %B %d, %Y").upper(), fill=ink, font=small)
+    d.text((w - 44 - small.getlength("FICTIONAL TEST DATA"), 128), "FICTIONAL TEST DATA", fill=ink, font=small)
+    d.line((40, 156, w - 40, 156), fill=ink, width=1)
+    y = 176
+    for text, f, lead, stroke in ((s["head"], _font(48), 56, 1), (s["deck"], _font(25), 31, 0)):
+        line = ""
+        for word in [*text.split(), "\n"]:  # wrap by measured width
+            trial = f"{line} {word}".strip() if word != "\n" else line
+            if word == "\n" or f.getlength(trial) > w - 90:
+                d.text((44, y), line, fill=ink, font=f, stroke_width=stroke, stroke_fill=ink)
+                y += lead
+                line = word
+            else:
+                line = trial
+        y += 12
+    d.text((44, y), f"By {s['by'].upper()} - Ledger Staff Writer", fill=ink, font=_font(20))
+    y += 40
+    pic = photo(rng, s["part"], s["project"], (760, 500)).convert("L")
+    pic = ImageOps.autocontrast(pic).resize((752, 500)).convert("1").convert("RGB")  # dithered like a halftone
+    paper.paste(ImageChops.multiply(pic, Image.new("RGB", pic.size, (236, 228, 205))), (44, y))
+    d.text((44, y + 508), f"Part {s['part'].number} on the Project {s['project'].name} line.", fill=ink, font=_font(18))
+    body = _font(19)
+    cols = [(44, y + 546, 360, h - 40), (436, y + 546, 360, h - 40)]
+    ci, (x, yy, cw, bottom) = 0, cols[0]
+    for para in s["body"]:
+        line = ""
+        for word in [*para.split(), "\n"]:
+            trial = f"{line} {word}".strip() if word != "\n" else line
+            if word == "\n" or body.getlength(trial) > cw:
+                if yy > bottom - 24:
+                    ci += 1
+                    if ci >= len(cols):
+                        break
+                    x, yy, cw, bottom = cols[ci]
+                d.text((x, yy), line, fill=ink, font=body)
+                yy += 25
+                line = "" if word == "\n" else word
+            else:
+                line = trial
+        yy += 10
+        if ci >= len(cols):
+            break
+    for x in (420,):
+        d.line((x, y + 540, x, h - 40), fill=(120, 112, 96), width=1)
+    # A fold across the middle and yellowing towards the edges.
+    fy = int(h * rng.uniform(0.45, 0.55))
+    paper = _soft_shadow(paper, [("rect", (0, fy - 2, w, fy + 3))], 6, 0.35)
+    ImageDraw.Draw(paper).line((0, fy + 4, w, fy + 4), fill=(248, 242, 225), width=2)
+    ox, oy = int(w * 0.15), int(h * 0.15)
+    edge = Image.radial_gradient("L").resize((int(w * 1.3), int(h * 1.3))).crop((ox, oy, ox + w, oy + h))
+    paper = Image.composite(ImageChops.multiply(paper, Image.new("RGB", paper.size, (215, 190, 140))), paper,
+                            edge.point(lambda v: v * v // 300))  # fmt: skip
+    # Scissor-cut edges, then onto a dark scanner lid, a little crooked.
+    cut = Image.new("L", (w, h), 0)
+    corners = [(rng.uniform(0, 8), rng.uniform(0, 8)), (w - rng.uniform(0, 10), rng.uniform(0, 6))]
+    corners += [(w - rng.uniform(0, 6), h - rng.uniform(0, 10)), (rng.uniform(0, 9), h - rng.uniform(0, 5))]
+    ImageDraw.Draw(cut).polygon(corners, fill=255)
+    sheet = Image.new("RGBA", (w, h))
+    sheet.paste(paper, (0, 0), cut)
+    sheet = sheet.rotate(rng.uniform(-2.5, 2.5), resample=Image.Resampling.BICUBIC, expand=True)
+    bed = grain(rng, Image.new("RGB", (sheet.width + 80, sheet.height + 80), (34, 34, 38)), 30)
+    shadow = Image.new("RGBA", sheet.size, (0, 0, 0, 0))
+    shadow.putalpha(sheet.getchannel("A").point(lambda v: v // 2))
+    bed.paste((0, 0, 0), (48, 50), shadow.filter(ImageFilter.GaussianBlur(10)))
+    bed.paste(sheet, (40, 40), sheet)
+    return bed.filter(ImageFilter.GaussianBlur(0.5))
 
 
 def exif_bytes(taken: datetime, camera: tuple[str, str]) -> bytes:
@@ -987,7 +1749,7 @@ class Builder:
                 data,
                 "pdf_drawings",
                 "pdf",
-                f"engineering drawing, rev {rev}, schematic and parts list with ratings",
+                f"blueprint, rev {rev}: piping run, dimensions, section view, title block, parts list with ratings",
                 projects=[proj.name],
                 parts=parts,
             )
@@ -1310,22 +2072,24 @@ class Builder:
             proj = planted[1] if planted else self.project(i)
             part = planted[2] if planted else self.rng.choice(proj.parts)
             big = fmt == "jpg" and self.large and i < 3
-            size = (4000, 3000) if big else self.rng.choice([(640, 480), (1024, 768), (1280, 960)])
+            # PNGs stay small: photographic grain does not compress losslessly.
+            sizes = [(640, 480), (800, 600)] if fmt == "png" else [(640, 480), (1024, 768), (1280, 960)]
+            size = (4000, 3000) if big else self.rng.choice(sizes)
             rating = int(planted[0].planted_value) if planted else None
-            img = photo(self.rng, part, proj, size, rating)
-            buf = io.BytesIO()
             truth: dict = {}
-            contains = f"fake inspection photo {size[0]}x{size[1]}: valve and nameplate showing {part.number}"
+            contains = f"inspection photo {size[0]}x{size[1]}: valve, gauge and a nameplate showing {part.number}"
+            buf = io.BytesIO()
             if fmt == "png":
-                img.save(buf, format="PNG", compress_level=6)
-            elif i % 10 == 5:
-                exif = Image.Exif()
-                exif[0x010F], exif[0x0110] = "FictionCam", "FC-1 (fictional camera)"
-                img.save(buf, format="JPEG", quality=88, exif=exif.tobytes())
-                contains += " (with fictional EXIF camera tags)"
-                truth = {"camera": "FictionCam FC-1 (fictional camera)"}
+                photo(self.rng, part, proj, size, rating).save(buf, format="PNG", compress_level=6)
             else:
-                img.save(buf, format="JPEG", quality=88)
+                # F11.9: a phone photo: the date burnt into the corner and the same date and camera in EXIF.
+                taken = datetime(2023 + i % 3, 1 + (i * 5) % 12, 1 + (i * 13) % 28, 8 + i % 9, (i * 23) % 60)
+                make, model = CAMERAS[(i + 1) % len(CAMERAS)]
+                img = photo(self.rng, part, proj, size, rating, taken)
+                img.save(buf, format="JPEG", quality=86, exif=exif_bytes(taken, (make, model)))
+                contains += f", date stamp {taken:%Y-%m-%d} (fictional EXIF date and camera)"
+                camera = model if make.casefold() in model.casefold() else f"{make} {model}"
+                truth = {"taken": taken.isoformat(), "camera": camera}
             name = f"{proj.code}-IMG-{i + 1:04d}{'-4000x3000' if big else ''}.{fmt}"
             rel = f"{kind}/{name}"
             self.write(
@@ -1454,7 +2218,7 @@ class Builder:
                 pdf_marked_drawing(num, proj, when(self.rng), rev, self.rng),
                 "pdf_marked_drawings",
                 "pdf",
-                f"drawing rev {rev} with revision clouds, revision triangles, numbered callouts and a revision block",
+                f"blueprint rev {rev} marked up in red: revision clouds and triangles, callouts, revision table, stamp",
                 projects=[proj.name],
                 parts=[p.number for p in proj.parts],
             )
@@ -1468,8 +2232,8 @@ class Builder:
             # Spread over three years so "photos from 2024" finds some and not others.
             taken = datetime(2023 + i % 3, 1 + (i * 7) % 12, 1 + (i * 11) % 28, 7 + i % 10, (i * 17) % 60, i % 60)
             camera = CAMERAS[i % len(CAMERAS)]
-            caption = f"Project {proj.name} - Unit {1 + i % 9} - {taken:%Y-%m-%d %H:%M}"
-            img = site_photo(self.rng, part, proj, size, caption, stickers[i % 3])
+            caption = f"Project {proj.name} - Unit {1 + i % 9}"
+            img = site_photo(self.rng, part, proj, size, caption, stickers[i % 3], taken)
             buf = io.BytesIO()
             img.save(buf, format="JPEG", quality=85, exif=exif_bytes(taken, camera))
             make, model = camera
@@ -1490,6 +2254,29 @@ class Builder:
                     "camera": model if make.casefold() in model.casefold() else f"{make} {model}",
                 },
             )
+
+    # ----- F11.9: a fictional local newspaper -----
+
+    def newspapers(self, n: int) -> None:
+        """Front pages as PDF (text VAULT reads) and scanned clippings as JPEG (stored with details, not read)."""
+        for i in range(n):
+            day = datetime(2023 + i % 3, 1 + (i * 5) % 12, 1 + (i * 7) % 28)
+            proj = self.project(i)
+            if i % 2 == 0:
+                data = newspaper_pdf(self.rng, self.projects, i, day)
+                rel = f"newspapers/Brackwater-Ledger-{day:%Y-%m-%d}-front-page.pdf"
+                self.write(rel, data, "newspapers", "pdf",
+                           "fictional newspaper front page: masthead, lead story with photo, columns, an advert; "
+                           f"mentions Project {proj.name} and its parts", projects=[proj.name])  # fmt: skip
+            else:
+                buf = io.BytesIO()
+                img = newspaper_scan(self.rng, self.projects, i, day)
+                img.save(buf, format="JPEG", quality=80)
+                rel = f"newspapers/Brackwater-Ledger-{day:%Y-%m-%d}-clipping-scan.jpg"
+                self.write(rel, buf.getvalue(), "newspapers", "jpg",
+                           f"scanned newspaper clipping {img.width}x{img.height}: yellowed paper, fold, halftone photo",
+                           IMAGE, projects=[proj.name], media={"kind": "photo", "width": img.width,
+                                                              "height": img.height})  # fmt: skip
 
     # ----- edge cases -----
 
@@ -1796,6 +2583,8 @@ class Builder:
         self.pdf_marked_drawings(n["pdf_marked_drawings"])
         self.photos_site(n["photos_site"])
         self.edge_cases()
+        # F11.9, after every older kind for the same reason.
+        self.newspapers(n["newspapers"])
         return self.manifest()
 
     def manifest(self) -> dict:
@@ -1872,7 +2661,7 @@ def main() -> int:
         "--size",
         choices=sorted(SIZES),
         default="full",
-        help="demo: about 120 files under 60 MB, quick to process; full: about 450 files including size-limit files",
+        help="demo: about 130 files, about 18 MB, quick to process; full: about 450 files including size-limit files",
     )
     ap.add_argument("--count", type=int, default=None, help="regular files (overrides --size); edge cases are added")
     ap.add_argument("--seed", type=int, default=7)

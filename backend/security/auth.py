@@ -11,7 +11,8 @@ from dataclasses import dataclass
 from backend.storage.db import now
 
 ROLE_PERMISSIONS: dict[str, set[str]] = {
-    "viewer": {"documents:read", "search", "findings:read", "jobs:read", "system:read"},
+    # F10.24: viewers may browse suggested changes in view-only mode. Deciding or deleting them stays admin-only.
+    "viewer": {"documents:read", "search", "findings:read", "jobs:read", "system:read", "proposals:read"},
     "analyst": {
         "documents:read",
         "search",
@@ -62,7 +63,7 @@ PERMISSION_LABELS: dict[str, str] = {
     "proposals:create": "Suggest changes to records",
     "proposals:read": "See suggested changes",
     "corrections:create": "Correct what VAULT read",
-    "proposals:approve": "Approve or reject suggested changes",
+    "proposals:approve": "Approve, reject or delete suggested changes and the copies VAULT wrote",
     "settings:write": "Change settings, models and whether anything may leave this computer",
     "audit:read": "Read the audit trail and the sign-in log",
     "users:manage": "Invite people, change roles and sign-in steps",
@@ -70,7 +71,7 @@ PERMISSION_LABELS: dict[str, str] = {
 }
 
 ROLE_SUMMARIES: dict[str, str] = {
-    "viewer": "Can look and search, but cannot change anything.",
+    "viewer": "Can look, search and browse suggested changes, but cannot change anything.",
     "analyst": "Can add files, run reading jobs and suggest changes. Cannot approve them or change settings.",
     "admin": "Can do everything, including approving changes and managing people.",
 }

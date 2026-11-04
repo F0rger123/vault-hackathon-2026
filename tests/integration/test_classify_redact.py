@@ -91,7 +91,9 @@ def test_classify_and_redact_end_to_end(client, tokens, settings):
     assert done["status"] == "executed" and done["result"]["labelled"] == 4 and done["result"]["redactions"] >= 6
 
     # Viewers: restricted and confidential documents are gone from lists and refused when opened, without detail.
-    names = {d["filename"] for d in client.get(f"{API}/documents", params={"collection_id": cid}, headers=viewer).json()}
+    names = {
+        d["filename"] for d in client.get(f"{API}/documents", params={"collection_id": cid}, headers=viewer).json()
+    }
     assert names == {"bravo-report.txt"}
     for path in ("", "/pages/1", "/original", "/screening"):
         r = client.get(f"{API}/documents/{ids['alpha-export.txt']}{path}", headers=viewer)
@@ -167,9 +169,10 @@ def test_classify_and_redact_end_to_end(client, tokens, settings):
     label_url = f"{API}/documents/{ids['bravo-report.txt']}/classification"
     assert client.put(label_url, json={"level": "restricted"}, headers=analyst).status_code == 403
     assert client.put(label_url, json={"level": "top secret"}, headers=admin).status_code == 422
-    assert client.put(label_url, json={"level": "restricted", "reason": "Site access"}, headers=admin).json()[
-        "set_by"
-    ] == "user"
+    assert (
+        client.put(label_url, json={"level": "restricted", "reason": "Site access"}, headers=admin).json()["set_by"]
+        == "user"
+    )
     assert client.get(f"{API}/documents", params={"collection_id": cid}, headers=viewer).json() == []
     actions = {e["action"] for e in client.get(f"{API}/audit", headers=admin).json()}
     assert {"classification.propose", "classification.set", "redaction.remove", "proposal.approve"} <= actions
@@ -209,6 +212,14 @@ def test_keeper_proposes_labels_from_chat(client, tokens):
     with connect(client.app.state.settings.db_path) as conn:
         statuses = {r[0] for r in conn.execute("SELECT status FROM main.redactions WHERE proposal_id = ?", (pid,))}
     assert statuses == {"rejected"}
+
+    # Deleting an approved request keeps its redactions in force (F10.24 delete meets F09.23).
+    admin = auth(tokens["admin"])
+    p2 = client.post(f"{API}/collections/{cid}/classify", json={}, headers=admin).json()
+    client.post(f"{API}/proposals/{p2['id']}/approve", json={}, headers=admin)
+    assert client.delete(f"{API}/proposals/{p2['id']}", headers=admin).status_code == 200
+    page = client.get(f"{API}/documents/{ids['bravo-report.txt']}/pages/1", headers=auth(tokens["viewer"])).json()
+    assert page["redacted"] and "omar.reyes" not in page["text"]
 
 
 def test_render_fails_closed_when_text_changed():
