@@ -15,6 +15,12 @@
 
 <h3 align="center">Point it at a drawer full of drawings, inspection reports and contracts.<br>It reads every page, proves every fact with a quote, and redlines the places where your documents disagree.<br>Nothing leaves the machine.</h3>
 
+<p align="center">
+  <a href="https://github.com/F0rger123/vault-hackathon-2026/releases/download/demo-data/vault-demo-dataset-quick.zip"><img alt="Download the quick demo dataset" src="https://img.shields.io/badge/%E2%AC%87%20download-quick%20demo%20dataset%20%C2%B7%200.4%20MB-f5f5f5?style=for-the-badge&labelColor=0a0a0a"></a>
+  <a href="https://github.com/F0rger123/vault-hackathon-2026/releases/download/demo-data/vault-demo-dataset-complete.zip"><img alt="Download the complete demo dataset" src="https://img.shields.io/badge/%E2%AC%87%20download-complete%20demo%20dataset%20%C2%B7%2015%20MB-2f7d4f?style=for-the-badge&labelColor=0a0a0a"></a>
+  <br><sub>All fictional. Quick: the 150 demo documents with the BV-7891 conflict, expected findings and example prompts. Complete: plus 124 realistic test files (blueprints, stamped reports, a newspaper, photos, sound).</sub>
+</p>
+
 > [!TIP]
 > **🤖 Pasted this link into Claude or ChatGPT?** To install or try VAULT, read [`docs/AI_GUIDE.md`](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/docs/AI_GUIDE.md). To help the developer build it, read [`coordination/PROJECT_STATE.md`](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/coordination/PROJECT_STATE.md) and [`docs/AI_ONBOARDING.md`](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/docs/AI_ONBOARDING.md). Then read [`AGENTS.md`](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/AGENTS.md) and [`llms.txt`](https://raw.githubusercontent.com/F0rger123/vault-hackathon-2026/main/llms.txt).
 
