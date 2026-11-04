@@ -10,6 +10,7 @@ external ffmpeg may differ between ffmpeg builds; pass --no-ffmpeg for byte-iden
 
     python scripts/make_test_files.py --out data/testset --count 400 --seed 7
     python scripts/make_test_files.py --size demo --out data/testset-demo     # about 130 files, about 18 MB
+    python scripts/make_test_files.py --size huge --out data/testset-huge     # about 2,300 files, about 275 MB
 
 Only the standard library, Pillow and reportlab are used; every picture, blueprint, stamp and newspaper is drawn from
 shapes and gradients (F11.9), with no downloaded images or fonts. DOCX/XLSX/PPTX are written as minimal Office Open XML
@@ -110,7 +111,12 @@ KIND_SHARES = {
     "newspapers": 0.02,
 }
 # --size demo: about 130 files, about 18 MB, quick to process, with plenty of photos, video and sound to show.
-SIZES = {"demo": {"count": 64, "large": False}, "full": {"count": 400, "large": True}}
+SIZES = {
+    "demo": {"count": 64, "large": False},
+    "full": {"count": 400, "large": True},
+    # --size huge: about 2,300 files, about 275 MB, for the "thousands of files" moment. No size-limit files.
+    "huge": {"count": 2000, "large": False},
+}
 DEMO_AT_LEAST = {"video": 6, "audio": 6, "photos_site": 12, "pdf_stamped": 6, "pdf_marked_drawings": 4, "newspapers": 4}
 
 ACCEPTED = "accepted"
