@@ -529,14 +529,14 @@ The chat box (F06.8). Turns one typed message into a command and, for `find`, ru
 - **Errors:** 401, 403, 404 (collection), 422
 
 ### `POST /collections/{id}/agent` (F10.20, streamed)
-Ask VAULT. A coordinator reads one message (the same rules as `/chat`, then the local model only if the rules understand nothing and `use_model` is true), hands the work to helpers, and streams what happens. Each helper wraps an existing function; every timing is measured around that call.
+Ask Keeper (named in F10.23; the speaker's name is `ASSISTANT_NAME` in `backend/agents/keeper.py`). A coordinator reads one message (the same rules as `/chat`, then the local model only if the rules understand nothing and `use_model` is true), hands the work to helpers, and streams what happens. Each helper wraps an existing function; every timing is measured around that call.
 - **Permission:** `search`. Each answered question is written to the audit log as `ask.run` (provider and counts only, never the question).
 - **Body:** `{"message": "…", "previous": <command from the last find> | null, "use_model": true, "provider": "ollama" | "meta_api" | "heuristic" | null, "confirm_remote": false}`. `message` 1–300 chars.
 - **Response 200:** `Content-Type: application/x-ndjson`, one JSON object per line, in this order:
 ```json
 {"type": "start", "t_ms": 0, "collection_id": 1, "run": "ask-3f9a1c2b7d10"}
 {"type": "coordinator", "t_ms": 1, "status": "asking_model", "text": "…", "model": "llama3:latest"}
-{"type": "coordinator", "t_ms": 2, "status": "fallback", "text": "The local model is not running, so the Answer writer uses VAULT's rules instead."}
+{"type": "coordinator", "t_ms": 2, "status": "fallback", "text": "The local model is not running, so the Answer writer uses Keeper's rules instead."}
 {"type": "plan", "t_ms": 3, "source": "rules", "model": null, "duration_ms": 2, "command": {<chat command>},
  "reason": "A question: find the evidence, answer it, check it.",
  "helpers": [{"id": "finder", "name": "Finder", "does": "Searches the index", "why": "…", "step": 0, "uses_model": false, "with": ["conflicts"]}],
@@ -546,11 +546,26 @@ Ask VAULT. A coordinator reads one message (the same rules as `/chat`, then the 
 {"type": "helper", "t_ms": 4, "id": "finder", "name": "Finder", "status": "progress", "text": "Searching for pressure, ratings"}
 {"type": "helper", "t_ms": 19, "id": "finder", "name": "Finder", "status": "finished", "duration_ms": 15, "summary": "8 matching documents", "result": {"count": 8, "documents": [...]}}
 {"type": "coordinator", "t_ms": 20, "status": "merged", "text": "Numbered 14 source lines for the Answer writer", "duration_ms": 1}
-{"type": "answer", "t_ms": 40, "kind": "ask", "command": {…}, "text": "…", "sentences": [<as /investigations answer>], "sources": [...], "findings": [...], "withheld_local_only": 0, "answered_by": {…}}
+{"type": "memory", "t_ms": 39, "status": "rechecked", "run": "ask-0a1b2c3d4e5f", "still_cited": 6, "total": 6}
+{"type": "answer", "t_ms": 40, "kind": "ask", "command": {…}, "text": "…", "sentences": [<as /investigations answer>], "sources": [...], "findings": [...], "withheld_local_only": 0, "run": "ask-3f9a1c2b7d10", "answered_by": {…}}
 {"type": "done", "t_ms": 41, "duration_ms": 41}
 ```
-Helpers by command: `ask` runs Finder and Conflict checker together (the Conflict checker only when the question asks about conflicts or names a part), then the Answer writer (`write_answer`: the model when the provider is one, the rules otherwise), then the Fact checker (`check_sentences`). The answer, sources and checks equal what `POST /investigations` returns for the same question. `find` runs Finder, then Sorter when a sort was asked for; the answer has `rows` (≤ 50), `count` and `text` as in `/chat`. `models` runs the Models helper (Ollama's model list); `open` runs the Navigator and the answer carries `route`. `help` has no helpers. A helper that fails sends `status: "failed"` with a short `detail` written by VAULT. A provider that cannot be used ends the stream with `{"type": "error", "status": 400|403|409|503, "detail": "…"}` before any answer: remote inference follows the `/investigations` rules (admin setting, `confirm_remote`, analyst or admin role). If no provider was named and the default local model is not running, the rules answer instead and a `fallback` event says so; VAULT never falls back to a remote model. Errors never include document text or paths.
+Helpers by command: `ask` runs Finder and Conflict checker together (the Conflict checker only when the question asks about conflicts or names a part), then the Answer writer (`write_answer`: the model when the provider is one, the rules otherwise), then the Fact checker (`check_sentences`). The answer, sources and checks equal what `POST /investigations` returns for the same question, except that documents cited by liked answers (F10.23) break ties in the Finder's order. `find` runs Finder, then Sorter when a sort was asked for; the answer has `rows` (≤ 50), `count` and `text` as in `/chat`. `models` runs the Models helper (Ollama's model list); `open` runs the Navigator and the answer carries `route`. `help` has no helpers. A helper that fails sends `status: "failed"` with a short `detail` written by VAULT. A provider that cannot be used ends the stream with `{"type": "error", "status": 400|403|409|503, "detail": "…"}` before any answer: remote inference follows the `/investigations` rules (admin setting, `confirm_remote`, analyst or admin role). If no provider was named and the default local model is not running, the rules answer instead and a `fallback` event says so; VAULT never falls back to a remote model. Errors never include document text or paths.
+- **F10.23, what Keeper learns:** every `ask` answer is stored (question, answer text, cited document ids) under its `run`, which the `answer` event carries. When a liked answer (thumbs up) exists for a near-identical question in the collection (content words overlap at least 80%), a `{"type": "memory", "status": "recalled", "run", "question", "text", "document_ids", "asked_at", "similarity"}` event follows the plan, the helpers still run, and a `{"type": "memory", "status": "rechecked", "run", "still_cited", "total"}` event before the answer says how many of the recalled answer's documents today's answer cites again. Documents cited by liked answers and by no disliked answer gain half a point in the Finder's ranking (ties only), and the Finder's progress says so. Stored text is shown as text only.
 - **Errors (before the stream starts):** 401, 403 (no `search`), 404 (collection), 422
+
+### `GET /collections/{id}/memory` (F10.23)
+How much Keeper has stored and learned from in this collection. Counts only, no question or answer text.
+- **Permission:** `search`
+- **Response 200:** `{"assistant": "Keeper", "answers": 12, "liked": 3, "disliked": 1, "learned": 4, "boosted_documents": 9}`. `learned` counts rated answers.
+- **Errors:** 401, 403, 404 (collection)
+
+### `POST /collections/{id}/answers/{run}/vote` (F10.23)
+Thumbs up (`1`), down (`-1`) or neither (`0`) on an answer. Only the person who asked may rate it; the answer itself was stored by the server when it was written, never sent by the browser. Audited as `ask.vote` (the value only).
+- **Permission:** `search`
+- **Body:** `{"vote": 1}`
+- **Response 200:** `{"run": "ask-3f9a1c2b7d10", "vote": 1, <the memory counts above>}`
+- **Errors:** 401, 403, 404 (no such answer of yours in this collection, or a malformed run id), 422 (vote not -1, 0 or 1)
 
 ### `POST /investigations`
 Answers a natural-language question using only evidence from one collection (F06.4). Retrieval is deterministic: the question is turned into a plan (known project names, part numbers, document-type words, a year, conflict words, remaining search terms), then finding evidence and search hits become numbered sources. A Meta model writes the answer as sentences that cite source numbers; the `heuristic` provider writes a fixed template instead and is labelled `is_ai_model: false`. Every sentence is checked after generation.

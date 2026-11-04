@@ -27,6 +27,10 @@ Last updated: 2026-11-03
 - **Built:** in-app preview in the document drawer (photos with zoom, PDFs, video, sound, extracted text; full-screen drawer; previews audited as `document.view`; held files never preview) and realistic fictional test files (blueprints, photographs, stamped reports, a fictional newspaper). Branch `luke/F11.9-viewer-real-files`.
 - **Why photos "did not display":** the old button opened a blob URL in a new tab; that tab inherits the app's CSP, which blocked video and sound, and the desktop window sends new tabs to the system browser, where the blob does not exist.
 - **Waiting on Luke:** review and merge the PR (file serving is high-risk, so it was not merged); try a preview in the desktop window, which was not tested.
+### 2026-11-03 · F10.23 · Ask Keeper, PR open
+- **Done:** Investigate merged into the chat, now "Ask Keeper" (one name constant per side). Redline conflict cards and media result rows inline, Refine chips, export in the header, `/investigate` redirects with its query. Stream-driven animation sequence, a live SVG brain beside the chat, and learning from thumbs up/down (migration 14, two new routes).
+- **Waiting on Luke:** review and merge the PR; watch one live question for the demo video (the animations were checked by screenshots, not by eye).
+- **Not verified:** answers written by Ollama; the full e2e suite (four specs run).
 
 ### 2026-11-03 · F09.19, F10.19, F11.7 · merged
 - **Merged:** #98. Real sign-in levels (passkey kind choice, confirm-it's-you, webcam face check with the Human library, admin controls), Progress live status, mock-up audit fixes, the fictional test set generator, and `docs/TEST_GUIDE.md`.
