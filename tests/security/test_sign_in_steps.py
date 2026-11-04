@@ -13,7 +13,7 @@ from backend.security import login as signin
 from backend.security import steps, voice
 from backend.storage.db import connect
 from tests.conftest import auth
-from tests.security.test_face_unlock import ME, STRANGER, _person
+from tests.security.test_face_unlock import ME, STRANGER, _person, enroll, face_step
 
 API = "/api/v1"
 PASS = "a long enough password"
@@ -83,7 +83,7 @@ def test_steps_need_setting_up_first(client, tokens):
 def test_three_steps_in_a_row(client, tokens):
     """Password, then face, then key phrase: a session only after the last one."""
     _, h = _person(client, tokens)
-    client.post(f"{API}/auth/face", headers=h, json={"samples": ME[:3], "live": 0.9, "real": 0.9})
+    enroll(client, h)
     _voice(client, h)
     assert client.put(f"{API}/auth/steps", headers=h, json={"steps": ["password", "face", "voice"]}).status_code == 200
 
@@ -94,9 +94,7 @@ def test_three_steps_in_a_row(client, tokens):
     early = client.post(f"{API}/auth/voice-step", json={"handle": handle, "frames": take("v0-a-r1"), "snr_db": 30})
     assert early.status_code == 409  # steps keep their order
 
-    face_ok = client.post(
-        f"{API}/auth/face-step", json={"handle": handle, "embedding": ME[3], "live": 0.9, "real": 0.9}
-    ).json()
+    face_ok = face_step(client, handle, ME[1:4]).json()
     assert face_ok["step"] == "voice" and face_ok["done"] == ["password", "face"] and "token" not in face_ok
 
     wrong = client.post(f"{API}/auth/voice-step", json={"handle": handle, "frames": take("v0-b-r1"), "snr_db": 30})
@@ -111,29 +109,25 @@ def test_three_steps_in_a_row(client, tokens):
 
 def test_face_step_refuses_a_poor_camera(client, tokens):
     _, h = _person(client, tokens)
-    body = {"samples": ME[:3], "live": 0.9, "real": 0.9}
-    low = client.post(f"{API}/auth/face", headers=h, json={**body, "quality": {"width": 320, "height": 240}})
+    low = enroll(client, h, quality={"width": 320, "height": 240})
     assert low.status_code == 422 and "camera picture" in low.json()["detail"]
-    dark = client.post(f"{API}/auth/face", headers=h, json={**body, "quality": {"brightness": 20}})
+    dark = enroll(client, h, quality={"brightness": 20})
     assert dark.status_code == 422 and "dark" in dark.json()["detail"]
     good = {"width": 1280, "height": 720, "fps": 30, "brightness": 120, "sharpness": 40, "face_px": 260}
-    assert client.post(f"{API}/auth/face", headers=h, json={**body, "quality": good}).status_code == 201
+    assert enroll(client, h, quality=good).status_code == 201
 
 
 def test_wrong_steps_end_the_attempt_and_a_stranger_cannot_skip(client, tokens):
     _, h = _person(client, tokens)
-    client.post(f"{API}/auth/face", headers=h, json={"samples": ME[:3], "live": 0.9, "real": 0.9})
+    enroll(client, h)
     client.put(f"{API}/auth/steps", headers=h, json={"steps": ["face"]})
     handle = client.post(f"{API}/auth/login", json={"username": "dana", "password": PASS}).json()["handle"]
     # A step the person did not choose is refused rather than counted.
     r = client.post(f"{API}/auth/password-step", json={"handle": handle, "password": PASS})
     assert r.status_code == 409
     for _ in range(steps.WRONG_TRIES):
-        r = client.post(
-            f"{API}/auth/face-step", json={"handle": handle, "embedding": STRANGER, "live": 0.9, "real": 0.9}
-        )
-        assert r.status_code == 401
-    r = client.post(f"{API}/auth/face-step", json={"handle": handle, "embedding": ME[0], "live": 0.9, "real": 0.9})
+        assert face_step(client, handle, [STRANGER] * 3).status_code == 401
+    r = client.post(f"{API}/auth/face-challenge", json={"handle": handle})
     assert r.status_code == 401 and "start again" in r.json()["detail"]
 
 

@@ -2,11 +2,18 @@ import { expect, test } from "@playwright/test";
 import { API, COLLECTION, token } from "./helpers";
 
 // F10.1, F10.2 and F10.11: sign in without handling tokens, see the overview of the seeded collection.
-test("one-click demo sign-in opens the overview in Demo mode", async ({ page }) => {
+test("demo sign-in: pick a role, read what it can do, then continue into Demo mode", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Sign in", exact: true })).toBeVisible();
   await expect(page.getByText("No API key or internet account needed")).toBeVisible();
-  await page.getByRole("button", { name: "Demo: analyst" }).click();
+  // F09.22: picking a role only selects it and explains it; nothing signs in until "Continue as".
+  await page.getByRole("radio", { name: "Demo: viewer" }).click();
+  await expect(page.getByText("Can look and search, but cannot change anything.")).toBeVisible();
+  await page.getByRole("radio", { name: "Demo: analyst" }).click();
+  await expect(page.getByRole("radio", { name: "Demo: analyst" })).toHaveAttribute("aria-checked", "true");
+  await expect(page.getByText("Cannot approve them or change settings.", { exact: false })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Overview" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Continue as analyst" }).click();
   await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Getting started" })).toBeVisible();
   await expect(page.getByRole("main")).toContainText(COLLECTION);

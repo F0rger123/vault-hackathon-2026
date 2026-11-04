@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { errorText, needsStep, post, type SignedIn, type SignInResult, type SignInStep, type StepNeeded } from "@/lib/api";
-import { faceStep } from "@/lib/face";
+import { faceChallengeForStep, faceStep, type LiveAnswer } from "@/lib/face";
 import { passkeysSupported, signInWithPasskey } from "@/lib/passkeys";
 import { voiceStep } from "@/lib/voice";
-import { FaceCapture } from "./face-capture";
+import { playVaultDoor } from "@/lib/vault-door";
+import { FaceCapture, type FaceOutcome } from "./face-capture";
 import { Button, cx, inputClass } from "./ui";
 import { VoiceCapture } from "./voice-capture";
 
@@ -19,7 +20,7 @@ export const STEP_NAMES: Record<SignInStep, string> = {
 const STEP_HINT: Record<SignInStep, string> = {
   password: "Type your password.",
   passkey: "Use this computer's Windows Hello, your security key or your phone.",
-  face: "Look at the camera.",
+  face: "Look at the camera, then follow the two moves it asks for.",
   voice: "Say the key phrase you set up.",
 };
 
@@ -170,6 +171,23 @@ export function SignInSteps({
     }
   };
 
+  // F09.22: the face step shows its own result (granted, or a red lock-down with the reason and a retry), so its errors
+  // stay inside the camera view. A session after the face opens the vault door; another step follows with a tick.
+  const answerFace = async (a: LiveAnswer): Promise<FaceOutcome> => {
+    try {
+      const r = await faceStep(step.handle, a);
+      if (needsStep(r)) window.setTimeout(() => setStep(r), 900);
+      else playVaultDoor(() => onSignedIn(r));
+      return { ok: true };
+    } catch (e) {
+      const text = errorText(e);
+      const final = /start again|took too long/.test(text);
+      if (final) setEnded(true);
+      return { ok: false, reason: text, final };
+    }
+  };
+  const challenge = () => faceChallengeForStep(step.handle).catch((e) => Promise.reject(new Error(errorText(e))));
+
   return (
     <div className="flex flex-col gap-4">
       <StepTrail steps={all} done={step.done} current={ended ? undefined : step.step} />
@@ -189,18 +207,26 @@ export function SignInSteps({
             {error}
           </p>
         )}
-        {ended ? (
+        {ended && step.step !== "face" ? (
           <Button variant="primary" onClick={onCancel}>
             Start again
           </Button>
         ) : step.step === "face" ? (
-          <FaceCapture
-            key={attempt}
-            mode="verify"
-            onCancel={onCancel}
-            onDone={(s) => answer(() => faceStep(step.handle, s), 900)}
-            poorCamera={(problems) => <FaceRequired problems={problems} username={step.username} />}
-          />
+          <>
+            <FaceCapture
+              key={attempt}
+              mode="verify"
+              challenge={challenge}
+              onCancel={onCancel}
+              onDone={answerFace}
+              poorCamera={(problems) => <FaceRequired problems={problems} username={step.username} />}
+            />
+            {ended && (
+              <Button variant="primary" onClick={onCancel}>
+                Start again
+              </Button>
+            )}
+          </>
         ) : step.step === "voice" ? (
           <VoiceCapture key={attempt} mode="verify" onCancel={onCancel} onDone={(t) => answer(() => voiceStep(step.handle, t[0]), 900)} />
         ) : step.step === "password" ? (

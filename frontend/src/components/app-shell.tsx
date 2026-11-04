@@ -380,6 +380,25 @@ function KeyIcon() {
   );
 }
 
+/** F09.22: what each demo role can do, in the words of the enforced role table (backend/security/auth.py). */
+const DEMO_ROLES = {
+  admin: {
+    summary: "Can do everything, including approving changes and managing people.",
+    can: ["Read, search and ask about every document", "Add files and run reading jobs", "Approve or reject suggested changes", "Manage people, sign-in steps and settings"],
+    cannot: [],
+  },
+  analyst: {
+    summary: "Can add files, run reading jobs and suggest changes. Cannot approve them or change settings.",
+    can: ["Read, search and ask about every document", "Add files and run reading jobs", "Suggest changes and corrections"],
+    cannot: ["Approve changes", "Change settings or manage people"],
+  },
+  viewer: {
+    summary: "Can look and search, but cannot change anything.",
+    can: ["Read, search and ask about every document", "See findings and job progress"],
+    cannot: ["Add files or run jobs", "Suggest or approve changes"],
+  },
+} as const;
+
 function SignIn({ onSignedIn, message }: { onSignedIn: () => void; message?: string }) {
   const [options, setOptions] = useState<AuthOptions | null>(null);
   const [username, setUsername] = useState("");
@@ -388,6 +407,7 @@ function SignIn({ onSignedIn, message }: { onSignedIn: () => void; message?: str
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [nextStep, setNextStep] = useState<StepNeeded | null>(null);
+  const [demoRole, setDemoRole] = useState<keyof typeof DEMO_ROLES | null>(null);
 
   useEffect(() => {
     vault.authOptions().then(setOptions, () => setOptions({ demo_login: false, password_login: false, passkey_login: false }));
@@ -475,20 +495,58 @@ function SignIn({ onSignedIn, message }: { onSignedIn: () => void; message?: str
                 Try the demo
               </h2>
               <p className="text-xs text-muted">Fictional documents only. Pick a role to see what it can do.</p>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Demo role">
                 {(["admin", "analyst", "viewer"] as const).map((role) => (
-                  <Button
+                  <button
                     key={role}
+                    type="button"
+                    role="radio"
+                    aria-checked={demoRole === role}
                     aria-label={`Demo: ${role}`}
-                    variant={role === "analyst" ? "primary" : "secondary"}
-                    busy={busy === role}
                     disabled={!!busy}
-                    onClick={() => finish(role, () => vault.demoLogin(role))}
+                    onClick={() => setDemoRole(role)}
+                    className={cx(
+                      "press rounded-control border px-3 py-2 text-sm font-medium capitalize transition-colors disabled:opacity-50",
+                      demoRole === role ? "border-green bg-raised text-ink ring-2 ring-green/25" : "border-line-strong text-muted hover:border-ink hover:text-ink",
+                    )}
                   >
-                    <span className="capitalize">{role}</span>
-                  </Button>
+                    {role}
+                  </button>
                 ))}
               </div>
+              {demoRole && (
+                <div key={demoRole} className="animate-rise rounded-control border border-line bg-raised p-3 text-xs">
+                  <p className="text-sm text-ink">{DEMO_ROLES[demoRole].summary}</p>
+                  <ul className="mt-1.5 flex flex-col gap-0.5 text-muted">
+                    {DEMO_ROLES[demoRole].can.map((c) => (
+                      <li key={c}>
+                        <span className="text-green" aria-hidden>
+                          +{" "}
+                        </span>
+                        {c}
+                      </li>
+                    ))}
+                    {DEMO_ROLES[demoRole].cannot.map((c) => (
+                      <li key={c}>
+                        <span className="text-redline" aria-hidden>
+                          −{" "}
+                        </span>
+                        <span className="sr-only">Cannot: </span>
+                        {c}
+                      </li>
+                    ))}
+                  </ul>
+                  <Button
+                    className="mt-3 w-full"
+                    variant="primary"
+                    busy={busy === demoRole}
+                    disabled={!!busy}
+                    onClick={() => finish(demoRole, () => vault.demoLogin(demoRole))}
+                  >
+                    Continue as {demoRole}
+                  </Button>
+                </div>
+              )}
             </section>
           )}
 

@@ -892,6 +892,8 @@ export const vault = {
   authOptions: () => api<AuthOptions>("/auth/options"),
   login: (username: string, password: string) => post<SignInResult>("/auth/login", { username, password }),
   demoLogin: (role: Role) => post<SignedIn>("/auth/demo-login", { role }),
+  // F09.22: the face check's routes (/auth/face-challenge, /auth/face/challenge, /auth/face-step, /auth/face,
+  // /auth/face/test) and their payload types (FaceChallenge, LiveAnswer, FaceTest) live in ./face.ts.
   setupOwner: (username: string, password: string) => post<SignedIn>("/setup/owner", { username, password }),
   logout: () => post<{ signed_out: boolean }>("/auth/logout", {}),
   apiKeyStatus: () => api<ApiKeyStatus>("/settings/meta-api-key"),
