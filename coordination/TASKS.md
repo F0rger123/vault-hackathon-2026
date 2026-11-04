@@ -1499,6 +1499,32 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
   - **Screenshots:** `docs/screenshots/F10.21/` before and after at 1440, 820 and 390 px (fictional demo data), the face check with Chromium's fake camera, the poor-camera phone offer (fake camera forced to 8 fps) and the key-phrase recorder. The page script reported no sideways scroll at any size.
   - **Not verified:** the reticle following a real face, a capture flash and the accepted check mark (no camera or real face in the test environment; Chromium's fake camera shows a test pattern, so no face is detected); the phone passkey QR flow with a real phone; the light/focus 5 s trigger (only the frame-rate trigger was exercised).
 
+#### F10.24 — Full-width approvals, a view-only mode, deleting requests and copies, and an in-app guide
+
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F10.8, F10.22
+- **Description:** Luke: "Make the approvals page fill the screen if possible. Currently the approval section shows the files but there's no view-only mode. Add a view-only section, and allow deleting items. Include setup instructions that teach users how to use it step by step."
+- **Implementation scope:**
+  - Approvals uses the full window width (`WIDE_PAGES` in `app-shell.tsx`; other pages keep 1480 px). Requests list on the left with All/Waiting/Approved/Rejected filters, the chosen request on the right; stacked on a phone, where picking a request scrolls to it.
+  - Each request shows what was asked, who asked and when, the decision and who made it, where copies come from (the read-only originals store) and go to (`exports/proposal-N` or `share-N`), and a Before and after list: every file (opens in the document drawer), its new path, and its state (will be copied, copied, copy deleted, skipped, shared, left out). Search inside large requests; folder tree on request.
+  - View only: a tab for analysts and admins (`/approvals?view=only` opens it), the only mode for viewers. No approve, reject or delete controls. Viewers now hold `proposals:read` (role summary and permission labels updated).
+  - Deleting (admin, `proposals:approve`): `DELETE /proposals/{id}` discards a request of any status, with `copies=true` also its copies; `DELETE /proposals/{id}/copies` removes all copies or one (`target`). Only files inside the request's own export folder, resolved through `safe_join`/`contained`; `..`, absolute paths, drive letters and links out of the folder are refused (400, audited `denied`). A second check refuses anything inside the originals folder. Every delete is audited (`proposal.delete`, `proposal.copies.delete`). No migration.
+  - A confirmation dialog (native modal) lists exactly what goes and says originals are never deleted.
+  - `/guide` "How to use VAULT" (Guide in the side rail, Help group): ten steps (sign in, sign-in steps, add files, run the reading, Keeper (Ask), conflicts and quotes, approve copies, view only and deleting, invite people, the brain), each with what to press, what you should see, a link there and a "Mark as done" kept in this browser. Approvals opens with a dismissible "How approvals work" strip of four steps.
+- **Acceptance criteria:**
+  - A viewer lists and opens requests; viewer and analyst get 403 on approve, reject and both deletes.
+  - An admin discards a pending request; deletes one copy, then the request with its copies; originals are byte-identical afterwards.
+  - Traversal targets and a symbolic link to an original are refused and nothing is removed.
+  - The e2e test browses as a viewer with no controls, deletes one copy and a request as an admin, and follows the guide's link into view only.
+- **Required tests:** `tests/integration/test_proposal_delete.py`; e2e `051-approvals-view-delete`, `05-approvals`, `0595-invite`.
+- **Blockers:** none. Delete routes are file handling: Luke reviews before merge.
+- **Related PR/commit:** branch `luke/F10.24-approvals-guide`, issue #109
+- **Verification evidence (2026-11-03, Windows 11):**
+  - **ruff:** `All checks passed!`, `219 files already formatted`. **bandit:** no findings.
+  - **pytest:** `343 passed` (includes 11 new in `test_proposal_delete.py`; the symbolic-link test ran, not skipped, on this machine).
+  - **frontend:** `npm run lint` clean, `npx tsc --noEmit` clean, `npm run build` lists `/guide`.
+  - **e2e (ports 8440/3440):** full suite `34 passed`, including the three new `051-approvals-view-delete` tests.
+  - **Screenshots:** `docs/screenshots/F10.24/` at 1440 and 390 px (fictional demo data): admin review, delete confirmation, view only, guide. No sideways scroll at 390 px.
+
 ## F11 — Synthetic Data & Evaluation
 - **Verification evidence (E-E2E-2, 2026-10-28):** covered by the Playwright suite in `tests/e2e/` (`02-investigate`); 13 of 13 tests passed in 5 consecutive fresh runs on Windows 11 (Chromium, desktop and Pixel 7 profiles).
 - **Related PR/commit:** PR #103, merged 2026-11-03 with all CI checks green.

@@ -27,6 +27,7 @@ Every run starts from the same state. The dev servers on ports 8000 and 3000 are
 | `03-security` | Remote inference is off and viewers cannot change it. A viewer upload is refused by the server and shows in the audit log (F10.9) |
 | `04-setup-run` | Upload, analyst run with the rules lane, live board to completion, admin measurement (F10.3, F10.7) |
 | `05-approvals` | An analyst cannot approve; an admin approves and copies are exported (F10.8) |
+| `051-approvals-view-delete` | A viewer browses requests in view only with no controls; an admin deletes one copy and a request, both audited; the guide links into view only (F10.24) |
 | `phone` | The menu works at phone width, with no sideways scrolling |
 
 Specs run in order with one worker, because later specs change the shared database. CI runs the same suite (job `e2e`).

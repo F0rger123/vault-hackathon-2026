@@ -8,10 +8,11 @@ in the collection's activity feed (F10.22) with its path inside the export folde
 import re
 import shutil
 import sqlite3
+from pathlib import Path
 
 from backend.core.config import Settings
 from backend.indexing.findings import LATEST_EXTRACTION
-from backend.security.files import original_path, safe_join, sanitize_filename
+from backend.security.files import FileRejected, contained, original_path, safe_join, sanitize_filename
 from backend.storage.db import dumps, loads, now
 from backend.workers import activity
 
@@ -121,3 +122,48 @@ def execute_proposal(conn: sqlite3.Connection, settings: Settings, proposal_id: 
             export_dir=export_rel,
         )
     return {"export_dir": export_rel, "copied": copied, "items": items}
+
+
+# ---------- F10.24: removing requests and the copies VAULT wrote ----------
+
+
+def export_folder(settings: Settings, proposal_id: int, kind: str) -> Path:
+    """The one folder an approval may have written: data/exports/proposal-N or share-N. Never anything else."""
+    name = f"share-{proposal_id}" if kind == "share_pack" else f"proposal-{proposal_id}"
+    return safe_join(settings.exports_dir, name)
+
+
+def _refuse_originals(path: Path, settings: Settings) -> None:
+    # Belt and braces: the export folder never holds originals, but a copy is removed only if it is not one.
+    originals = settings.originals_dir.resolve()
+    if path == originals or originals in path.parents:
+        raise FileRejected("originals are never deleted")
+
+
+def remove_copies(settings: Settings, proposal_id: int, kind: str, target: str | None = None) -> list[str]:
+    """Delete exported copies inside this proposal's export folder and return their paths relative to it.
+
+    With `target`, only that one copy goes. Every path is checked to resolve inside the export folder before anything
+    is removed, so a link pointing at an original, or a `..` in the target, refuses the whole request.
+    """
+    root = export_folder(settings, proposal_id, kind)
+    if not root.exists():
+        return []
+    if target is not None:
+        path = safe_join(root, *target.replace("\\", "/").split("/"))
+        files = [path] if path.is_file() else []
+    else:
+        files = [contained(f, [root]) for f in sorted(root.rglob("*")) if f.is_file() or f.is_symlink()]
+    for f in files:
+        _refuse_originals(f, settings)
+    removed = []
+    for f in files:
+        removed.append(f.relative_to(root.resolve()).as_posix())
+        f.unlink()
+    # Empty folders left behind go too, deepest first, never above the export folder.
+    for d in sorted((p for p in root.rglob("*") if p.is_dir()), key=lambda p: len(p.parts), reverse=True):
+        if not any(d.iterdir()):
+            d.rmdir()
+    if target is None and root.exists() and not any(root.iterdir()):
+        root.rmdir()
+    return removed

@@ -23,6 +23,11 @@ Last updated: 2026-11-03
 
 ## Updates
 
+### 2026-11-03 · F10.24 · review (PR open, do not auto-merge)
+
+- Full-width Approvals with a list and detail, a View only mode (viewers now have `proposals:read`), admin deleting of requests and of copies inside VAULT's export folder (never originals, audited), and a `/guide` page with a Guide link in the rail.
+- Waiting on Luke: review the two DELETE routes (file handling) before merging.
+
 ### 2026-11-03 · F09.19, F10.19, F11.7 · merged
 - **Merged:** #98. Real sign-in levels (passkey kind choice, confirm-it's-you, webcam face check with the Human library, admin controls), Progress live status, mock-up audit fixes, the fictional test set generator, and `docs/TEST_GUIDE.md`.
 - **Release:** v0.2.0 published on GitHub.

@@ -17,7 +17,7 @@ test("invite someone with a one-time link", async ({ page, context, browser, bro
   // 2. What they can do: the permissions come from the server, in plain words.
   await wizard.getByRole("radio", { name: /^analyst/i }).check();
   await expect(wizard.getByRole("list", { name: "What analyst can do" })).toContainText("Add files");
-  await expect(wizard.getByRole("list", { name: "What analyst cannot do" })).toContainText("Approve or reject suggested changes");
+  await expect(wizard.getByRole("list", { name: "What analyst cannot do" })).toContainText("Approve, reject or delete suggested changes");
   await wizard.getByRole("button", { name: "Next" }).click();
   // 3. How they sign in: password only, the default. Back and forward keeps the answers.
   await expect(wizard.getByRole("heading", { name: /How will they sign in/ })).toBeFocused();

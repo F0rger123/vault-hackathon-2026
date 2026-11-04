@@ -20,8 +20,8 @@ This creates users `admin`, `analyst` and `viewer` and writes their tokens to `d
 
 | Permission | viewer | analyst | admin |
 |---|---|---|---|
-| `system:read`, `documents:read`, `search`, `findings:read`, `jobs:read` | yes | yes | yes |
-| `documents:upload`, `collections:create`, `jobs:create`, `jobs:cancel`, `proposals:create`, `proposals:read`, `corrections:create` | no | yes | yes |
+| `system:read`, `documents:read`, `search`, `findings:read`, `jobs:read`, `proposals:read` (viewer since F10.24) | yes | yes | yes |
+| `documents:upload`, `collections:create`, `jobs:create`, `jobs:cancel`, `proposals:create`, `corrections:create` | no | yes | yes |
 | `proposals:approve`, `settings:write`, `audit:read`, `users:manage` | no | no | yes |
 
 The server enforces these. The UI may hide controls a role cannot use, but must still handle a 403.
@@ -608,7 +608,8 @@ Answers a natural-language question using only evidence from one collection (F06
 - **Errors:** 401, 403, 404, 422
 
 ### `GET /proposals`
-- **Permission:** `proposals:read` — 50 most recent, newest first.
+- **Permission:** `proposals:read` (viewer, analyst, admin; F10.24 view-only mode) — 50 most recent, newest first.
+- Each proposal also carries `created_by_name` and `decided_by_name` (usernames, or null), F10.24.
 
 ### `GET /proposals/{proposal_id}`
 - **Permission:** `proposals:read` — **Errors:** 401, 403, 404
@@ -625,6 +626,21 @@ Answers a natural-language question using only evidence from one collection (F06
 - **Response 200:** Proposal with `status: "rejected"`.
 - **Errors:** 401, 403, 404, 409, 422
 
+### `DELETE /proposals/{proposal_id}` (F10.24)
+- **Permission:** `proposals:approve` (admin)
+- **Query:** `copies` (bool, default false). With `copies=true` and an approved request, its exported copies are removed first.
+- **Response 200:** `{"deleted": 7, "copies_removed": 12}`. The request is discarded whatever its status (pending, approved or rejected).
+- **Never** deletes an original. Only files inside `exports/proposal-{id}/` (or `exports/share-{id}/`) can be removed; every path is resolved through `backend/security/files.py` (`safe_join`, `contained`) first, and a link leading out of that folder refuses the whole request.
+- **Errors:** 400 (a path outside the export folder), 401, 403, 404
+- **Audit:** `proposal.delete` with `status`, `kind`, `copies_removed`.
+
+### `DELETE /proposals/{proposal_id}/copies` (F10.24)
+- **Permission:** `proposals:approve` (admin)
+- **Query:** `target` (optional): one copy's path inside the export folder, as listed in `result.items[].target`. Without it, every copy in the folder goes.
+- **Response 200:** `{"removed": 1, "proposal": Proposal}`. Removed items get `removed: true`; removing them all sets `result.copies_removed_at`. The request itself stays.
+- **Errors:** 400 (`..`, an absolute path, a drive letter, or a link out of the export folder), 401, 403, 404 (no such copy), 409 (the request was not approved)
+- **Audit:** `proposal.copies.delete`, `allowed` with `removed` and `one`, or `denied` when a path is refused.
+
 ## Audit
 
 ### `GET /audit`
@@ -636,7 +652,7 @@ Answers a natural-language question using only evidence from one collection (F06
   "target": null, "outcome": "denied",
   "detail": {"reason": "missing permission documents:upload", "role": "viewer"}}]
 ```
-Known `action` values: `collection.create`, `document.upload`, `document.import_path`, `document.download`, `document.correct`, `collection.estimate`, `job.create`, `job.cancel`, `proposal.create`, `proposal.approve`, `proposal.reject`, `settings.remote_inference`, `inference.remote`, `users.create_demo`, `token.issue`, and `"<METHOD> <path>"` for authentication/authorization denials.
+Known `action` values: `collection.create`, `document.upload`, `document.import_path`, `document.download`, `document.correct`, `collection.estimate`, `job.create`, `job.cancel`, `proposal.create`, `proposal.approve`, `proposal.reject`, `proposal.delete`, `proposal.copies.delete`, `settings.remote_inference`, `inference.remote`, `users.create_demo`, `token.issue`, and `"<METHOD> <path>"` for authentication/authorization denials.
 - **Errors:** 401, 403, 422
 
 ---

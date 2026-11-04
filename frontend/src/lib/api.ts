@@ -651,11 +651,16 @@ export interface Proposal {
     left_out?: number;
     redactions?: number;
     /** F10.22: each copy written (source document and its path inside the export folder), or why it was skipped. */
-    items?: { document_id: number; filename: string; target: string | null; copied: boolean; reason?: string }[];
+    items?: { document_id: number; filename: string; target: string | null; copied: boolean; reason?: string; removed?: boolean }[];
+    /** F10.24: set when an admin removed every copy this approval wrote. */
+    copies_removed_at?: number;
   } | null;
   created_by: number | null;
+  /** F10.24: who asked and who decided, by username. */
+  created_by_name?: string | null;
   created_at: number;
   decided_by: number | null;
+  decided_by_name?: string | null;
   decided_at: number | null;
 }
 
@@ -941,6 +946,14 @@ export const vault = {
   investigate: (collection_id: number, question: string, provider: ProviderName | null) =>
     post<Investigation>("/investigations", { collection_id, question, provider, confirm_remote: false }),
   proposals: () => api<Proposal[]>("/proposals"),
+  /** F10.24 (admin): discard a request; with `copies`, also the copies it wrote. Originals are never deleted. */
+  deleteProposal: (id: number, copies: boolean) =>
+    del<{ deleted: number; copies_removed: number }>(`/proposals/${id}${copies ? "?copies=true" : ""}`),
+  /** F10.24 (admin): remove the copies an approval wrote, or just one by its path inside the export folder. */
+  deleteCopies: (id: number, target?: string) =>
+    del<{ removed: number; proposal: Proposal }>(
+      `/proposals/${id}/copies${target ? `?target=${encodeURIComponent(target)}` : ""}`,
+    ),
   interpretLayout: (instruction: string, provider: ProviderName) =>
     post<LayoutSuggestion>("/proposals/interpret", { instruction, provider }),
   createProposal: (collection_id: number, instruction: string, pattern: string) =>
