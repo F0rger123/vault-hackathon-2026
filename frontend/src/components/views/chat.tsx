@@ -30,10 +30,11 @@ import { cx, Skeleton } from "../ui";
 // Every card below is drawn from an event the server sent while the work happened: nothing here runs on a timer.
 // The one exception is presentation of text that has already arrived (the answer types itself out, once).
 
-// The brain beside the chat is drawn only on wide screens, or when asked for, and loads separately.
-const KeeperBrain = dynamic(() => import("../keeper-brain"), {
+// The brain beside the chat (the Brain page's own 3D space) is drawn only on wide screens, or when asked for, and
+// loads separately. Only one is ever mounted, so the page holds one WebGL context.
+const KeeperSpace = dynamic(() => import("../keeper-space"), {
   ssr: false,
-  loading: () => <Skeleton className="h-[420px] w-full" />,
+  loading: () => <Skeleton className="h-[520px] w-full" />,
 });
 
 type Turn = { id: number; who: "you"; text: string } | VaultTurn;
@@ -43,13 +44,41 @@ interface Saved {
   last: ChatCommand | null;
 }
 
-const DEMO_STARTERS = [
-  "Which parts have conflicting pressure ratings?",
-  "Find drawings for Alpha, newest first",
-  "Show the photos",
-  "Are my models downloaded?",
+// F10.25: example prompts, grouped. Each one was asked on the demo collection and gave an answer with its sources
+// (F10.25, rules provider); `demo` ones name parts or projects that exist only in the demo data.
+const PROMPT_GROUPS: { title: string; prompts: { text: string; demo?: boolean }[] }[] = [
+  {
+    title: "Engineering and conflicts",
+    prompts: [
+      { text: "Which parts have conflicting pressure ratings? Show the exact values and cite the original documents." },
+      { text: "Which test reports disagree with the drawings? Cite the documents." },
+      { text: "Which components need further review based on conflicting documentation?" },
+      { text: "What pressure rating does BV-7891 have?", demo: true },
+    ],
+  },
+  {
+    title: "Documents and research",
+    prompts: [
+      { text: "Find BV-7891", demo: true },
+      { text: "Which documents mention FL-8650?", demo: true },
+      { text: "Find inspection reports for Project Borealis, newest first", demo: true },
+      { text: "Find contracts, newest first" },
+    ],
+  },
+  {
+    title: "File organization",
+    prompts: [
+      { text: "Find drawings for Project Alpha, newest first", demo: true },
+      { text: "Show the photos, newest first" },
+      { text: "Sort the documents by name" },
+      { text: "Sort the drawings by date, oldest first" },
+    ],
+  },
+  {
+    title: "Security and privacy",
+    prompts: [{ text: "Which documents contain hidden instructions?" }, { text: "Which memos look like they try to instruct an AI?" }],
+  },
 ];
-const STARTERS = ["Which parts have conflicting ratings?", "Find contracts, newest first", "Show the photos", "Are my models downloaded?"];
 
 const storageKey = (collectionId: number) => `vault.chat.${collectionId}`;
 
@@ -211,9 +240,7 @@ function Ask({ collectionId, demo }: { collectionId: number; demo: boolean }) {
     </button>
   );
 
-  const brain = showBrain ? (
-    <KeeperBrain collectionId={collectionId} turn={latest} onOpen={setDoc} />
-  ) : null;
+  const brain = showBrain ? <KeeperSpace collectionId={collectionId} turn={latest} onOpen={setDoc} /> : null;
 
   return (
     <>
@@ -232,7 +259,7 @@ function Ask({ collectionId, demo }: { collectionId: number; demo: boolean }) {
         }
       />
       </div>
-      <div className={cx("grid gap-6", showBrain && wide && "grid-cols-[minmax(0,1fr)_minmax(300px,360px)]")}>
+      <div className={cx("grid gap-6", showBrain && wide && "grid-cols-[minmax(0,1fr)_minmax(340px,440px)]")}>
         <div className="mx-auto flex w-full min-w-0 max-w-3xl flex-col">
           <MachineNote />
           {brain && !wide && <div className="mb-5">{brain}</div>}
@@ -245,17 +272,32 @@ function Ask({ collectionId, demo }: { collectionId: number; demo: boolean }) {
                 </svg>
                 <p className="display text-[17px] leading-snug">Ask about your documents, or tell {ASSISTANT_NAME} what to find.</p>
                 <p className="-mt-2 text-sm text-muted">Try one of these, or type your own.</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {(demo ? DEMO_STARTERS : STARTERS).map((s) => (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => send(s)}
-                      className="press rounded-full border border-line px-3 py-1 text-[13px] text-muted hover:border-line-strong hover:text-ink"
-                    >
-                      {s}
-                    </button>
-                  ))}
+                <div className="flex w-full flex-col gap-3">
+                  {PROMPT_GROUPS.map((g) => {
+                    const prompts = g.prompts.filter((p) => demo || !p.demo);
+                    if (!prompts.length) return null;
+                    const id = `prompts-${g.title.replace(/\W+/g, "-").toLowerCase()}`;
+                    return (
+                      <section key={g.title} aria-labelledby={id} className="flex flex-col gap-1.5">
+                        <h3 id={id} className="text-xs font-medium text-muted">
+                          {g.title}
+                        </h3>
+                        <ul className="flex flex-wrap gap-1.5">
+                          {prompts.map((p) => (
+                            <li key={p.text}>
+                              <button
+                                type="button"
+                                onClick={() => send(p.text)}
+                                className="press rounded-full border border-line px-3 py-1 text-left text-[13px] text-muted hover:border-line-strong hover:text-ink focus-visible:border-ink focus-visible:text-ink"
+                              >
+                                {p.text}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </section>
+                    );
+                  })}
                 </div>
               </div>
             )}

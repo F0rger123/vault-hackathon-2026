@@ -1567,6 +1567,26 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
   - **Screenshots:** `docs/screenshots/F10.23/` at 1440 px (empty, conflict answer with redline cards and brain, sorted list with the Sorter line-up, "You asked this before", the Refine row) and 390 px (answer, brain opened), fictional demo data, rules provider.
   - **Not verified:** a run with Ollama answering (all runs used the rules provider, so the answer types out the rules' text); the animations judged by eye in a live recording (screenshots show end states); the full e2e suite (only the four specs above were run).
 
+#### F10.25 — Ask Keeper uses the Brain page's own 3D brain, and grouped example prompts that really work
+
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F10.22, F10.23
+- **Description:** Luke's top priority before the deadline: Ask Keeper must show the exact same 3D brain as the Brain page, not the separate SVG imitation, moving from the reply's real events. The four flat starter chips become grouped example prompts, each tested against the running backend.
+- **Implementation scope:**
+  - `brain-space.tsx` gains a `compact` mode (canvas only, no toolbar or side list), `highlight` (cited documents), `lit` (document to helper colour) and `resetKey` (a new reply clears the previous one's marks). The Brain page passes none of these and looks as before.
+  - The derivation of what each helper touched, which documents are cited and verified, moves from `keeper-brain.tsx` to `lib/keeper-brain-state.ts`; `keeper-brain.tsx` is deleted.
+  - Ask Keeper loads `brain-space.tsx` with `next/dynamic` (`ssr: false`), fed by `useActivityFeed(collectionId, run)` for the latest reply (its recorded rows fly the helper craft once, as they arrive) and the streamed events (lit and cited documents). Helper craft get their own colours (Finder green, Conflict checker red, Sorter amber, Answer writer blue, Fact checker white) on both pages.
+  - Grouped example prompts (Engineering and conflicts; Documents and research; File organization; Security and privacy), only those that gave a sourced answer on the demo collection.
+- **Acceptance criteria:** one WebGL context on the chat page; the scene is disposed and its loop stopped on unmount and when the tab is hidden; reduced motion respected; phone width keeps the brain behind a button; the Brain page unchanged in look; every kept prompt answers with sources.
+- **Required tests:** e2e `02-ask-search`, `025-ask`, `0585-live-brain`, `058-brain`, `phone`; frontend lint, types, build.
+- **Blockers:** none
+- **Related PR/commit:** branch `luke/F10.25-keeper-3d-brain`, issue #118
+- **Verification evidence (2026-11-04, Windows 11):**
+  - **frontend:** `npm run lint` clean, `npx tsc --noEmit` clean, `npm run build` compiled all routes.
+  - **e2e (ports 8490/3490):** `13 passed (2.0m)` for `02-ask-search`, `025-ask`, `058-brain`, `0585-live-brain`, `phone`. `025-ask` now asserts one `canvas` in the Keeper brain, the grouped prompts with the pressure question first, that clicking it sends it, the Finder and Conflict checker craft labels in the 3D space, and that a cited document opens the drawer.
+  - **Prompts:** every kept example prompt was posted to `/collections/1/agent` on the e2e demo collection (rules provider) and gave a sourced answer or a populated list in under 0.15 s; prompts that returned nothing or the wrong documents were reworded or dropped.
+  - **Screenshots:** `docs/screenshots/F10.25/` at 1440 px (fictional demo data): Brain page, Ask Keeper empty with grouped prompts, Ask Keeper after the pressure question with 16 cited documents lit.
+  - **Not verified:** a real GPU browser (screenshots used SwiftShader); the motion judged by eye in a live recording; Ollama-written answers.
+
 ## F11 — Synthetic Data & Evaluation
 - **Verification evidence (E-E2E-2, 2026-10-28):** covered by the Playwright suite in `tests/e2e/` (`02-investigate`); 13 of 13 tests passed in 5 consecutive fresh runs on Windows 11 (Chromium, desktop and Pixel 7 profiles).
 - **Related PR/commit:** PR #103, merged 2026-11-03 with all CI checks green.

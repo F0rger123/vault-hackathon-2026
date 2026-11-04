@@ -23,6 +23,11 @@ Last updated: 2026-11-03
 
 ## Updates
 
+### 2026-11-04 · F10.25 · Ask Keeper uses the Brain page's 3D brain (PR open, do not auto-merge)
+- **Built:** Ask Keeper now shows `brain-space.tsx` itself in a compact mode (`keeper-space.tsx`), driven by the latest reply's recorded activity rows and streamed events; helper craft have their own colours on both pages; `keeper-brain.tsx` deleted; grouped example prompts, each tested on the demo collection.
+- **Waiting on Luke:** review the PR; watch one live question on a real GPU for the video.
+- **Not verified:** motion by eye in a recording; Ollama-written answers.
+
 ### 2026-11-03 · merges · F10.24, F09.22, F11.9 done
 - **Done:** Luke approved; PRs #110 (approvals and guide), #113 (face liveness and vault door) and #114 (in-app viewer and realistic files) merged after main was merged into each and CI went 8/8 green. VAULT restarted on main.
 - **Started:** F11.10 huge test set (PR #116, about 2,300 files already generated in `data/testset-huge`), classify and redact (its own task ID and session, PR to follow; auth and file handling, so Luke reviews before merge).
