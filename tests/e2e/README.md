@@ -27,6 +27,7 @@ Every run starts from the same state. The dev servers on ports 8000 and 3000 are
 | `03-security` | Remote inference is off and viewers cannot change it. A viewer upload is refused by the server and shows in the audit log (F10.9) |
 | `04-setup-run` | Upload, analyst run with the rules lane, live board to completion, admin measurement (F10.3, F10.7) |
 | `05-approvals` | An analyst cannot approve; an admin approves and copies are exported (F10.8) |
+| `051-approvals-view-delete` | A viewer browses requests in view only with no controls; an admin deletes one copy and a request, both audited; the guide links into view only (F10.24) |
 | `0597-face` | Face setup starts the camera at once with Chromium's fake camera and waits for a face; the server issues random challenges; the vault door; demo roles select before signing in (F09.22). Following the moves needs a real face, so that part is manual |
 | `phone` | The menu works at phone width, with no sideways scrolling |
 

@@ -51,7 +51,7 @@ from backend.workers.importer import candidate_files, create_import_job, import_
 from backend.workers.jobs import create_process_job, documents_to_read
 from backend.workers.layout_request import interpret as interpret_layout
 from backend.workers.processing import may_go_remote, process_document
-from backend.workers.proposals import create_proposal, execute_proposal
+from backend.workers.proposals import create_proposal, execute_proposal, remove_copies
 from backend.workers.records import COLUMNS, collection_records, to_csv
 
 VERSION = "0.2.0"
@@ -1219,6 +1219,10 @@ def _proposal(conn, pid: int) -> dict:
     r = _row(conn.execute("SELECT * FROM proposals WHERE id = ?", (pid,)).fetchone())
     r["plan"] = loads(r["plan"], {})
     r["result"] = loads(r["result"], None)
+    # F10.24: who asked and who decided, by name, so view-only mode can say so without the users list.
+    for key in ("created_by", "decided_by"):
+        u = conn.execute("SELECT username FROM users WHERE id = ?", (r[key],)).fetchone() if r[key] else None
+        r[f"{key}_name"] = u["username"] if u else None
     return r
 
 
@@ -1273,6 +1277,82 @@ def reject(
     )
     audit.record(conn, p.username, "proposal.reject", "allowed", target=f"proposal:{proposal_id}")
     return _proposal(conn, proposal_id)
+
+
+@router.delete("/proposals/{proposal_id}/copies")
+def delete_proposal_copies(
+    proposal_id: int,
+    target: str | None = Query(None, max_length=600),
+    conn=Depends(get_conn),
+    settings: Settings = Depends(get_settings),
+    p: Principal = Depends(require("proposals:approve")),
+) -> dict:
+    """F10.24: remove the copies an approval wrote, all of them or one by its path inside the export folder.
+
+    Only files inside data/exports/proposal-N (or share-N) can go. Originals are never touched.
+    """
+    prop = _proposal(conn, proposal_id)
+    if prop["status"] != "executed":
+        raise HTTPException(status_code=409, detail="only an approved request has copies to remove")
+    try:
+        removed = remove_copies(settings, proposal_id, prop["kind"], target)
+    except FileRejected as exc:
+        audit.record(
+            conn,
+            p.username,
+            "proposal.copies.delete",
+            "denied",
+            target=f"proposal:{proposal_id}",
+            detail={"why": str(exc)},
+        )
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if target is not None and not removed:
+        raise HTTPException(status_code=404, detail="that copy is not in this request's export folder")
+    result = prop["result"] or {}
+    gone = set(removed)
+    for item in result.get("items") or []:
+        if item.get("target") in gone or target is None:
+            item["removed"] = bool(item.get("copied"))
+    if target is None:
+        result["copies_removed_at"] = now()
+    conn.execute("UPDATE proposals SET result = ? WHERE id = ?", (dumps(result), proposal_id))
+    audit.record(
+        conn,
+        p.username,
+        "proposal.copies.delete",
+        "allowed",
+        target=f"proposal:{proposal_id}",
+        detail={"removed": len(removed), "one": target is not None},
+    )
+    return {"removed": len(removed), "proposal": _proposal(conn, proposal_id)}
+
+
+@router.delete("/proposals/{proposal_id}")
+def delete_proposal(
+    proposal_id: int,
+    copies: bool = False,
+    conn=Depends(get_conn),
+    settings: Settings = Depends(get_settings),
+    p: Principal = Depends(require("proposals:approve")),
+) -> dict:
+    """F10.24: discard a request, pending or decided. With copies=true its exported copies go too. Never originals."""
+    prop = _proposal(conn, proposal_id)
+    removed: list[str] = []
+    if copies and prop["status"] == "executed":
+        try:
+            removed = remove_copies(settings, proposal_id, prop["kind"])
+        except FileRejected as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+    conn.execute("DELETE FROM proposals WHERE id = ?", (proposal_id,))
+    audit.record(
+        conn,
+        p.username,
+        "proposal.delete",
+        "allowed",
+        target=f"proposal:{proposal_id}",
+        detail={"status": prop["status"], "kind": prop["kind"], "copies_removed": len(removed)},
+    )
+    return {"deleted": proposal_id, "copies_removed": len(removed)}
 
 
 # ---------- audit ----------
