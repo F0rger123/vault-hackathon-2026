@@ -22,7 +22,16 @@ This creates users `admin`, `analyst` and `viewer` and writes their tokens to `d
 |---|---|---|---|
 | `system:read`, `documents:read`, `search`, `findings:read`, `jobs:read`, `proposals:read` (viewer since F10.24) | yes | yes | yes |
 | `documents:upload`, `collections:create`, `jobs:create`, `jobs:cancel`, `proposals:create`, `corrections:create` | no | yes | yes |
-| `proposals:approve`, `settings:write`, `audit:read`, `users:manage` | no | no | yes |
+| `proposals:approve`, `settings:write`, `audit:read`, `users:manage`, `documents:classify` (F09.23) | no | no | yes |
+
+**Classification clearance (F09.23).** Each document has a label `public | internal | confidential | restricted` (`null`
+means unlabelled and counts as `internal`). These are an organisation's own handling levels, not government
+classifications. Viewers may open up to `internal`, analysts up to `confidential`, admins everything. Anything above a
+person's clearance is left out of `GET /documents`, `/search`, findings, records, the chat, `/investigations`, Keeper's
+answers, the brain and proposal plans, and opening it directly returns **403** `this document is classified above your
+access` (audited as denied with `reason: classification`; the message never names the document). Approved redactions
+are hidden from viewers and analysts everywhere text is shown: the span becomes `[REDACTED <kind>]` (kinds: `email`,
+`phone`, `ID number`, `name`, `amount`). Admins see the real text with spans marked. Originals never change.
 
 The server enforces these. The UI may hide controls a role cannot use, but must still handle a 403.
 
@@ -304,7 +313,8 @@ Really processes a random sample with the chosen provider (results are saved as 
 ### `GET /documents`
 - **Permission:** `documents:read`
 - **Query:** `collection_id` (optional), `limit` 1–500 (default 50), `offset` ≥ 0
-- **Response 200:** list of `{"id", "collection_id", "filename", "sha256", "size_bytes", "media_type", "page_count", "status", "created_at", "kind", "media_info"}`. `status`: `ingested | processed | error`.
+- **Response 200:** list of `{"id", "collection_id", "filename", "sha256", "size_bytes", "media_type", "page_count", "status", "created_at", "kind", "media_info", "classification", "redaction_count"}`. `status`: `ingested | processed | error`.
+- **F09.23:** `classification` is `{"level", "labelled", "reason", "set_by": "agent" | "user" | null, "by_user", "set_at"}`; `redaction_count` counts applied redactions. Rows above the caller's clearance are left out.
 - **F11.8:** `kind` is `document | photo | video | audio` (from the media type). `media_info` is `null` for documents; for a photo, video or sound file it holds what VAULT read from the header, any key may be missing: `{"kind": "video", "format": "mov", "duration_s": 42.0, "width": 1280, "height": 720, "taken": "2024-04-01T09:30:00"}`; photos add `"camera"`, sound adds `"sample_rate"`, `"channels"` (and `"bitrate"` for MP3, `"codec"` for Ogg). Photos, video and sound are read by no model: their extraction has `"provider": "none"`, `"model": "not read: photo|video|audio"`, `doc_date` = the date taken when the file has one, and runs never queue them again.
 - **Errors:** 401, 403, 422
 
@@ -324,17 +334,19 @@ Really processes a random sample with the chosen provider (results are saved as 
  "duration_ms": 7718, "created_at": 1761500000.0}
 ```
 `doc_type` is one of `engineering_drawing, inspection_report, contract, parts_list, revision_history, project_memo, other`. `verified: false` means the quote was not found in the source text and must be shown as unverified.
-- **Errors:** 401, 403, 404
+- **F09.23:** also `"classification"` (as in the list), `"redactions"` and `"can_open_original"`. `redactions` is `[{"id", "page_no", "kind", "label"}]`; admins also get `status` (`applied | proposed`), `start`, `end` and `hint` (first character and length, never the value). For non-admins the extraction's strings have redacted values replaced, and `can_open_original` is false when the document has redactions.
+- **Errors:** 401, 403 (permission, or classified above the caller's clearance), 404
 
 ### `GET /documents/{document_id}/pages/{page_no}`
 - **Permission:** `documents:read`
-- **Response 200:** `{"document_id": 1, "page_no": 1, "text": "…"}` (pages start at 1)
-- **Errors:** 401, 403, 404
+- **Response 200:** `{"document_id": 1, "page_no": 1, "text": "…", "redacted": true, "redactions": [{"id": 3, "start": 40, "end": 55, "kind": "emails", "label": "email", "status": "applied"}]}` (pages start at 1). F09.23: for non-admins `text` has each applied span replaced by `[REDACTED <label>]` and `start`/`end` point at the placeholder; for admins `text` is the real text and the spans (applied and proposed) point at the hidden value. If the page text changed after a redaction, non-admins get the whole page hidden.
+- **Errors:** 401, 403 (permission or clearance), 404
 
 ### `GET /documents/{document_id}/original`
 - **Permission:** `documents:read`
 - **Query:** `inline` (bool, default false). F11.9: `inline=1` is the drawer's in-app preview. It serves only `application/pdf`, `image/png`, `image/jpeg`, `video/mp4`, `video/webm`, `video/quicktime`, `audio/wav`, `audio/mpeg`, `audio/mp4` and `audio/ogg`, with `Content-Disposition: inline`, and is audited as `document.view`. Without it the response is an attachment audited as `document.download`.
 - **Response 200:** the original file bytes with its media type and `Content-Disposition` filename, `X-Content-Type-Options: nosniff` and `Content-Security-Policy: default-src 'none'; frame-ancestors 'none'; sandbox`. Browsers cannot attach the bearer header to `<img src>`/`<iframe src>`, so fetch with the header and display through an object URL whose type the client sets from the same allowlist (`previewOriginal` in `frontend/src/lib/api.ts`). Downloads use a download link (`downloadOriginal`), never a new tab.
+- **F09.23:** 403 for a document above the caller's clearance, and for non-admins when the document has applied redactions (the original still holds the hidden values; denied `reason: redacted`).
 - **Errors:** 401, 403 (no `documents:read`), 404, 409, **415** (`inline=1` for a kind with no preview, such as text, Office files or AVI; denied `document.view` is audited), **423** (held by the security gate; preview and download alike, audited as denied)
 
 ### `GET /demo/dataset/quick.zip` · `GET /demo/dataset/complete.zip` (F12.16)
@@ -657,6 +669,37 @@ Answers a natural-language question using only evidence from one collection (F06
 - **Body:** `{"note": ""}`
 - **Response 200:** Proposal with `status: "rejected"`.
 - **Errors:** 401, 403, 404, 409, 422
+
+### Classification and redactions (F09.23)
+
+`GET /classification/levels` (`documents:read`): `{"levels": [{"level", "meaning", "roles"}], "default": "internal", "your_clearance", "sees_redacted"}`.
+
+`POST /collections/{collection_id}/classify` → 201 (`proposals:create`): runs Keeper's Classifier helper (plain local
+rules: handling markings, pricing and contract values, emails, phone and ID numbers, people's names) and stores a
+pending proposal of `kind: "classify_redact"`. Nothing is applied.
+- **Body:** `{"document_ids": [1, 2] | null, "level": "confidential" | null, "instruction": ""}`. `null` ids means every document the caller may open. `level` raises each suggestion to at least that label.
+- **Response 201:** a Proposal whose `plan` is `{"helper": "Classifier", "level", "items": [{"document_id", "filename", "current", "suggested", "reason", "markers", "redactions": [{"id", "page_no", "start", "end", "kind", "label", "hint"}]}], "summary": {"documents", "relabelled", "redactions", "changes"}}`. The plan never repeats a hidden value. Non-admins reading proposals get no `hint` and no items above their clearance.
+- **Approve** (`POST /proposals/{id}/approve`, admin): sets each label (`set_by: "agent"`, `by_user`: the approving admin) and turns the proposal's redactions on. `result`: `{"copied": 0, "labelled": 4, "redactions": 9}`. **Reject** marks its redactions `rejected`. **Delete** keeps redactions already approved.
+- **Errors:** 400 (no documents to classify), 401, 403, 404, 422. **Audit:** `classification.propose` (counts and level only).
+
+`PUT /documents/{document_id}/classification` (`documents:classify`, admin): body `{"level", "reason"}`; returns the
+`classification` object with `set_by: "user"`. Audited as `classification.set` with `from` and `to`. 422 for any
+other label.
+
+`POST /documents/{document_id}/redactions/{redaction_id}/remove` (`documents:classify`, admin): lifts one applied or
+proposed redaction; returns `{"id", "status": "removed"}`. 404 unknown, 409 already removed or rejected. Audited as
+`redaction.remove` with the kind.
+
+Exports and share packs: an organise export leaves `restricted` documents out (`reason: "restricted: never exported"`)
+and writes a document with applied redactions as `<name>.redacted.pdf` built from its redacted text (`redacted: true`
+on the item). Share packs leave `restricted` labels out always and `confidential` labels unless
+`include_confidential`, and always apply approved redactions.
+
+Keeper (`POST /collections/{id}/agent`): a message like "mark the pricing contracts as confidential" becomes
+`command.kind: "classify"` with `command.level`; the plan is `[["finder"], ["classifier"]]`, and the answer is
+`{"kind": "classify", "proposal": {"proposal_id", "documents", "relabelled", "redactions"} | null, "route": "/approvals"}`.
+Viewers get a failed `classifier` helper ("Only analysts and administrators can suggest labels."). `POST
+/collections/{id}/chat` returns a reply pointing to Keeper for this kind.
 
 ### `DELETE /proposals/{proposal_id}` (F10.24)
 - **Permission:** `proposals:approve` (admin)

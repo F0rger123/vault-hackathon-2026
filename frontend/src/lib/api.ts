@@ -148,6 +148,42 @@ export interface DocumentRow {
   /** F11.8: what kind of file, and for a photo, video or sound file the details read from its header. */
   kind?: MediaKind;
   media_info?: MediaInfo | null;
+  /** F09.23: the document's handling label. Unlabelled documents count as internal. */
+  classification?: Classification;
+  redaction_count?: number;
+}
+
+/** F09.23: the organisation's own handling labels, lowest first. Not government classifications. */
+export type ClassificationLevel = "public" | "internal" | "confidential" | "restricted";
+
+export interface Classification {
+  level: ClassificationLevel;
+  labelled: boolean;
+  reason: string | null;
+  set_by: "agent" | "user" | null;
+  by_user: string | null;
+  set_at: number | null;
+}
+
+/** One redaction. Admins also get its status, position and a hint; nobody gets the hidden value. */
+export interface RedactionInfo {
+  id: number;
+  page_no: number;
+  kind: string;
+  label: string;
+  status?: "applied" | "proposed";
+  start?: number;
+  end?: number;
+  hint?: string;
+}
+
+/** A page's text. For anyone but an admin, redacted spans are already replaced by "[REDACTED kind]". */
+export interface PageText {
+  document_id: number;
+  page_no: number;
+  text: string;
+  redacted: boolean;
+  redactions: { id: number | null; start: number; end: number; kind: string; label: string; status: "applied" | "proposed" }[];
 }
 
 export type MediaKind = "document" | "photo" | "video" | "audio";
@@ -208,6 +244,10 @@ export interface Extraction {
 export interface DocumentDetail extends DocumentRow {
   error: string | null;
   extraction: Extraction | null;
+  /** F09.23 */
+  redactions: RedactionInfo[];
+  /** False for non-admins when the document has redactions: the original still holds the hidden values. */
+  can_open_original: boolean;
 }
 
 export interface Screening {
@@ -538,6 +578,8 @@ export interface SearchResult {
   kind: MediaKind;
   size_bytes: number;
   media_info: MediaInfo | null;
+  /** F09.23: the label, for the badge on each row. */
+  classification?: ClassificationLevel;
 }
 
 export interface SearchResponse {
@@ -561,7 +603,7 @@ export interface UpdateInfo {
 }
 
 export interface ChatCommand {
-  kind: "find" | "ask" | "open" | "models" | "help";
+  kind: "find" | "ask" | "open" | "models" | "help" | "classify";
   q: string;
   doc_type: string | null;
   project: string | null;
@@ -572,6 +614,8 @@ export interface ChatCommand {
   sort: "relevance" | "date" | "name" | "type" | "project" | "duration" | "size";
   order: "asc" | "desc";
   page: string | null;
+  /** F09.23: for "classify", the label the person asked for. */
+  level?: ClassificationLevel | null;
 }
 
 export interface ChatReply {
@@ -650,6 +694,8 @@ export interface Proposal {
     copied: number;
     left_out?: number;
     redactions?: number;
+    /** F09.23: for classify_redact, how many documents were labelled. */
+    labelled?: number;
     /** F10.22: each copy written (source document and its path inside the export folder), or why it was skipped. */
     items?: { document_id: number; filename: string; target: string | null; copied: boolean; reason?: string; removed?: boolean }[];
     /** F10.24: set when an admin removed every copy this approval wrote. */
@@ -912,10 +958,16 @@ export const vault = {
   documents: (collectionId: number, limit = 500, offset = 0) =>
     api<DocumentRow[]>(`/documents?collection_id=${collectionId}&limit=${limit}&offset=${offset}`),
   document: (id: number) => api<DocumentDetail>(`/documents/${id}`),
+  /** F11.9: one page of extracted text for the drawer. F09.23: with redactions hidden (or, for admins, marked). */
+  page: (id: number, pageNo: number) => api<PageText>(`/documents/${id}/pages/${pageNo}`),
+  // F09.23: the Classifier helper, and admin-only relabel and unredact.
+  classify: (collectionId: number, body: { document_ids?: number[]; level?: ClassificationLevel; instruction?: string }) =>
+    post<Proposal>(`/collections/${collectionId}/classify`, body),
+  relabel: (id: number, level: ClassificationLevel, reason: string) =>
+    put<Classification>(`/documents/${id}/classification`, { level, reason }),
+  unredact: (id: number, redactionId: number) =>
+    post<{ id: number; status: "removed" }>(`/documents/${id}/redactions/${redactionId}/remove`, {}),
   screening: (id: number) => api<Screening>(`/documents/${id}/screening`),
-  /** F11.9: one page of the text VAULT extracted, for the drawer's preview of text-like files. */
-  page: (id: number, pageNo: number) =>
-    api<{ document_id: number; page_no: number; text: string }>(`/documents/${id}/pages/${pageNo}`),
   examples: () => api<Example[]>("/examples"),
   training: (collectionId: number) =>
     api<{ report: TrainingReport; history: TrainingHistoryEntry[] }>(`/training/${collectionId}`),
@@ -1142,7 +1194,7 @@ export function errorText(e: unknown): string {
 
 // ---------- Ask Keeper (F10.20, named in F10.23): POST /collections/{id}/agent streams one JSON event per line ----------
 
-export type TeamHelperId = "finder" | "sorter" | "conflicts" | "answer" | "facts" | "models" | "navigator";
+export type TeamHelperId = "finder" | "sorter" | "conflicts" | "answer" | "facts" | "models" | "navigator" | "classifier";
 
 export interface TeamHelperPlan {
   id: TeamHelperId;
@@ -1199,6 +1251,8 @@ export type TeamEvent =
       rows?: SearchResult[];
       count?: number;
       route?: string | null;
+      /** F09.23: the classify proposal Keeper prepared, or null when none was made. */
+      proposal?: { proposal_id: number; documents: number; relabelled: number; redactions: number } | null;
       models?: { name: string; size_gb: number; used_by_vault: boolean; loaded: boolean }[];
     }
   // F10.23: a liked answer to a near-identical question, shown at once, then re-checked against today's documents.

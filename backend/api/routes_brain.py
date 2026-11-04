@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from backend.api.deps import get_conn, require
-from backend.api.routes import _collection
+from backend.api.routes import _collection, _guard, _scrub
 from backend.security import audit
 from backend.security.auth import Principal
 from backend.workers import activity, brain
@@ -31,18 +31,20 @@ class GapSkip(BaseModel):
 
 
 @router.get("/collections/{collection_id}/brain")
-def get_brain(collection_id: int, conn=Depends(get_conn), _: Principal = Depends(require("documents:read"))) -> dict:
+def get_brain(collection_id: int, conn=Depends(get_conn), p: Principal = Depends(require("documents:read"))) -> dict:
     """What VAULT knows about this collection, what people taught it, and the questions it still has."""
     _collection(conn, collection_id)
-    return {**brain.profile(conn, collection_id), "questions": brain.gaps(conn, collection_id)}
+    g = _guard(conn, p)
+    return _scrub(g, {**brain.profile(conn, collection_id), "questions": brain.gaps(conn, collection_id)})
 
 
 @router.get("/collections/{collection_id}/brain/graph")
 def get_brain_graph(
-    collection_id: int, conn=Depends(get_conn), _: Principal = Depends(require("documents:read"))
+    collection_id: int, conn=Depends(get_conn), p: Principal = Depends(require("documents:read"))
 ) -> dict:
     _collection(conn, collection_id)
-    return graph(conn, collection_id)
+    g = _guard(conn, p)
+    return _scrub(g, graph(conn, collection_id))
 
 
 @router.get("/collections/{collection_id}/activity")

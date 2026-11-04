@@ -12,6 +12,7 @@ export const HELPER_BY_ACTOR: Record<string, TeamHelperId> = {
   "Conflict checker": "conflicts",
   "Answer writer": "answer",
   "Fact checker": "facts",
+  Classifier: "classifier",
 };
 
 /** Each helper's colour, as CSS for the list and as a hex number for its craft in the 3D brain. */
@@ -23,6 +24,7 @@ export const HELPER_COLOUR: Record<TeamHelperId, { css: string; hex: number }> =
   facts: { css: "#f5f5f5", hex: 0xf5f5f5 },
   models: { css: "#9e9e9e", hex: 0x9e9e9e },
   navigator: { css: "#9e9e9e", hex: 0x9e9e9e },
+  classifier: { css: "#ce93d8", hex: 0xce93d8 },
 };
 
 type Ev<K extends TeamEvent["type"]> = Extract<TeamEvent, { type: K }>;
