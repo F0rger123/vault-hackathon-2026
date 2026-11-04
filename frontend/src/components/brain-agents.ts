@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 import type { Activity } from "@/lib/agent-activity";
+import { HELPER_BY_ACTOR, HELPER_COLOUR } from "@/lib/keeper-brain-state";
 
 const SPEED = 2.4; // fractions of the space's radius per second
 const TOUCH_S = 0.75;
@@ -36,8 +37,19 @@ export function createSwarm({
   const green = new THREE.MeshBasicMaterial({ color: 0x00e676 });
   const beamMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 });
   const lane = new Map<string, number>();
+  // F10.25: each Ask Keeper helper flies in its own colour, so the Finder and the Conflict checker are told apart.
+  const tinted = new Map<number, THREE.MeshBasicMaterial>();
+  const helperTint = (name: string): { material: THREE.Material; css: string } | null => {
+    const id = HELPER_BY_ACTOR[name];
+    if (!id) return null;
+    const { hex, css } = HELPER_COLOUR[id];
+    if (!tinted.has(hex)) tinted.set(hex, new THREE.MeshBasicMaterial({ color: hex }));
+    return { material: tinted.get(hex)!, css };
+  };
 
-  const make = (key: string, material: THREE.Material, name?: string): Agent => {
+  const make = (key: string, fallback: THREE.Material, name?: string): Agent => {
+    const tint = name ? helperTint(name) : null;
+    const material = tint?.material ?? fallback;
     const angle = agents.size * 2.399963; // golden angle, so the craft wait evenly spaced around the core
     const home = new THREE.Vector3(Math.cos(angle), Math.sin(agents.size * 1.3) * 0.35, Math.sin(angle)).multiplyScalar(radius * 0.32);
     const mesh = new THREE.Mesh(geometry, material);
@@ -53,6 +65,8 @@ export function createSwarm({
       el.textContent = name;
       el.className =
         "whitespace-nowrap rounded-control border border-line-strong bg-black/70 px-1.5 py-px font-mono text-[10px] text-[#f5f5f5]";
+      el.dataset.craft = name;
+      if (tint) el.style.borderColor = tint.css;
       const tag = new CSS2DObject(el);
       tag.center.set(0.5, 1.6);
       mesh.add(tag);
@@ -127,6 +141,7 @@ export function createSwarm({
       geometry.dispose();
       white.dispose();
       green.dispose();
+      for (const m of tinted.values()) m.dispose();
       beamMaterial.dispose();
     },
   };

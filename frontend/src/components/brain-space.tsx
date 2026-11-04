@@ -153,6 +153,11 @@ export default function BrainSpace({
   activity,
   liveFrom = Number.MAX_SAFE_INTEGER,
   side,
+  compact = false,
+  highlight,
+  lit,
+  resetKey,
+  caption,
 }: {
   graph: BrainGraph;
   onOpenDocument: (id: number) => void;
@@ -166,6 +171,16 @@ export default function BrainSpace({
   liveFrom?: number;
   /** Shown beside the space, under the selection: the activity ticker. */
   side?: React.ReactNode;
+  /** F10.25: the space alone, for the brain beside Ask Keeper (no filters, search or side list). */
+  compact?: boolean;
+  /** Documents to mark as cited: drawn larger, bright and named. */
+  highlight?: number[];
+  /** Documents a helper touched, with the colour (hex) of that helper. */
+  lit?: Map<number, number>;
+  /** When this changes (a new reply), marks left by the previous one are cleared. */
+  resetKey?: string | null;
+  /** One line over the space, such as "Live: Keeper's reply". */
+  caption?: string;
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -184,17 +199,21 @@ export default function BrainSpace({
     focus: (id: string) => void;
     play: (a: Activity, slots?: number) => void;
     act: (e: ActivityEvent, motion: boolean) => void;
+    clear: () => void;
   } | null>(null);
   // Nodes added from the feed survive a redraw of the map (the map is drawn again when a run finishes).
   const births = useRef<Birth[]>([]);
   const feedRef = useRef<HTMLOListElement>(null);
   const [replaying, setReplaying] = useState(false);
   // The scene reads these on its own schedule, so it keeps the latest values in a ref.
-  const state = useRef({ shown, selected, find, onOpenDocument, onUnsupported });
+  const cited = useMemo(() => new Set(highlight ?? []), [highlight]);
+  // Only the first few cited documents carry their names, so a long answer does not bury the space in labels.
+  const named = useMemo(() => new Set((highlight ?? []).slice(0, 6)), [highlight]);
+  const state = useRef({ shown, selected, find, onOpenDocument, onUnsupported, cited, named, lit });
   useEffect(() => {
-    state.current = { shown, selected, find, onOpenDocument, onUnsupported };
+    state.current = { shown, selected, find, onOpenDocument, onUnsupported, cited, named, lit };
     api.current?.paint();
-  }, [shown, selected, find, onOpenDocument, onUnsupported]);
+  }, [shown, selected, find, onOpenDocument, onUnsupported, cited, named, lit]);
 
   const neighbours = useMemo(() => {
     const m = new Map<string, Set<string>>();
@@ -329,7 +348,8 @@ export default function BrainSpace({
 
     /** Rebuild colours, sizes, edges and labels from the current filters, selection and search. */
     const paint = () => {
-      const { shown: on, selected: sel, find: q } = state.current;
+      const { shown: on, selected: sel, find: q, cited: marked, named, lit: tinted } = state.current;
+      const isCited = (b: Body) => b.document_id != null && marked.has(b.document_id);
       const match = q.trim().toLowerCase();
       const near = sel ? (neighbours.get(sel) ?? new Set<string>()) : null;
       const lit = (id: string) => !near || id === sel || near.has(id);
@@ -340,11 +360,15 @@ export default function BrainSpace({
       slots = bodies.filter((b) => on[b.kind]);
       slots.forEach((b, i) => {
         const f = found(b);
-        const size = b.r * (f ? 1.7 : b.id === sel || b === hovered ? 1.35 : 1);
+        const c = isCited(b);
+        const tint = b.document_id != null ? tinted?.get(b.document_id) : undefined;
+        const size = b.r * (f ? 1.7 : c ? 2 : b.id === sel || b === hovered ? 1.35 : tint !== undefined ? 1.4 : 1);
         m4.compose(b.p, one, s3.setScalar(size));
         mesh.setMatrixAt(i, m4);
         tmp.copy(b.conflict ? palette.red : palette.fill[b.kind]);
         if (touched.has(b.id)) tmp.lerp(palette.ink, 0.75);
+        if (tint !== undefined) tmp.setHex(tint);
+        if (c) tmp.lerp(palette.ink, 0.25);
         if (f || b.id === sel) tmp.lerp(palette.ink, b.conflict ? 0 : 0.35);
         const dim = !lit(b.id) && !f ? 0.85 : match && !f ? 0.6 : 0;
         mesh.setColorAt(i, tmp.lerp(palette.bg, dim));
@@ -372,7 +396,7 @@ export default function BrainSpace({
       edgeGeometry.computeBoundingSphere();
 
       for (const b of bodies) {
-        const wanted = on[b.kind] && (b.kind !== "document" || b.id === sel || b === hovered || found(b));
+        const wanted = on[b.kind] && (b.kind !== "document" || b.id === sel || b === hovered || found(b) || (b.document_id != null && named.has(b.document_id)));
         const tag = tags.get(b.id) ?? (wanted ? makeTag(b) : null);
         if (!tag) continue;
         tag.visible = wanted;
@@ -596,7 +620,13 @@ export default function BrainSpace({
         swarm.feed({ id: e.id, ts: e.ts, worker: `helper:${e.actor}`, verb: e.action, document_id: id, who: e.actor });
       }
     };
-    api.current = { paint, reset, focus, play: (a, slots) => swarm.feed(a, slots), act };
+    // A new Keeper reply starts from a clean space: the last reply's touched documents go back to their own colour.
+    const clear = () => {
+      touched.clear();
+      flashes.clear();
+      paint();
+    };
+    api.current = { paint, reset, focus, play: (a, slots) => swarm.feed(a, slots), act, clear };
 
     // Picking: a ray against the spheres first, then the nearest dot on screen so small documents stay easy to hit.
     const ray = new THREE.Raycaster();
@@ -761,11 +791,15 @@ export default function BrainSpace({
       sparkGeometry.attributes.position.needsUpdate = true;
       if (flashes.size) {
         const clock = performance.now();
+        let settled = false;
         slots.forEach((b, i) => {
           const at = flashes.get(b.id);
           if (at === undefined) return;
           const age = (clock - at) / 900;
-          if (age >= 1) flashes.delete(b.id);
+          if (age >= 1) {
+            flashes.delete(b.id);
+            settled = true;
+          }
           const boost = age >= 1 ? 1 : 1 + 2.4 * (1 - age);
           m4.compose(b.p, one, s3.setScalar(b.r * boost));
           mesh.setMatrixAt(i, m4);
@@ -773,6 +807,8 @@ export default function BrainSpace({
         });
         mesh.instanceMatrix.needsUpdate = true;
         if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+        // A settled document takes its own colour again (its helper's, when one touched it).
+        if (settled) paint();
       }
       // A machine that cannot keep up loses the glow rather than the smoothness.
       frames += 1;
@@ -909,10 +945,49 @@ export default function BrainSpace({
     return () => list.current.forEach((t) => window.clearTimeout(t));
   }, []);
 
+  const lastReset = useRef(resetKey);
+  useEffect(() => {
+    if (lastReset.current === resetKey) return;
+    lastReset.current = resetKey;
+    api.current?.clear();
+  }, [resetKey]);
+
   const sel = selected ? nodeById.get(selected) : null;
   const selDocs = sel
     ? [...(neighbours.get(sel.id) ?? [])].map((id) => nodeById.get(id)).filter((n): n is BrainNode => n?.kind === "document")
     : [];
+
+  const space = (
+    <div
+      ref={wrapRef}
+      className={cx(
+        "space-scope relative overflow-hidden rounded-control border border-line bg-black",
+        compact ? "h-[380px] sm:h-[440px]" : "h-[440px] sm:h-[620px]",
+      )}
+    >
+      <canvas
+        ref={canvasRef}
+        tabIndex={0}
+        className="block h-full w-full cursor-grab touch-none outline-none focus-visible:ring-2 focus-visible:ring-ink active:cursor-grabbing"
+        role="img"
+        aria-label={`Map of ${graph.nodes.length} items and ${graph.edges.length} links, in 3D. Drag to look around, scroll to zoom, and with the map focused use W A S D or the arrow keys to fly, Q and E to go down and up. Use the list beside it to browse.`}
+      />
+      {(runId != null || caption) && (
+        <div aria-hidden className="pointer-events-none absolute left-3 top-3 max-w-[70%] font-mono text-[11px] text-[#d0d0d0]">
+          <p className="mb-1 text-[#00e676]">
+            {caption ?? (running ? `Live: run ${runId}` : replaying ? `Replaying the record of run ${runId}` : `Record of run ${runId}`)}
+          </p>
+          <ol ref={feedRef} className="flex flex-col gap-0.5 [&>li]:truncate" />
+        </div>
+      )}
+      <p className="pointer-events-none absolute bottom-2 left-3 text-[11px] text-muted" aria-hidden>
+        {compact
+          ? "Drag to look · Scroll to zoom · Click a dot to open it"
+          : "Drag to look · Scroll to zoom · Click here, then W A S D or arrows to fly · Q / E down and up"}
+      </p>
+    </div>
+  );
+  if (compact) return space;
 
   return (
     <div className="flex flex-col gap-3">
@@ -950,24 +1025,7 @@ export default function BrainSpace({
         </Button>
       </div>
       <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_300px]">
-        <div ref={wrapRef} className="space-scope relative h-[440px] overflow-hidden sm:h-[620px] rounded-control border border-line bg-black">
-          <canvas
-            ref={canvasRef}
-            tabIndex={0}
-            className="block h-full w-full cursor-grab touch-none outline-none focus-visible:ring-2 focus-visible:ring-ink active:cursor-grabbing"
-            role="img"
-            aria-label={`Map of ${graph.nodes.length} items and ${graph.edges.length} links, in 3D. Drag to look around, scroll to zoom, and with the map focused use W A S D or the arrow keys to fly, Q and E to go down and up. Use the list beside it to browse.`}
-          />
-          {runId != null && (
-            <div aria-hidden className="pointer-events-none absolute left-3 top-3 max-w-[70%] font-mono text-[11px] text-[#d0d0d0]">
-              <p className="mb-1 text-[#00e676]">{running ? `Live: run ${runId}` : replaying ? `Replaying the record of run ${runId}` : `Record of run ${runId}`}</p>
-              <ol ref={feedRef} className="flex flex-col gap-0.5 [&>li]:truncate" />
-            </div>
-          )}
-          <p className="pointer-events-none absolute bottom-2 left-3 text-[11px] text-muted" aria-hidden>
-            Drag to look · Scroll to zoom · Click here, then W A S D or arrows to fly · Q / E down and up
-          </p>
-        </div>
+        {space}
         <div className="flex min-w-0 flex-col gap-3 lg:max-h-[620px]">
         <aside className={cx("flex flex-col gap-2 overflow-auto rounded-control border border-line p-3 text-sm", side ? "max-h-56 shrink-0" : "max-h-[560px]")}>
           {sel && sel.kind !== "document" ? (
