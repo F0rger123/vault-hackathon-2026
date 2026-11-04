@@ -956,7 +956,21 @@ export const vault = {
     if (opts.run) q.set("run", opts.run);
     return api<ActivityFeed>(`/collections/${collectionId}/activity?${q.toString()}`);
   },
+  /** F10.23: how many answers Keeper stored and learned from (rated) in this collection. */
+  keeperMemory: (collectionId: number) => api<KeeperMemory>(`/collections/${collectionId}/memory`),
+  /** F10.23: thumbs up (1), down (-1) or neither (0) on one of your own answers, by its run id. */
+  voteAnswer: (collectionId: number, run: string, vote: -1 | 0 | 1) =>
+    post<KeeperMemory & { run: string; vote: number }>(`/collections/${collectionId}/answers/${encodeURIComponent(run)}/vote`, { vote }),
 };
+
+export interface KeeperMemory {
+  assistant: string;
+  answers: number;
+  liked: number;
+  disliked: number;
+  learned: number;
+  boosted_documents: number;
+}
 
 // ---------- F10.22: the collection's activity feed ----------
 
@@ -1062,7 +1076,7 @@ export function errorText(e: unknown): string {
   return e instanceof Error ? e.message : "Something went wrong.";
 }
 
-// ---------- Ask VAULT (F10.20): POST /collections/{id}/agent streams one JSON event per line ----------
+// ---------- Ask Keeper (F10.20, named in F10.23): POST /collections/{id}/agent streams one JSON event per line ----------
 
 export type TeamHelperId = "finder" | "sorter" | "conflicts" | "answer" | "facts" | "models" | "navigator";
 
@@ -1116,11 +1130,26 @@ export type TeamEvent =
       findings?: Investigation["findings"];
       withheld_local_only?: number;
       answered_by?: Investigation["answered_by"];
+      /** F10.23: the reply's run id, set on question answers; used to rate the answer. */
+      run?: string;
       rows?: SearchResult[];
       count?: number;
       route?: string | null;
       models?: { name: string; size_gb: number; used_by_vault: boolean; loaded: boolean }[];
     }
+  // F10.23: a liked answer to a near-identical question, shown at once, then re-checked against today's documents.
+  | {
+      type: "memory";
+      t_ms: number;
+      status: "recalled";
+      run: string;
+      question: string;
+      text: string;
+      document_ids: number[];
+      asked_at: number;
+      similarity: number;
+    }
+  | { type: "memory"; t_ms: number; status: "rechecked"; run: string; still_cited: number; total: number }
   | { type: "error"; t_ms: number; status: number; detail: string }
   | { type: "done"; t_ms: number; duration_ms: number };
 
