@@ -1181,7 +1181,7 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 
 #### F09.22 — Face check that resists photos and videos, smoother setup, and a vault-door sign-in
 
-- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F09.19, F09.20, F10.21
+- **Priority:** P0 · **Owner:** luke · **Status:** DONE · **Dependencies:** F09.19, F09.20, F10.21
 - **Description:** Luke (2026-11-03): face setup was glitchy and finished too fast, a just-enrolled face often failed at sign-in, no error showed when a scan was not good enough, and the face step should resist a photo or video held up to the camera. He also asked for a sign-in animation and for demo-role buttons that select before signing in. Built:
   - **Liveness challenge** (`backend/security/liveness.py`): the server issues two random moves (turn left, turn right, look up, blink) in a random order, single use, 25 s, at most 5 per sign-in ticket. The browser sends per-frame head turn, tilt and eye openness (from the face mesh) with Human's liveness and anti-spoof scores, plus face fingerprints from before, between and after the moves. The server checks order, timing, real movement, passive scores across frames, and that every fingerprint is the saved person and the same face throughout. Setup needs the same challenge. New routes `POST /auth/face-challenge`, `POST /auth/face/challenge`, `POST /auth/face/test`; `POST /auth/face-step` and `POST /auth/face` take the new answer.
   - **Smoother capture:** one throttled detection loop (15 a second), the live video shown directly, the overlay painted every display frame from smoothed points, camera and models started together, readings paced 650 ms apart with "Reading 2 of 5 accepted", a "Starting the camera" state that explains a slow camera, and a clear refusal with the reason and Try again.
@@ -1192,7 +1192,7 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 - **Honest limits:** the numbers are measured in the browser, so a modified client can forge them; this stops a photo, a phone video or a screen most of the time, not a custom client, a real-time deepfake or a 3D mask. Written in `docs/THREAT_MODEL.md` and `docs/SECURITY.md`.
 - **Required tests:** `tests/security/test_face_liveness.py`, updated `test_face_unlock.py` and `test_sign_in_steps.py`, e2e `0597-face.spec.ts` and `01-sign-in.spec.ts`.
 - **Blockers:** none
-- **Related PR/commit:** branch `luke/F09.22-face-liveness`, issue #107. No migration (challenges are in memory).
+- **Related PR/commit:** branch `luke/F09.22-face-liveness`, issue #107. No migration (challenges are in memory); merged in PR #113 (CI 8/8 green), 2026-11-03
 - **Verification evidence (2026-11-03):** pytest 346 passed (full suite); `test_face_liveness.py` 14 passed: happy path, wrong order, no pose change, different face mid-challenge, expired challenge, low liveness and low anti-spoof scores, single use, impossible timing, challenge limit, own-origin, a recorded video passes 1 of 12 orders, orders random, Test my face. ruff, ruff format, bandit, eslint, `tsc --noEmit`, `next build` pass. e2e (Chromium fake camera, ports 8420/3420) 13 passed: `01-sign-in`, `03-security`, `059-passkeys`, `0595-invite`, `0597-face` (camera starts and waits for a face, random challenges, vault door, demo roles). Screenshots in `docs/screenshots/F09.22/`. **Not verified:** the whole challenge with a real face on a real webcam (the fake camera shows no face, so the outline, scan, moves, lock-down and door-after-sign-in were not run end to end); the head-turn, tilt and blink thresholds and the 0.6/0.55 match bars are not calibrated on real people yet. Luke should run Set up face check, then Test my face now, and read the numbers.
 
 ## F10 — User Interface
@@ -1517,7 +1517,7 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 
 #### F10.24 — Full-width approvals, a view-only mode, deleting requests and copies, and an in-app guide
 
-- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F10.8, F10.22
+- **Priority:** P0 · **Owner:** luke · **Status:** DONE · **Dependencies:** F10.8, F10.22
 - **Description:** Luke: "Make the approvals page fill the screen if possible. Currently the approval section shows the files but there's no view-only mode. Add a view-only section, and allow deleting items. Include setup instructions that teach users how to use it step by step."
 - **Implementation scope:**
   - Approvals uses the full window width (`WIDE_PAGES` in `app-shell.tsx`; other pages keep 1480 px). Requests list on the left with All/Waiting/Approved/Rejected filters, the chosen request on the right; stacked on a phone, where picking a request scrolls to it.
@@ -1533,7 +1533,7 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
   - The e2e test browses as a viewer with no controls, deletes one copy and a request as an admin, and follows the guide's link into view only.
 - **Required tests:** `tests/integration/test_proposal_delete.py`; e2e `051-approvals-view-delete`, `05-approvals`, `0595-invite`.
 - **Blockers:** none. Delete routes are file handling: Luke reviews before merge.
-- **Related PR/commit:** branch `luke/F10.24-approvals-guide`, issue #109
+- **Related PR/commit:** branch `luke/F10.24-approvals-guide`, issue #109; merged in PR #110 (CI 8/8 green), 2026-11-03
 - **Verification evidence (2026-11-03, Windows 11):**
   - **ruff:** `All checks passed!`, `219 files already formatted`. **bandit:** no findings.
   - **pytest:** `343 passed` (includes 11 new in `test_proposal_delete.py`; the symbolic-link test ran, not skipped, on this machine).
@@ -1716,7 +1716,7 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 
 #### F11.9 — See the original inside VAULT, and test files that look like the real thing
 
-- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F11.8, F09.13
+- **Priority:** P0 · **Owner:** luke · **Status:** DONE · **Dependencies:** F11.8, F09.13
 - **Description:** Luke (2026-11-03): "None of the photos actually display when I open them. They need to be PDFs, blueprint drawings, photographs, newspaper articles, etc." The drawer's only option, "Open the original", fetched the file and navigated a new tab to a blob URL. Two causes: (1) a blob URL document inherits the app's Content-Security-Policy, which had no `media-src`, so video and sound were blocked (`default-src 'self'` fallback; reproduced in Chromium); (2) in the desktop window (pywebview, `OPEN_EXTERNAL_LINKS_IN_BROWSER`) `window.open` is handed to the system browser as `about:blank`, where a blob URL made by the app does not exist, so nothing shows (read from pywebview's code, not reproduced on the desktop window). Photos and PDFs did open in plain Chromium; the flat clip-art test photos made them look broken too.
 - **Implementation scope:**
   - `GET /documents/{id}/original?inline=1`: previews only PDF, PNG, JPEG, MP4, WebM, MOV and browser audio (415 otherwise), `Content-Disposition: inline`, audited as `document.view`; held files 423; every original now carries `default-src 'none'; frame-ancestors 'none'; sandbox`. No migration.
@@ -1726,7 +1726,7 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 - **Acceptance criteria:** photos, PDFs, video and sound show inside the drawer in the browser; held files never preview; previews audited; demo set about 100–150 files under 25 MB in under 60 s; existing manifest tests pass.
 - **Required tests:** `tests/security/test_preview.py`, `tests/security/test_ui_serving.py`, `tests/unit/test_make_test_files.py`, `tests/integration/test_media_files.py`, e2e `02-investigate` (new preview spec).
 - **Blockers:** none
-- **Related PR/commit:** branch `luke/F11.9-viewer-real-files`
+- **Related PR/commit:** branch `luke/F11.9-viewer-real-files`; merged in PR #114 (CI 8/8 green), 2026-11-03
 - **Verification evidence (2026-11-03):**
   - **pytest:** 336 passed (full suite). `test_preview.py`: inline JPEG and PDF with `inline` disposition, `nosniff` and `sandbox`; downloads stay attachments; `document.view` and `document.download` audited separately; a text file holding markup gets 415 and is never served; a held PDF gets 423 with a denied `document.view`; 401 without a token and 403 without `documents:read`.
   - **ruff check / format --check, bandit -ll:** clean. **Frontend:** lint, typegen + tsc, production build pass. **e2e:** 31 of 31 (ports 8430/3430), including the new "previews the original PDF inside the app" spec.
@@ -1736,6 +1736,16 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 
 ## F12 — Deployment & Submission
 - **Related PR/commit:** PR #104, merged 2026-11-03 with all CI checks green.
+
+#### F11.10 — A huge fictional test set
+
+- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F11.9
+- **Description:** Luke: "give me a huge amount of fake files and data." `make_test_files.py --size huge` writes about 2,300 fictional files (blueprints, stamped reports, contracts, newspapers, photos, video, sound, edge cases) without the size-limit files. `data/testset-huge/` is git-ignored.
+- **Acceptance criteria:** the preset runs, is deterministic per seed, and its output is never committed.
+- **Required tests:** ruff; a local generation run.
+- **Blockers:** none
+- **Related PR/commit:** PR #116
+- **Verification evidence (2026-11-03, Windows 11):** `total 2328 files 273.6 MB in 212.9s` (`--count 2000 --skip-large --seed 11`, identical to the preset); ruff clean.
 
 #### F12.9 — One-command start and guided first run
 
