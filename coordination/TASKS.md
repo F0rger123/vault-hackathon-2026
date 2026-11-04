@@ -1197,7 +1197,7 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
 
 #### F09.23 — Vault agents classify documents and propose redactions; an admin approves
 
-- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED (PR open; auth and file handling, so Luke approves the merge) · **Dependencies:** F08.6, F09.9, F10.23, F10.24
+- **Priority:** P0 · **Owner:** luke · **Status:** DONE (PR open; auth and file handling, so Luke approves the merge) · **Dependencies:** F08.6, F09.9, F10.23, F10.24
 - **Description:** Luke (2026-11-03): "make it so the vault agents can mark things as classified and redact things." Built:
   - **Labels** `public | internal | confidential | restricted` per document (migration 15: `classification`, reason, `set_by` agent or user, by whom, when; plus a `redactions` table of spans with a hash of each hidden value, never the value). These are the organisation's own handling levels; no government wording, and VAULT still does not claim to be fit for classified government data. Unlabelled counts as internal.
   - **Agent proposes, human approves:** Keeper's Classifier helper (`backend/agents/classifier.py`, local rules reusing the share-pack patterns and the security agent's markings) suggests a label and redaction spans (emails, phone and ID numbers, money, people's names). It becomes a `classify_redact` proposal; approving sets the labels and turns the redactions on. Rejecting or deleting never applies anything; deleting an approved one keeps its redactions. Keeper answers "mark the pricing contracts as confidential" with Finder then Classifier and a link to Approvals.
@@ -1206,7 +1206,7 @@ Last updated: 2026-10-28 night (Luke's agent, solo mode, loop checkpoint). `main
   - Originals and stored page text never change; a page whose text changed after a redaction is hidden whole for non-admins (fail closed).
 - **Required tests:** `tests/integration/test_classify_redact.py`, e2e `0599-classify.spec.ts`, full suite.
 - **Blockers:** none
-- **Related PR/commit:** branch `luke/F09.23-classify-redact`, issue #115. Migration 15.
+- **Related PR/commit:** branch `luke/F09.23-classify-redact`, issue #115. Migration 15.; merged in PR #117 (CI 8/8 green), 2026-11-04
 - **Verification evidence (2026-11-03):** pytest 367 passed (full suite, 3 new in `test_classify_redact.py`: labels and proposals, viewer and analyst denied above clearance on the document, page, original and screening routes, redaction in pages, search snippets, extraction fields, records CSV, Keeper's streamed answers, organise exports (redacted PDF, restricted left out) and share packs, proposal plans filtered for viewers, admin relabel and unredact with denied cases and audit, originals byte-identical by SHA-256 before and after; Keeper proposing from chat, viewer refused, reject and delete; fail-closed rendering). ruff, ruff format, bandit, eslint, `tsc --noEmit`, `next build` pass. e2e (ports 8470/3470) 42 passed, including `0599-classify` (4). **Not verified:** a model-written answer (Ollama) under redaction (tests use the heuristic provider; outputs are scrubbed either way); the desktop window; screenshots not taken; the synthetic demo set holds almost nothing to redact (2 emails, no prices or names), so the video needs an uploaded fictional contract to show pricing being blacked out.
 
 ## F10 — User Interface
@@ -1583,7 +1583,7 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 
 #### F10.25 — Ask Keeper uses the Brain page's own 3D brain, and grouped example prompts that really work
 
-- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F10.22, F10.23
+- **Priority:** P0 · **Owner:** luke · **Status:** DONE · **Dependencies:** F10.22, F10.23
 - **Description:** Luke's top priority before the deadline: Ask Keeper must show the exact same 3D brain as the Brain page, not the separate SVG imitation, moving from the reply's real events. The four flat starter chips become grouped example prompts, each tested against the running backend.
 - **Implementation scope:**
   - `brain-space.tsx` gains a `compact` mode (canvas only, no toolbar or side list), `highlight` (cited documents), `lit` (document to helper colour) and `resetKey` (a new reply clears the previous one's marks). The Brain page passes none of these and looks as before.
@@ -1594,7 +1594,7 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 - **Acceptance criteria:** one WebGL context on the chat page; the scene is disposed and its loop stopped on unmount and when the tab is hidden; reduced motion respected; phone width keeps the brain behind a button; the Brain page unchanged in look; every kept prompt answers with sources.
 - **Required tests:** e2e `02-ask-search`, `025-ask`, `0585-live-brain`, `058-brain`, `phone`; frontend lint, types, build.
 - **Blockers:** none
-- **Related PR/commit:** branch `luke/F10.25-keeper-3d-brain`, issue #118
+- **Related PR/commit:** branch `luke/F10.25-keeper-3d-brain`, issue #118; merged in PR #121 (CI 8/8 green), 2026-11-04
 - **Verification evidence (2026-11-04, Windows 11):**
   - **frontend:** `npm run lint` clean, `npx tsc --noEmit` clean, `npm run build` compiled all routes.
   - **e2e (ports 8490/3490):** `14 passed (1.9m)` (with the new "reply keeps going while you visit another page" test in `025-ask`) for `02-ask-search`, `025-ask`, `058-brain`, `0585-live-brain`, `phone`. `025-ask` now asserts one `canvas` in the Keeper brain, the grouped prompts with the pressure question first, that clicking it sends it, the Finder and Conflict checker craft labels in the 3D space, and that a cited document opens the drawer.
@@ -1774,12 +1774,12 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 
 #### F11.10 — A huge fictional test set
 
-- **Priority:** P1 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F11.9
+- **Priority:** P1 · **Owner:** luke · **Status:** DONE · **Dependencies:** F11.9
 - **Description:** Luke: "give me a huge amount of fake files and data." `make_test_files.py --size huge` writes about 2,300 fictional files (blueprints, stamped reports, contracts, newspapers, photos, video, sound, edge cases) without the size-limit files. `data/testset-huge/` is git-ignored.
 - **Acceptance criteria:** the preset runs, is deterministic per seed, and its output is never committed.
 - **Required tests:** ruff; a local generation run.
 - **Blockers:** none
-- **Related PR/commit:** PR #116
+- **Related PR/commit:** PR #116; merged in PR #116 (CI 8/8 green), 2026-11-04
 - **Verification evidence (2026-11-03, Windows 11):** `total 2328 files 273.6 MB in 212.9s` (`--count 2000 --skip-large --seed 11`, identical to the preset); ruff clean.
 
 #### F12.9 — One-command start and guided first run
@@ -1958,11 +1958,11 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
 
 #### F12.16 — Download Demo Dataset from inside the app
 
-- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F11.6, F12.6
+- **Priority:** P0 · **Owner:** luke · **Status:** DONE · **Dependencies:** F11.6, F12.6
 - **Description:** Luke asked (2026-11-04) for a visible "Download Demo Dataset" feature: two ZIP downloads served by VAULT itself (no cloud). **Quick Demo Dataset** is the frozen demo archive (`data/synthetic/v1/files`, with the BV-7891 1,500 vs 600 psi conflict) plus its ground truth under `expected/`, a README, example prompts and a fictional-data notice. **Complete Demo Dataset** adds the realistic test set from `scripts/make_test_files.py --size demo` (generated on first request into the runtime data folder and cached), with dangerous edge cases removed.
 - **Scope:** `backend/workers/demo_dataset.py`, `backend/api/routes.py`, `frontend/src/components/demo-dataset.tsx`, Overview, `frontend/src/lib/api.ts`, `coordination/API_CONTRACT.md`, tests.
 - **Acceptance criteria:** both zips download through the app with a bearer token; signed-out requests get 401; ZIP entries are relative with no `..`; no program bytes, active-content PDFs, macro files or nested archives inside; built zips cached by content hash; downloads audited.
 - **Required tests:** `tests/integration/test_demo_dataset.py`, e2e spec clicking the Quick button.
 - **Blockers:** none
-- **Related PR/commit:** branch `luke/F12.16-demo-dataset-download`
+- **Related PR/commit:** branch `luke/F12.16-demo-dataset-download`; merged in PR #120 (CI 8/8 green), 2026-11-04
 - **Verification evidence (2026-11-04):** full pytest 374 passed (including `tests/integration/test_demo_dataset.py`, 10 tests: both ZIPs open, `testzip()` clean, 150 demo files, BV-7891 present, README/notice/prompts present, relative names only, no MZ/active-PDF/macro/nested ZIP, cached ETag repeat, audit entry, 401 signed out, 503 without path leak); ruff, ruff format, bandit clean; `npm run lint`, `npx tsc --noEmit`, `npm run build` pass; e2e `015-demo-dataset` passed (download event `vault-demo-dataset-quick.zip`, starts with PK). Built sizes: quick 155 entries, 355,599 bytes; complete 280 entries, 15,156,989 bytes, first build 28 s, cached repeat 1 s. Left out of complete: `program_named_video.mov` (MZ), `openaction_javascript.pdf`, `external_link.docx`, `has_macro_project.docx`, `archive.zip`, `zip_named_docx.docx`. CI pending.
