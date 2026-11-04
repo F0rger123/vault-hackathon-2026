@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, UploadFil
 from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel, Field
 
+from backend.agents import classifier
 from backend.api.deps import effective_settings, get_conn, get_settings, require
 from backend.api.schemas import (
     ApiKeyUpdate,
@@ -41,6 +42,7 @@ from backend.ingest.service import ensure_collection, ingest_bytes
 from backend.providers import PROVIDER_NAMES, get_provider
 from backend.providers.base import ProviderError
 from backend.security import audit, face, liveness, signin_log, steps, voice
+from backend.security import classification as cls
 from backend.security import login as signin
 from backend.security.auth import Principal, list_tokens, revoke_token
 from backend.security.files import FileRejected, contained, original_path
@@ -62,6 +64,36 @@ def _row(r: sqlite3.Row | None) -> dict:
     if r is None:
         raise HTTPException(status_code=404, detail="not found")
     return dict(r)
+
+
+def _guard(conn, p: Principal) -> cls.Guard | None:
+    """F09.23: on this request's connection, hide what this person's role may not see (nothing for admins)."""
+    return cls.guard(conn, p.role)
+
+
+def _scrub(g: cls.Guard | None, obj):
+    return g.scrub(obj) if g else obj
+
+
+def _open_check(conn, p: Principal, document_id: int, action: str) -> sqlite3.Row:
+    """404 when the document does not exist, 403 when its label is above this person's clearance (audited).
+
+    The refusal never says what the document is called or holds.
+    """
+    row = cls.classification_of(conn, document_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="not found")
+    if not cls.may_open(p.role, row["classification"]):
+        audit.record(
+            conn,
+            p.username,
+            action,
+            "denied",
+            target=f"document:{document_id}",
+            detail={"reason": "classification", "role": p.role},
+        )
+        raise HTTPException(status_code=403, detail="this document is classified above your access")
+    return row
 
 
 def _provider(conn, settings: Settings, name: str | None, confirm_remote: bool, actor: str):
@@ -739,11 +771,14 @@ def list_documents(
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
     conn=Depends(get_conn),
-    _: Principal = Depends(require("documents:read")),
+    p: Principal = Depends(require("documents:read")),
 ) -> list[dict]:
+    _guard(conn, p)
     sql = (
         "SELECT id, collection_id, filename, sha256, size_bytes, media_type, page_count, status, created_at, "
-        "media_info FROM documents"
+        "media_info, classification, classification_reason, classification_set_by, classification_by_user, "
+        "classification_set_at, (SELECT COUNT(*) FROM main.redactions r WHERE r.document_id = documents.id "
+        "AND r.status = 'applied') AS redaction_count FROM documents"
     )
     args: list = []
     if collection_id is not None:
@@ -754,22 +789,39 @@ def list_documents(
 
 
 def _with_kind(doc: dict) -> dict:
-    """F11.8: every document row says what kind of file it is, and a photo, video or sound file its details."""
+    """F11.8: every document row says what kind of file it is, and a photo, video or sound file its details.
+
+    F09.23: and its classification label, when the query selected it.
+    """
     doc["kind"] = kind_of(doc["media_type"])
     doc["media_info"] = loads(doc.get("media_info"), None)
+    if "classification_set_at" in doc:
+        doc["classification"] = cls.describe(doc)
+        for key in (
+            "classification_reason",
+            "classification_set_by",
+            "classification_by_user",
+            "classification_set_at",
+        ):
+            doc.pop(key, None)
     return doc
 
 
 @router.get("/documents/{document_id}")
-def get_document(document_id: int, conn=Depends(get_conn), _: Principal = Depends(require("documents:read"))):
+def get_document(document_id: int, conn=Depends(get_conn), p: Principal = Depends(require("documents:read"))):
+    _open_check(conn, p, document_id, "document.read")
+    g = _guard(conn, p)
     doc = _row(
         conn.execute(
             "SELECT id, collection_id, filename, sha256, size_bytes, media_type, page_count, status, error, "
-            "created_at, media_info FROM documents WHERE id = ?",
+            "created_at, media_info, classification, classification_reason, classification_set_by, "
+            "classification_by_user, classification_set_at FROM documents WHERE id = ?",
             (document_id,),
         ).fetchone()
     )
     _with_kind(doc)
+    doc["redactions"] = _redaction_list(conn, p, document_id)
+    doc["can_open_original"] = cls.sees_redacted(p.role) or not cls.has_redactions(conn, document_id)
     x = conn.execute(
         "SELECT * FROM extractions WHERE document_id = ? ORDER BY id DESC LIMIT 1", (document_id,)
     ).fetchone()
@@ -788,19 +840,64 @@ def get_document(document_id: int, conn=Depends(get_conn), _: Principal = Depend
         }
     else:
         doc["extraction"] = None
-    return doc
+    return _scrub(g, doc)
+
+
+def _redaction_list(conn, p: Principal, document_id: int) -> list[dict]:
+    """Applied redactions for everyone (kind and page only); administrators also get proposed ones and a hint."""
+    admin = cls.sees_redacted(p.role)
+    status = ("applied", "proposed") if admin else ("applied",)
+    texts: dict[int, str] = {}
+    if admin:
+        texts = {
+            r["page_no"]: r["text"]
+            for r in conn.execute("SELECT page_no, text FROM main.pages WHERE document_id = ?", (document_id,))
+        }
+    out = []
+    for s in cls.spans(conn, document_id, status):
+        item = {"id": s["id"], "page_no": s["page_no"], "kind": s["kind"], "label": cls.label(s["kind"])}
+        if admin:
+            value = texts.get(s["page_no"], "")[s["start"] : s["end"]]
+            item.update(status=s["status"], start=s["start"], end=s["end"], hint=cls.hint(value))
+        out.append(item)
+    return out
 
 
 @router.get("/documents/{document_id}/pages/{page_no}")
 def get_page(
     document_id: int, page_no: int, conn=Depends(get_conn), p: Principal = Depends(require("documents:read"))
 ) -> dict:
+    _open_check(conn, p, document_id, "document.read_page")
     audit.record(conn, p.username, "document.read_page", "allowed", target=f"document:{document_id}")
-    return _row(
+    page = _row(
         conn.execute(
-            "SELECT document_id, page_no, text FROM pages WHERE document_id = ? AND page_no = ?", (document_id, page_no)
+            "SELECT document_id, page_no, text FROM main.pages WHERE document_id = ? AND page_no = ?",
+            (document_id, page_no),
         ).fetchone()
     )
+    if cls.sees_redacted(p.role):
+        # Administrators read the real text, with every applied and proposed span marked where it sits.
+        page["redactions"] = [
+            {
+                "id": s["id"],
+                "start": s["start"],
+                "end": s["end"],
+                "kind": s["kind"],
+                "label": cls.label(s["kind"]),
+                "status": s["status"],
+            }
+            for s in cls.spans(conn, document_id, ("applied", "proposed"))
+            if s["page_no"] == page_no
+        ]
+        page["redacted"] = False
+        return page
+    found = [s for s in cls.spans(conn, document_id) if s["page_no"] == page_no]
+    if found:
+        text, placed = cls.render(page["text"], found)
+    else:
+        g = _guard(conn, p)
+        text, placed = (g.text(page["text"]) if g else page["text"]), []
+    return {**page, "text": text, "redactions": [{**s, "status": "applied"} for s in placed], "redacted": bool(found)}
 
 
 @router.get("/documents/{document_id}/original")
@@ -810,11 +907,23 @@ def get_original(
     settings: Settings = Depends(get_settings),
     p: Principal = Depends(require("documents:read")),
 ):
+    _open_check(conn, p, document_id, "document.download")
     doc = _row(
         conn.execute(
             "SELECT filename, media_type, stored_path, status FROM documents WHERE id = ?", (document_id,)
         ).fetchone()
     )
+    if not cls.sees_redacted(p.role) and cls.has_redactions(conn, document_id):
+        # F09.23: the original still holds what was redacted, so only administrators may open it.
+        audit.record(
+            conn,
+            p.username,
+            "document.download",
+            "denied",
+            target=f"document:{document_id}",
+            detail={"reason": "redacted"},
+        )
+        raise HTTPException(status_code=403, detail="this document has redactions; read its redacted text instead")
     if doc["status"] == "quarantined":
         # F09.13: the original may run something when opened; nobody downloads it until an admin releases it.
         audit.record(
@@ -1033,18 +1142,43 @@ def search(
     sort: str = Query("relevance", pattern="^(relevance|name|size|duration|date|taken)$"),
     order: str = Query("", pattern="^(asc|desc|)$"),
     conn=Depends(get_conn),
-    _: Principal = Depends(require("search")),
+    p: Principal = Depends(require("search")),
 ) -> dict:
+    g = _guard(conn, p)
     results = run_search(
         conn, q, collection_id, doc_type, project, date_from, date_to, part_number, limit, exclude, year, media,
         sort, order,
     )  # fmt: skip
-    out: dict = {"query": q, "count": len(results), "results": results}
+    out: dict = {"query": q, "count": len(results), "results": _scrub(g, results)}
+    if g:
+        _resnip(conn, out["results"], q)
     if q.strip() and (
         media in ("image", "photo", "video", "audio", "media") or any(r["kind"] != "document" for r in results)
     ):
         out["note"] = NOT_READ_NOTE
     return out
+
+
+def _resnip(conn, results: list[dict], q: str) -> None:
+    """Search snippets come from the full-text index, which holds the real text. For a redacted page, rebuild the
+    snippet from the redacted text the guarded connection returns, so a value cut in half cannot slip through."""
+    words = [w.casefold() for w in q.split() if len(w) >= 2]
+    for r in results:
+        if not r.get("snippet") or not r.get("page"):
+            continue
+        if not conn.execute(
+            "SELECT 1 FROM main.redactions WHERE document_id = ? AND page_no = ? AND status = 'applied' LIMIT 1",
+            (r["document_id"], r["page"]),
+        ).fetchone():
+            continue
+        row = conn.execute(
+            "SELECT text FROM pages WHERE document_id = ? AND page_no = ?", (r["document_id"], r["page"])
+        ).fetchone()
+        text = " ".join((row["text"] if row else "").split())
+        at = min((i for i in (text.casefold().find(w) for w in words) if i >= 0), default=0)
+        start = max(0, at - 60)
+        tail = " ..." if start + 160 < len(text) else ""
+        r["snippet"] = ("... " if start else "") + text[start : start + 160] + tail
 
 
 class ChatMessage(BaseModel):
@@ -1059,10 +1193,11 @@ def chat(
     body: ChatMessage,
     conn=Depends(get_conn),
     settings: Settings = Depends(get_settings),
-    _: Principal = Depends(require("search")),
+    p: Principal = Depends(require("search")),
 ) -> dict:
     """F06.8: one typed message becomes a search, a sort, a question, a page to open, or the model list."""
     _collection(conn, collection_id)
+    g = _guard(conn, p)
     cmd = assistant.interpret(conn, collection_id, body.message, body.previous)
     eff = effective_settings(conn, settings)
     if cmd.kind == "help" and body.use_model and len(body.message.split()) >= 3:
@@ -1094,13 +1229,16 @@ def chat(
         out["reply"] = "Opening."
     elif cmd.kind == "ask":
         out["reply"] = "Reading the sources."
+    elif cmd.kind == "classify":
+        out["reply"] = "Ask Keeper to do this: it prepares a classification proposal for an administrator."
     else:
         out["reply"] = assistant.HELP
-    return out
+    return _scrub(g, out)
 
 
 @router.get("/collections/{collection_id}/findings")
-def findings(collection_id: int, conn=Depends(get_conn), _: Principal = Depends(require("findings:read"))):
+def findings(collection_id: int, conn=Depends(get_conn), p: Principal = Depends(require("findings:read"))):
+    _guard(conn, p)
     rows = conn.execute("SELECT * FROM findings WHERE collection_id = ? ORDER BY id", (collection_id,)).fetchall()
     return [{**dict(r), "evidence": loads(r["evidence"], [])} for r in rows]
 
@@ -1114,7 +1252,8 @@ def export_records(
 ):
     """F08.5: the collection's extractions as a table, one row per part, with source document and page."""
     name = _row(conn.execute("SELECT name FROM collections WHERE id = ?", (collection_id,)).fetchone())["name"]
-    rows = collection_records(conn, collection_id)
+    g = _guard(conn, p)
+    rows = _scrub(g, collection_records(conn, collection_id))
     audit.record(
         conn, p.username, "records.export", "allowed", target=f"collection:{collection_id}", detail={"rows": len(rows)}
     )
@@ -1140,8 +1279,9 @@ def new_investigation(
     if info.locality == "remote" and not p.can("jobs:create"):
         audit.record(conn, p.username, "investigation.run", "denied", detail={"reason": "remote needs analyst"})
         raise HTTPException(status_code=403, detail="asking a remote model needs an analyst or admin")
+    g = _guard(conn, p)
     try:
-        result = investigate(conn, body.collection_id, body.question, provider)
+        result = _scrub(g, investigate(conn, body.collection_id, body.question, provider))
     except ProviderError as exc:
         audit.record(conn, p.username, "investigation.run", "error", detail={"provider": info.name})
         raise HTTPException(status_code=502, detail=str(exc)) from exc
@@ -1223,7 +1363,7 @@ def approve(
     prop = _proposal(conn, proposal_id)
     if prop["status"] != "pending":
         raise HTTPException(status_code=409, detail=f"proposal is already {prop['status']}")
-    result = execute_proposal(conn, settings, proposal_id)
+    result = execute_proposal(conn, settings, proposal_id, p.username)
     conn.execute(
         "UPDATE proposals SET status = 'executed', decided_by = ?, decided_at = ?, result = ? WHERE id = ?",
         (p.user_id, now(), dumps(result), proposal_id),
@@ -1250,6 +1390,8 @@ def reject(
         "UPDATE proposals SET status = 'rejected', decided_by = ?, decided_at = ? WHERE id = ?",
         (p.user_id, now(), proposal_id),
     )
+    if prop["kind"] == "classify_redact":
+        classifier.reject(conn, proposal_id, p.username)
     audit.record(conn, p.username, "proposal.reject", "allowed", target=f"proposal:{proposal_id}")
     return _proposal(conn, proposal_id)
 

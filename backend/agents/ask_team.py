@@ -11,6 +11,10 @@ Each helper that looks at documents records which ones (in the order it produced
 The message is data: it fills the chat command's fixed fields and the investigation's plan, and is never run.
 F10.23: answered questions are stored per collection; a liked answer is recalled for a near-identical question (and
 still re-checked by the helpers), and documents from liked answers get a small boost for the Finder (agents/keeper).
+F09.23: every connection the team opens is guarded for the asker's role (backend/security/classification.py), so
+helpers never see documents above the asker's clearance or text an administrator redacted, and every event is
+scrubbed once more on the way out. "Mark the pricing contracts as confidential" hands the found documents to the
+Classifier helper, which prepares a proposal; an administrator approves it in Approvals.
 """
 
 from __future__ import annotations
@@ -22,9 +26,10 @@ import threading
 import time
 from collections.abc import Callable, Iterator
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 
-from backend.agents import keeper
+from backend.agents import classifier, keeper
 from backend.agents.keeper import ASSISTANT_NAME
 from backend.core.config import Settings
 from backend.core.hardware import profile_hardware
@@ -42,8 +47,9 @@ from backend.indexing.investigate import (
 from backend.providers import get_provider
 from backend.providers.base import Provider, ProviderError
 from backend.security import audit
+from backend.security import classification as cls
 from backend.security.auth import Principal
-from backend.storage.db import connect
+from backend.storage.db import connect, loads
 from backend.workers import activity
 
 log = logging.getLogger("vault.ask")
@@ -56,6 +62,7 @@ HELPERS = {
     "facts": ("Fact checker", "Checks every number in the answer against the lines it cites"),
     "models": ("Models helper", "Asks Ollama which models are on this computer"),
     "navigator": ("Navigator", "Finds the page to open"),
+    "classifier": ("Classifier", "Suggests a label and what to black out, for an administrator to approve"),
 }
 PAGE_NAMES = {
     "/": "Overview",
@@ -120,10 +127,19 @@ class Team:
 
     # ---------- the stream ----------
 
-    def events(self) -> Iterator[dict]:
+    @contextmanager
+    def _connect(self) -> Iterator[object]:
+        """A connection that only shows what the asker's role may see (F09.23)."""
         with connect(self.settings.db_path) as conn:
+            self._guard = cls.guard(conn, self.principal.role)
+            yield conn
+
+    def events(self) -> Iterator[dict]:
+        self._guard: cls.Guard | None = None
+        with self._connect() as conn:
             try:
-                yield from self._events(conn)
+                for ev in self._events(conn):
+                    yield self._guard.scrub(ev) if self._guard else ev
             except Exception:  # noqa: BLE001 - the stream must end with an event, never a stack trace
                 log.exception("ask stream failed")
                 yield self._event("error", status=500, detail="internal error")
@@ -158,6 +174,8 @@ class Team:
             yield from self._models(conn, cmd, source, model, plan_ms)
         elif cmd.kind == "open":
             yield from self._open(cmd, source, model, plan_ms)
+        elif cmd.kind == "classify":
+            yield from self._classify(conn, cmd, source, model, plan_ms)
         else:
             yield self._plan(cmd, source, model, plan_ms, [], "Nothing to hand off: this message needs a hint.")
             yield self._event("answer", kind="help", command=cmd.model_dump(), text=assistant.HELP)
@@ -215,6 +233,7 @@ class Team:
 
             try:
                 with connect(self.settings.db_path) as own:
+                    cls.guard(own, self.principal.role)
                     summary, result = step.run(own, progress)
             except HelperFailed as exc:
                 events.put(self._failed(step, began, str(exc)))
@@ -290,6 +309,12 @@ class Team:
         cid = self.collection_id
         liked = keeper.liked_documents(conn, cid)
         remembered = keeper.recall(conn, cid, question)
+        if remembered and self._guard:
+            # A liked answer may have been written for someone who could see more. Recall it only when every
+            # document it cited is open to this asker; the stream's scrub hides any redacted value in its text.
+            visible = {r[0] for r in conn.execute("SELECT id FROM documents WHERE collection_id = ?", (cid,))}
+            if not set(remembered["document_ids"]) <= visible:
+                remembered = None
 
         def find(c, progress):
             words = plan["terms"] or ["(every document)"]
@@ -481,6 +506,77 @@ class Team:
                 "locality": info.locality,
                 "is_ai_model": info.is_ai_model,
             },
+        )
+
+    # ---------- labels (F09.23) ----------
+
+    def _classify(self, conn, cmd, source, model, plan_ms) -> Iterator[dict]:
+        cid, state = self.collection_id, {}
+        find_cmd = cmd.model_copy(update={"kind": "find", "level": None})
+
+        def find(c, progress):
+            progress("Looking for the documents you named")
+            docs, dropped = assistant.find_documents(c, cid, find_cmd)
+            state.update(docs=docs, dropped=dropped)
+            shown = [{"document_id": d["document_id"], "filename": d["filename"]} for d in docs[:PREVIEW]]
+            return f"{len(docs)} document{'s' if len(docs) != 1 else ''}", {
+                "shown": {"count": len(docs), "documents": shown, "dropped_words": dropped},
+                "touched": {
+                    "action": "looked_at",
+                    "document_ids": activity.unique_ids(d["document_id"] for d in docs),
+                    "count": len(docs),
+                    "words": (cmd.q or "").split()[:8] or None,
+                },
+            }
+
+        def label(c, progress):
+            if not self.principal.can("proposals:create"):
+                raise HelperFailed("Only analysts and administrators can suggest labels.", 403)
+            ids = [d["document_id"] for d in state.get("docs", [])]
+            if not ids:
+                raise HelperFailed("No documents matched, so there is nothing to label.")
+            progress(f"Reading {len(ids)} document{'s' if len(ids) != 1 else ''} for markings, prices and names")
+            pid = classifier.create_proposal(c, cid, self.principal.user_id, ids, self.message, cmd.level)
+            audit.record(
+                c,
+                self.principal.username,
+                "classification.propose",
+                "allowed",
+                target=f"proposal:{pid}",
+                detail={"documents": len(ids), "level": cmd.level, "via": "keeper"},
+            )
+            row = c.execute("SELECT plan FROM proposals WHERE id = ?", (pid,)).fetchone()
+            summary = (loads(row["plan"], {}) or {}).get("summary", {})
+            state["proposal"] = {"proposal_id": pid, **summary}
+            return f"Proposal {pid}: {summary.get('redactions', 0)} things to black out", {"shown": state["proposal"]}
+
+        steps = [
+            [Step("finder", "to find the documents you named", find)],
+            [Step("classifier", f"you asked to mark them {cmd.level}", label)],
+        ]
+        yield self._plan(cmd, source, model, plan_ms, steps, "A label: find the documents, then propose it.")
+        results: dict = {}
+        for group in steps:
+            yield from self._run(group, results)
+            if group[0].helper not in results:
+                break
+        prop = state.get("proposal")
+        if prop:
+            n = prop.get("documents", 0)
+            text = (
+                f"I prepared proposal {prop['proposal_id']}: mark {n} document{'s' if n != 1 else ''} "
+                f"{cmd.level} and black out {prop.get('redactions', 0)} names, contact details and amounts. "
+                "Nothing changes until an administrator approves it in Approvals."
+            )
+        else:
+            text = "No proposal was made."
+        yield self._event(
+            "answer",
+            kind="classify",
+            command=cmd.model_dump(),
+            text=text,
+            proposal=prop,
+            route="/approvals" if prop else None,
         )
 
     # ---------- lists ----------

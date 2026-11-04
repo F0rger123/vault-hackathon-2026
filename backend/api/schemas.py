@@ -93,6 +93,22 @@ class Decision(BaseModel):
     note: str = Field(default="", max_length=500)
 
 
+ClassificationLevel = Literal["public", "internal", "confidential", "restricted"]
+
+
+class ClassifyRequest(BaseModel):
+    """F09.23: which documents the Classifier helper should look at. None means every document in the collection."""
+
+    document_ids: list[int] | None = Field(default=None, max_length=500)
+    level: ClassificationLevel | None = None
+    instruction: str = Field(default="", max_length=300)
+
+
+class Relabel(BaseModel):
+    level: ClassificationLevel
+    reason: str = Field(default="", max_length=300)
+
+
 class CorrectionCreate(BaseModel):
     field: Literal["doc_type", "project"]
     value: str = Field(min_length=1, max_length=80)

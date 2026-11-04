@@ -376,6 +376,32 @@ MIGRATIONS: list[str] = [
     );
     CREATE INDEX ask_answers_collection ON ask_answers(collection_id, vote);
     """,
+    # 15: F09.23, classification labels and redactions. A helper proposes, an administrator approves. NULL means not
+    # labelled yet (treated as internal). Redactions store where the span is and a hash of it, never the value, and
+    # the original file and page text are never changed: the span is hidden whenever the text is shown.
+    """
+    ALTER TABLE documents ADD COLUMN classification TEXT
+        CHECK (classification IS NULL OR classification IN ('public', 'internal', 'confidential', 'restricted'));
+    ALTER TABLE documents ADD COLUMN classification_reason TEXT;
+    ALTER TABLE documents ADD COLUMN classification_set_by TEXT CHECK (classification_set_by IN ('agent', 'user'));
+    ALTER TABLE documents ADD COLUMN classification_by_user TEXT;
+    ALTER TABLE documents ADD COLUMN classification_set_at REAL;
+    CREATE TABLE redactions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        document_id INTEGER NOT NULL REFERENCES documents(id),
+        page_no INTEGER NOT NULL,
+        start INTEGER NOT NULL CHECK (start >= 0),
+        end INTEGER NOT NULL CHECK (end > start),
+        kind TEXT NOT NULL,
+        value_sha TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'proposed' CHECK (status IN ('proposed', 'applied', 'rejected', 'removed')),
+        proposal_id INTEGER REFERENCES proposals(id),
+        created_at REAL NOT NULL,
+        decided_by TEXT,
+        decided_at REAL
+    );
+    CREATE INDEX redactions_document ON redactions(document_id, status);
+    """,
 ]
 
 
