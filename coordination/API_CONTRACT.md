@@ -333,8 +333,9 @@ Really processes a random sample with the chosen provider (results are saved as 
 
 ### `GET /documents/{document_id}/original`
 - **Permission:** `documents:read`
-- **Response 200:** the original file bytes with its media type and `Content-Disposition` filename. Browsers cannot attach the bearer header to `<img src>`/`<iframe src>`, so fetch with the header and display through an object URL. Audited as `document.download`.
-- **Errors:** 401, 403, 404
+- **Query:** `inline` (bool, default false). F11.9: `inline=1` is the drawer's in-app preview. It serves only `application/pdf`, `image/png`, `image/jpeg`, `video/mp4`, `video/webm`, `video/quicktime`, `audio/wav`, `audio/mpeg`, `audio/mp4` and `audio/ogg`, with `Content-Disposition: inline`, and is audited as `document.view`. Without it the response is an attachment audited as `document.download`.
+- **Response 200:** the original file bytes with its media type and `Content-Disposition` filename, `X-Content-Type-Options: nosniff` and `Content-Security-Policy: default-src 'none'; frame-ancestors 'none'; sandbox`. Browsers cannot attach the bearer header to `<img src>`/`<iframe src>`, so fetch with the header and display through an object URL whose type the client sets from the same allowlist (`previewOriginal` in `frontend/src/lib/api.ts`). Downloads use a download link (`downloadOriginal`), never a new tab.
+- **Errors:** 401, 403 (no `documents:read`), 404, 409, **415** (`inline=1` for a kind with no preview, such as text, Office files or AVI; denied `document.view` is audited), **423** (held by the security gate; preview and download alike, audited as denied)
 
 ### `POST /documents/{document_id}/corrections` → 201
 - **Permission:** `corrections:create`

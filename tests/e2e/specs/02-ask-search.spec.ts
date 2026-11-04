@@ -94,3 +94,22 @@ test("a liked answer is remembered and recalled, then checked again", async ({ p
   await expect(recall).toBeVisible();
   await expect(recall).toContainText("Still true");
 });
+
+test("the drawer previews the original PDF inside the app and widens to full screen", async ({ page }) => {
+  // F11.9: the original is fetched with the token and shown from an object URL, not opened in a new tab.
+  await signedIn(page, "analyst", "/chat");
+  const reply = await ask(page, "find inspection reports");
+  const row = reply.getByTestId("keeper-results").locator("li button.w-full").filter({ hasText: /\.pdf/ }).first();
+  await row.click();
+  const drawer = page.getByRole("dialog");
+  const preview = drawer.locator('iframe[title^="Preview of"]');
+  await expect(preview).toBeVisible();
+  await expect(preview).toHaveAttribute("src", /^blob:/);
+  await expect(drawer.getByRole("button", { name: "Download the original" })).toBeEnabled();
+  await drawer.getByRole("button", { name: "Full screen" }).click();
+  await expect(drawer.getByRole("button", { name: "Narrower" })).toHaveAttribute("aria-pressed", "true");
+  const width = await drawer.evaluate((d) => d.getBoundingClientRect().width);
+  expect(width).toBeGreaterThan(900);
+  await page.keyboard.press("Escape");
+  await expect(drawer).toBeHidden();
+});

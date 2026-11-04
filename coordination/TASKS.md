@@ -1688,6 +1688,26 @@ All F10 tasks use only endpoints listed in `coordination/API_CONTRACT.md`. Each 
   - **Real files:** ffmpeg decodes the hand-made Photo-JPEG MOV (60 frames, 6.0 s) and silent MP3 without errors; VAULT's parser gives the same length and size for ffmpeg-made H.264 MP4 and VP8 WebM.
   - **Not checked:** the Investigate filters and badges were not looked at in a browser (the e2e Investigate specs pass); `media_info` is filled only for files uploaded after migration 11, so photos stored earlier show no details until uploaded again.
 
+#### F11.9 — See the original inside VAULT, and test files that look like the real thing
+
+- **Priority:** P0 · **Owner:** luke · **Status:** VERIFIED · **Dependencies:** F11.8, F09.13
+- **Description:** Luke (2026-11-03): "None of the photos actually display when I open them. They need to be PDFs, blueprint drawings, photographs, newspaper articles, etc." The drawer's only option, "Open the original", fetched the file and navigated a new tab to a blob URL. Two causes: (1) a blob URL document inherits the app's Content-Security-Policy, which had no `media-src`, so video and sound were blocked (`default-src 'self'` fallback; reproduced in Chromium); (2) in the desktop window (pywebview, `OPEN_EXTERNAL_LINKS_IN_BROWSER`) `window.open` is handed to the system browser as `about:blank`, where a blob URL made by the app does not exist, so nothing shows (read from pywebview's code, not reproduced on the desktop window). Photos and PDFs did open in plain Chromium; the flat clip-art test photos made them look broken too.
+- **Implementation scope:**
+  - `GET /documents/{id}/original?inline=1`: previews only PDF, PNG, JPEG, MP4, WebM, MOV and browser audio (415 otherwise), `Content-Disposition: inline`, audited as `document.view`; held files 423; every original now carries `default-src 'none'; frame-ancestors 'none'; sandbox`. No migration.
+  - Drawer: inline preview (image with Fit, 100 %, zoom steps; PDF in the browser's viewer; HTML5 video and audio; extracted pages for text and Office files; "cannot play this format" for AVI and Photo-JPEG MOV), a size question above 25 MB, object URLs revoked on close, "Full screen" widens the drawer to nearly the whole window, "Download the original" saves a file instead of opening a tab.
+  - CSP (`frontend/next.config.ts`, `backend/ui.py`): `media-src 'self' blob:` and `frame-src 'self' blob:`; `object-src` stays `'none'`.
+  - `scripts/make_test_files.py`: blueprints (blue ground, white linework, zone grid, title block, revision table, dimensions, section view; marked-up ones add red clouds, triangles, callouts and an inked stamp), photographs with lighting, depth blur, grain, perspective nameplates, a gauge, a phone date stamp and matching EXIF, rubber-stamp seals with uneven ink on letterhead reports, and a fictional newspaper (front-page PDF with text, scanned clipping JPEG). All drawn with Pillow and reportlab; nothing downloaded.
+- **Acceptance criteria:** photos, PDFs, video and sound show inside the drawer in the browser; held files never preview; previews audited; demo set about 100–150 files under 25 MB in under 60 s; existing manifest tests pass.
+- **Required tests:** `tests/security/test_preview.py`, `tests/security/test_ui_serving.py`, `tests/unit/test_make_test_files.py`, `tests/integration/test_media_files.py`, e2e `02-investigate` (new preview spec).
+- **Blockers:** none
+- **Related PR/commit:** branch `luke/F11.9-viewer-real-files`
+- **Verification evidence (2026-11-03):**
+  - **pytest:** 336 passed (full suite). `test_preview.py`: inline JPEG and PDF with `inline` disposition, `nosniff` and `sandbox`; downloads stay attachments; `document.view` and `document.download` audited separately; a text file holding markup gets 415 and is never served; a held PDF gets 423 with a denied `document.view`; 401 without a token and 403 without `documents:read`.
+  - **ruff check / format --check, bandit -ll:** clean. **Frontend:** lint, typegen + tsc, production build pass. **e2e:** 31 of 31 (ports 8430/3430), including the new "previews the original PDF inside the app" spec.
+  - **Viewer, by hand (Playwright against the dev server):** blueprint PDF, newspaper PDF and stamped PDF in the PDF viewer, site photo, inspection photo and scanned clipping with Fit, an MP4 playing, WAV in the audio player, Photo-JPEG MOV and AVI show the "cannot play" note; no console errors. Screenshots and a contact sheet in `docs/screenshots/F11.9/`.
+  - **Test set:** `--size demo` 130 files, 18.2 MB, about 20 s; ingested and read with `heuristic`: 112 added, 2 duplicates, 110 read; blueprints read as engineering drawings with all 10 parts and their titles, stamped reports keep APPROVED and REJECTED as text. `--size full --no-ffmpeg`: 490 files, 174.8 MB, 60 s. The main checkout's `data/testset-demo` was regenerated (130 files, 18.2 MB).
+  - **Not checked:** the desktop window (pywebview/WebView2) and Firefox/Safari; the heuristic reader calls the newspaper front page an inspection report.
+
 ## F12 — Deployment & Submission
 - **Related PR/commit:** PR #104, merged 2026-11-03 with all CI checks green.
 
