@@ -236,7 +236,7 @@ export function QuickStart({ collectionId, documents }: { collectionId: number; 
   // Two slots keep one Llama copy busy without running out of graphics memory on an 8 GB laptop.
   const slots = llama ? Math.min(2, Math.max(1, llama.copies_on_gpu * 2)) : 4;
   return (
-    <Panel title="Quick start" className="mb-6 animate-rise">
+    <Panel title="Quick start" className="mb-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm">
           Read the <span className="font-semibold tabular-nums">{documents}</span> documents with{" "}

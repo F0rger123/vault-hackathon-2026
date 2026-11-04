@@ -1197,3 +1197,58 @@ mark {
   padding: 0 1px;
   border-radius: 2px;
 }
+
+/* F12.17: minimal motion. Entrance flourishes and decorative pulses finish at once, in their final state, so
+   nothing waits on an animation and nothing is hidden by one. Spinners, loading shimmer, progress stripes, the
+   thinking trace, face-capture cues and the sign-in door keep their motion: they say something is happening. */
+.slot-hit,
+.tick-in,
+.bump,
+.flow-pulse,
+.drawer-in,
+.live-dot,
+.animate-rise,
+.page-enter > *,
+.reveal,
+.wizard-pane,
+.scan-line,
+.tree-in,
+.tree-stem,
+.tree-branch,
+.slot-pop,
+details[open] > :not(summary),
+.draw-line,
+.pop-in,
+.chat-panel,
+.chat-launch,
+.chat-msg,
+.update-in,
+.chat-row,
+.helper-lit,
+.ask-fly,
+.plan-in,
+.handoff-pulse,
+.tick-draw,
+.cite-pop,
+.result-in,
+.recall-in,
+.refine-pop,
+.learn-bump,
+.vote-on,
+.scan-seg-new,
+.scan-accepted-ring,
+.scan-check,
+.take-new,
+.phone-offer,
+.face-prompt,
+.vault-dial-intro .vault-trim,
+.vault-dial-intro .vault-keyhole {
+  animation-duration: 0.001ms !important;
+  animation-delay: 0s !important;
+  animation-iteration-count: 1 !important;
+}
+/* The capture still shows (the segment fills), without the flash of light. */
+.scan-flash {
+  animation: none !important;
+  opacity: 0;
+}

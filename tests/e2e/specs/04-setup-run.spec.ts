@@ -18,14 +18,14 @@ test("upload five files, start a rule-based run and watch it complete", async ({
   await page.getByLabel("Add files").setInputFiles(files);
   await page.getByRole("button", { name: "Upload 5 files" }).click();
   await expect(page.getByRole("main")).toContainText(/155 documents/);
+  // F12.17: the new files are listed at once, and reading them starts by itself.
+  await expect(page.getByRole("list", { name: "Documents in this collection" })).toContainText("e2e-note-5.txt");
+  await expect(page.locator('[data-reading="done"]')).toContainText("Read 5 of 5", { timeout: 45_000 });
 
   // Measuring the machine is an administrator's job; analysts are told so instead of seeing the button.
   await expect(page.getByRole("main")).toContainText("Only administrators can run a measurement.");
 
-  await page.getByText("More options: teach by example").click();
-  await page.getByRole("combobox", { name: "Model" }).first().selectOption({ label: "Rules baseline" });
-  await page.getByRole("button", { name: "Start run" }).click();
-
+  await page.getByRole("link", { name: "Open Progress" }).first().click();
   await expect(page).toHaveURL(/\/run\?job=\d+/);
   await expect(page.getByRole("heading", { name: "Progress" })).toBeVisible();
   const status = page.getByRole("region", { name: "Run status" });

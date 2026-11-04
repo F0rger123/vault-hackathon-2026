@@ -31,6 +31,7 @@ Every run starts from the same state. The dev servers on ports 8000 and 3000 are
 | `051-approvals-view-delete` | A viewer browses requests in view only with no controls; an admin deletes one copy and a request, both audited; the guide links into view only (F10.24) |
 | `0597-face` | Face setup starts the camera at once with Chromium's fake camera and waits for a face; the server issues random challenges; the vault door; demo roles select before signing in (F09.22). Following the moves needs a real face, so that part is manual |
 | `0599-classify` | An analyst asks Keeper to mark the contracts confidential and gets a proposal; an admin approves; the analyst sees the label and black-bar redactions and cannot download the original; a viewer cannot find the contracts (F09.23) |
+| `07-delete-demo` | An admin deletes the demo data with the Overview button (confirm names the collection and says files outside VAULT are not touched), the session moves to Real mode, the demo stays deleted, Restore demo data brings it back (F12.17) |
 | `phone` | The menu works at phone width, with no sideways scrolling |
 
 Specs run in order with one worker, because later specs change the shared database. CI runs the same suite (job `e2e`).

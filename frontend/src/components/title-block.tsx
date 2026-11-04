@@ -1,40 +1,9 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { useSession } from "./session";
 
-const CIPHER = "ｱｶｻﾀﾅﾊﾏﾔﾗﾜ0123456789";
-
-// Once per title per visit: seen every time, it stops being a flourish and starts being a wait.
-const decoded = new Set<string>();
-
-/** The title resolves out of random type the first time. The real text is in the page from the start. */
-function useDecode(text: string) {
-  const ref = useRef<HTMLHeadingElement>(null);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || decoded.has(text) || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    decoded.add(text);
-    const steps = 10;
-    let step = 0;
-    const timer = window.setInterval(() => {
-      step += 1;
-      const shown = Math.floor((step / steps) * text.length);
-      el.textContent = [...text]
-        .map((c, i) => (i < shown || c === " " ? c : CIPHER[Math.floor(Math.random() * CIPHER.length)]))
-        .join("");
-      if (step >= steps) {
-        el.textContent = text;
-        window.clearInterval(timer);
-      }
-    }, 24);
-    return () => {
-      window.clearInterval(timer);
-      el.textContent = text;
-    };
-  }, [text]);
-  return ref;
-}
+// F12.17: the title is plain text from the first frame; the scrambled "decode" effect was removed.
 
 /**
  * Page header: an expanded title with one line of context, the collection in view, and the page's actions.
@@ -53,7 +22,6 @@ export function TitleBlock({
   collectionLabel?: string;
 }) {
   const { collection } = useSession();
-  const heading = useDecode(title);
   return (
     <header className="mb-8">
       <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
@@ -64,7 +32,7 @@ export function TitleBlock({
           </svg>
           <span className="truncate">{collectionLabel ?? collection?.name ?? "No collection selected"}</span>
         </p>
-        <h1 ref={heading} className="display text-balance text-[28px] leading-[1.05] sm:text-[36px]">
+        <h1 className="display text-balance text-[28px] leading-[1.05] sm:text-[36px]">
           {title}
         </h1>
         {description && <div className="mt-2.5 max-w-[68ch] text-[15px] leading-relaxed text-muted">{description}</div>}

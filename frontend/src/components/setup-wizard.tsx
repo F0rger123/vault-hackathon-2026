@@ -4,7 +4,6 @@ import { useState, type ReactNode } from "react";
 import { errorText, setToken, vault, type Hardware } from "@/lib/api";
 import { useLoad } from "@/lib/use-load";
 import { AgentTree } from "./agent-tree";
-import { MatrixRain } from "./matrix-rain";
 import { ModelInstaller } from "./model-installer";
 import { PasskeysPanel } from "./passkeys-panel";
 import { Button, cx, Field, inputClass, Notice } from "./ui";
@@ -205,7 +204,6 @@ export function SetupWizard({ createOwner, onFinish }: { createOwner: boolean; o
 
   return (
     <div className="wizard-backdrop relative grid min-h-dvh lg:grid-cols-[minmax(320px,0.8fr)_minmax(0,1.2fr)]">
-      <MatrixRain className="rain-backdrop" />
       <aside className="relative isolate flex flex-col items-center justify-center gap-8 border-b border-line px-8 py-10 lg:border-b-0 lg:border-r">
         <div aria-hidden className="sheet-grid absolute inset-0 -z-10" />
         <VaultLockup intro />
