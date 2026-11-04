@@ -337,6 +337,14 @@ Really processes a random sample with the chosen provider (results are saved as 
 - **Response 200:** the original file bytes with its media type and `Content-Disposition` filename, `X-Content-Type-Options: nosniff` and `Content-Security-Policy: default-src 'none'; frame-ancestors 'none'; sandbox`. Browsers cannot attach the bearer header to `<img src>`/`<iframe src>`, so fetch with the header and display through an object URL whose type the client sets from the same allowlist (`previewOriginal` in `frontend/src/lib/api.ts`). Downloads use a download link (`downloadOriginal`), never a new tab.
 - **Errors:** 401, 403 (no `documents:read`), 404, 409, **415** (`inline=1` for a kind with no preview, such as text, Office files or AVI; denied `document.view` is audited), **423** (held by the security gate; preview and download alike, audited as denied)
 
+### `GET /demo/dataset/quick.zip` · `GET /demo/dataset/complete.zip` (F12.16)
+- **Permission:** `documents:read` (every signed-in role).
+- **Response 200:** `application/zip` attachment `vault-demo-dataset-<kind>.zip`, with `ETag` (content hash), `X-Dataset-Files` and `X-Content-Type-Options: nosniff`. Built by the server from fictional data only; no network. Every entry sits under `vault-demo-dataset-<kind>/` with a relative name (no `..`, no drive, no leading slash).
+  - `quick`: `files/` (the 150 frozen demo documents of `data/synthetic/v1`), `expected/manifest.json`, `expected/expected_findings.json`, `README.md`, `EXAMPLE_PROMPTS.md`, `FICTIONAL_DATA_NOTICE.txt`.
+  - `complete`: the same plus `testset/` (output of `scripts/make_test_files.py --size demo`, seed 7, no ffmpeg; generated on the first request into `<data_dir>/demo-datasets/`, about 30 s) and `expected/testset-manifest.json`. Files that are programs (MZ), PDFs with active content, Office files with macro parts or outside links, and nested archives are left out and listed in the README.
+- Built ZIPs are cached in `<data_dir>/demo-datasets/` under a content hash. Each download is audited as `demo_dataset.download` (files, bytes, hash prefix, excluded count).
+- **Errors:** 401, 403, 422 (unknown kind), 503 (the dataset or generator is not part of this installation), 500 (build failed; no path in the message). Client: `downloadDemoDataset` in `frontend/src/lib/api.ts`.
+
 ### `POST /documents/{document_id}/corrections` → 201
 - **Permission:** `corrections:create`
 - **Body:** `{"field": "doc_type" | "project", "value": "inspection_report", "when_contains": "Field Verification Record" | null, "note": ""}`. `value` 1–80 chars; `when_contains` up to 120 chars. When `when_contains` is set, a new policy version is published with a rule `{when_contains, field, value}`. Reprocess (new job) to apply it.
