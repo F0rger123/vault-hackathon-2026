@@ -57,6 +57,7 @@ def search(
     fts = to_fts_query(q)
     base = f"""
         SELECT d.id AS document_id, d.filename, d.media_type, d.collection_id, d.size_bytes, d.media_info,
+               d.classification,
                x.doc_type, x.project, x.doc_date, x.title, x.data, x.provider, x.model{{extra}}
         FROM documents d
         LEFT JOIN ({LATEST_EXTRACTION}) x ON x.document_id = d.id
@@ -138,6 +139,8 @@ def search(
                 "kind": kind_of(r["media_type"]),
                 "size_bytes": r["size_bytes"],
                 "media_info": loads(r["media_info"], None),
+                # F09.23: the document's label (unlabelled counts as internal), for the badge on each row.
+                "classification": r["classification"] or "internal",
             }
         )
         if len(results) >= limit:
