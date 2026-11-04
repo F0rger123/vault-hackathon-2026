@@ -23,6 +23,11 @@ Last updated: 2026-11-03
 
 ## Updates
 
+### 2026-11-03 · F09.22 · review (auth change: not merged)
+- **Built:** a random head-move liveness challenge for the face step and face setup, a smoother capture, the outline, scan and vault-door sign-in sequence, Test my face now, and demo roles that select before signing in.
+- **Waiting on Luke:** review and merge the PR (auth code). Then on the real webcam: Security, Face check, Set it up again, then Test my face now, and note the numbers; sign in with face as a step and watch the door.
+- **Not verified:** the challenge with a real face (fake camera only); thresholds not yet calibrated on real people.
+
 ### 2026-11-03 · F09.19, F10.19, F11.7 · merged
 - **Merged:** #98. Real sign-in levels (passkey kind choice, confirm-it's-you, webcam face check with the Human library, admin controls), Progress live status, mock-up audit fixes, the fictional test set generator, and `docs/TEST_GUIDE.md`.
 - **Release:** v0.2.0 published on GitHub.
