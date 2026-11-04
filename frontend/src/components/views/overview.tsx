@@ -4,6 +4,7 @@ import Link from "next/link";
 import { TERMINAL, vault, type Job, type ProvidersResponse } from "@/lib/api";
 import { formatBytes, formatNumber, laneLabel, providerLabel, statusText, timeAgo } from "@/lib/format";
 import { useLoad } from "@/lib/use-load";
+import { DemoDatasetPanel } from "../demo-dataset";
 import { GettingStarted, LocalModelsCard } from "../first-run";
 import { ModelInstaller } from "../model-installer";
 import { FindingRedline } from "../finding-redline";
@@ -12,7 +13,7 @@ import { TitleBlock } from "../title-block";
 import { cx, Empty, Figure, LoadError, Meter, Panel, Tag } from "../ui";
 
 export function OverviewView() {
-  const { collection } = useSession();
+  const { collection, mode } = useSession();
   // Counts for the collection on screen only, so another collection (or the demo archive) never mixes in.
   const stats = useLoad(collection ? `stats:${collection.id}` : null, () => vault.stats(collection!.id), 5000).data;
   const providers = useLoad("providers", vault.providers, 15000);
@@ -34,6 +35,8 @@ export function OverviewView() {
       />
 
       <GettingStarted />
+
+      {mode === "demo" && <DemoDatasetPanel />}
 
       <section aria-label="Collection figures" className="mb-8 overflow-hidden rounded-card border border-line bg-panel shadow-panel">
         <div className="grid grid-cols-2 divide-line sm:grid-cols-4 xl:grid-cols-7 xl:divide-x">

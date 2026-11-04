@@ -21,6 +21,7 @@ Every run starts from the same state. The dev servers on ports 8000 and 3000 are
 | Spec | Covers |
 |---|---|
 | `01-sign-in` | A bad token is refused, a good token signs in, overview counts and privacy posture, sign out (F10.1, F10.2) |
+| `015-demo-dataset` | The Overview in Demo mode shows Download Demo Dataset; the Quick button saves `vault-demo-dataset-quick.zip` (F12.16) |
 | `02-investigate` | Findings with verified quotes, filtered search, one document of each type in the drawer, Ask panel citations (F10.4–F10.6, F10.10) |
 | `025-ask` | Ask VAULT: helper cards finish from real events, the answer's source opens its document, the thread survives a reload, phone width (F10.20) |
 | `0585-live-brain` | A chat question's Finder and Fact checker rows appear in the brain's activity ticker, the brain says it is idle, "Watch in the brain" shows only that reply's record, phone width (F10.22) |

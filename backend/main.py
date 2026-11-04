@@ -10,6 +10,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from backend.api.routes import VERSION, router
 from backend.api.routes_agents import router as agents_router
 from backend.api.routes_brain import router as brain_router
+from backend.api.routes_demo import router as demo_router
 from backend.api.routes_invites import router as invites_router
 from backend.api.routes_passkeys import router as passkey_router
 from backend.api.routes_share import router as share_router
@@ -80,6 +81,7 @@ def create_app(settings: Settings | None = None, resume_jobs: bool = True) -> Fa
     app.include_router(router)
     app.include_router(agents_router)
     app.include_router(brain_router)
+    app.include_router(demo_router)
     app.include_router(share_router)
     app.include_router(passkey_router)
     app.include_router(users_router)
