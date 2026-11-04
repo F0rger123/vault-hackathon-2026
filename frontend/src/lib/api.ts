@@ -906,6 +906,9 @@ export const vault = {
     api<DocumentRow[]>(`/documents?collection_id=${collectionId}&limit=${limit}&offset=${offset}`),
   document: (id: number) => api<DocumentDetail>(`/documents/${id}`),
   screening: (id: number) => api<Screening>(`/documents/${id}/screening`),
+  /** F11.9: one page of the text VAULT extracted, for the drawer's preview of text-like files. */
+  page: (id: number, pageNo: number) =>
+    api<{ document_id: number; page_no: number; text: string }>(`/documents/${id}/pages/${pageNo}`),
   examples: () => api<Example[]>("/examples"),
   training: (collectionId: number) =>
     api<{ report: TrainingReport; history: TrainingHistoryEntry[] }>(`/training/${collectionId}`),
@@ -1011,20 +1014,48 @@ export interface ActivityFeed {
   now: number;
 }
 
-/** Download an original with the bearer token and open it in a new tab (links cannot carry the token). */
-export async function openOriginal(documentId: number): Promise<void> {
-  const win = window.open("", "_blank");
-  try {
-    const res = await request(`/documents/${documentId}/original`);
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    if (win) win.location.href = url;
-    else window.location.href = url;
-    setTimeout(() => URL.revokeObjectURL(url), 60_000);
-  } catch (e) {
-    win?.close();
-    throw e;
-  }
+/**
+ * F11.9: kinds the drawer previews from the original file, matching the server's list. Never SVG or HTML: a blob URL
+ * shares this page's origin, so nothing that can run script is ever shown from one.
+ */
+export const PREVIEW_TYPES = new Set([
+  "application/pdf",
+  "image/png",
+  "image/jpeg",
+  "video/mp4",
+  "video/webm",
+  "video/quicktime",
+  "audio/wav",
+  "audio/mpeg",
+  "audio/mp4",
+  "audio/ogg",
+]);
+/** Above this, the drawer asks before loading a preview into memory. */
+export const PREVIEW_WARN_BYTES = 25 * 1024 * 1024;
+
+/**
+ * Fetch an original for the in-app preview (audited as document.view) and return an object URL that the caller must
+ * revoke. The blob's type comes from the allowlist above, never from the response.
+ */
+export async function previewOriginal(documentId: number, mediaType: string): Promise<string> {
+  if (!PREVIEW_TYPES.has(mediaType)) throw new ApiError(415, "this kind of file has no preview");
+  const res = await request(`/documents/${documentId}/original?inline=1`);
+  const data = await res.arrayBuffer();
+  return URL.createObjectURL(new Blob([data], { type: mediaType }));
+}
+
+/**
+ * Save the original as a file (audited as document.download). A download link, not a new tab: the desktop window
+ * hands new windows to the system browser, where a blob URL made by this page does not exist (F11.9).
+ */
+export async function downloadOriginal(documentId: number, filename: string): Promise<void> {
+  const res = await request(`/documents/${documentId}/original`);
+  const url = URL.createObjectURL(await res.blob());
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
 /** Download a collection's extracted records (one row per part, with source document and page) as a file. */

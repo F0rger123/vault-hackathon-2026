@@ -32,6 +32,24 @@ test("search filters by document type and opens a document", async ({ page }) =>
   await expect(drawer).toBeHidden();
 });
 
+test("the drawer previews the original PDF inside the app and widens to full screen", async ({ page }) => {
+  // F11.9: the original is fetched with the token and shown from an object URL, not opened in a new tab.
+  await page.getByLabel("Document type").selectOption({ label: "Inspection report" });
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await page.getByRole("button", { name: /-INS-\d+\.pdf$/ }).first().click();
+  const drawer = page.getByRole("dialog");
+  const preview = drawer.locator('iframe[title^="Preview of"]');
+  await expect(preview).toBeVisible();
+  await expect(preview).toHaveAttribute("src", /^blob:/);
+  await expect(drawer.getByRole("button", { name: "Download the original" })).toBeEnabled();
+  await drawer.getByRole("button", { name: "Full screen" }).click();
+  await expect(drawer.getByRole("button", { name: "Narrower" })).toHaveAttribute("aria-pressed", "true");
+  const width = await drawer.evaluate((d) => d.getBoundingClientRect().width);
+  expect(width).toBeGreaterThan(900);
+  await page.keyboard.press("Escape");
+  await expect(drawer).toBeHidden();
+});
+
 test("one document of each type opens in the document drawer", async ({ page }) => {
   const typeFilter = page.getByLabel("Document type");
   // The type list is loaded from the archive after the page renders, so wait for it.

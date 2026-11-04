@@ -748,9 +748,28 @@ def get_page(
     )
 
 
+# F11.9: kinds a browser shows by itself (image decoder, PDF viewer, media player). Nothing here can run script in
+# the page: VAULT never accepts SVG or HTML, and text files are previewed from their extracted pages instead.
+PREVIEW_TYPES = {
+    "application/pdf",
+    "image/png",
+    "image/jpeg",
+    "video/mp4",
+    "video/webm",
+    "video/quicktime",
+    "audio/wav",
+    "audio/mpeg",
+    "audio/mp4",
+    "audio/ogg",
+}
+# An original opened on its own (not through the app) can never run anything or be framed by another site.
+ORIGINAL_CSP = "default-src 'none'; frame-ancestors 'none'; sandbox"
+
+
 @router.get("/documents/{document_id}/original")
 def get_original(
     document_id: int,
+    inline: bool = Query(False, description="F11.9: for the in-app preview; audited as document.view"),
     conn=Depends(get_conn),
     settings: Settings = Depends(get_settings),
     p: Principal = Depends(require("documents:read")),
@@ -760,25 +779,27 @@ def get_original(
             "SELECT filename, media_type, stored_path, status FROM documents WHERE id = ?", (document_id,)
         ).fetchone()
     )
+    action = "document.view" if inline else "document.download"
+    target = f"document:{document_id}"
     if doc["status"] == "quarantined":
-        # F09.13: the original may run something when opened; nobody downloads it until an admin releases it.
-        audit.record(
-            conn,
-            p.username,
-            "document.download",
-            "denied",
-            target=f"document:{document_id}",
-            detail={"reason": "quarantined"},
-        )
+        # F09.13: the original may run something when opened; nobody downloads or previews it until it is released.
+        audit.record(conn, p.username, action, "denied", target=target, detail={"reason": "quarantined"})
         raise HTTPException(status_code=423, detail="held by the security gate until an administrator releases it")
+    if inline and doc["media_type"] not in PREVIEW_TYPES:
+        audit.record(conn, p.username, action, "denied", target=target, detail={"reason": "no preview"})
+        raise HTTPException(status_code=415, detail="this kind of file has no preview; open the original instead")
     try:
         path = original_path(settings.data_dir, doc["stored_path"])
     except FileRejected as exc:
-        audit.record(conn, p.username, "document.download", "denied", target=f"document:{document_id}")
+        audit.record(conn, p.username, action, "denied", target=target)
         raise HTTPException(status_code=409, detail=str(exc)) from exc
-    audit.record(conn, p.username, "document.download", "allowed", target=f"document:{document_id}")
+    audit.record(conn, p.username, action, "allowed", target=target)
     return FileResponse(
-        path, media_type=doc["media_type"], filename=doc["filename"], headers={"X-Content-Type-Options": "nosniff"}
+        path,
+        media_type=doc["media_type"],
+        filename=doc["filename"],
+        content_disposition_type="inline" if inline else "attachment",
+        headers={"X-Content-Type-Options": "nosniff", "Content-Security-Policy": ORIGINAL_CSP},
     )
 
 
