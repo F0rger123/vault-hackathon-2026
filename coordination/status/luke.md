@@ -27,6 +27,11 @@ Last updated: 2026-11-03
 - **Built:** vault agents classify and redact. Keeper's Classifier helper proposes a label (public, internal, confidential, restricted) and redactions (emails, phones, ID numbers, amounts, people's names); an admin approves in Approvals; the server then hides documents above each role's clearance and redacted spans everywhere (lists, search, Keeper, findings, records, exports, share packs, originals). Admins relabel and unredact, audited. Migration 15. Branch `luke/F09.23-classify-redact`, issue #115.
 - **Evidence:** pytest 367 passed; e2e 42 passed; ruff, bandit, eslint, tsc, next build pass.
 - **Waiting on Luke:** review and merge the PR; decide whether analysts should see restricted documents (now admins only) and whether viewers should see confidential ones (now hidden).
+### 2026-11-04 · F12.16 · Download Demo Dataset (PR open, review)
+
+- **Started and built:** the Overview in Demo mode has a **Download Demo Dataset** panel with **Quick Demo Dataset** (155 files, about 0.36 MB) and **Complete Demo Dataset** (280 files, about 15 MB). Both ZIPs are built by the server (`GET /api/v1/demo/dataset/{quick,complete}.zip`, `documents:read`, audited, cached by content hash under `<data_dir>/demo-datasets/`).
+- **Complete** uses `make_test_files.py --size demo` (generated on first request, about 30 s), not `huge` (several minutes, 275 MB). Left out by content check: the MZ program, the JavaScript PDF, the macro and outside-link Word files, and the two nested ZIPs; the README lists them.
+- **Waiting on Luke:** review and merge.
 
 ### 2026-11-03 · merges · F10.24, F09.22, F11.9 done
 - **Done:** Luke approved; PRs #110 (approvals and guide), #113 (face liveness and vault door) and #114 (in-app viewer and realistic files) merged after main was merged into each and CI went 8/8 green. VAULT restarted on main.

@@ -1155,6 +1155,24 @@ export async function downloadRecords(collectionId: number, format: "csv" | "jso
   return blob.size;
 }
 
+export type DemoDatasetKind = "quick" | "complete";
+
+/**
+ * F12.16: save a fictional demo dataset ZIP built by this VAULT server (no cloud). Sends the bearer token, like
+ * downloadOriginal. The first Complete download generates its test set on the server, so it can take ~30 s.
+ */
+export async function downloadDemoDataset(kind: DemoDatasetKind): Promise<number> {
+  const res = await request(`/demo/dataset/${kind}.zip`);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `vault-demo-dataset-${kind}.zip`;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  return blob.size;
+}
+
 /** Load every document row of a collection (pages of 500). */
 export async function allDocuments(collectionId: number): Promise<DocumentRow[]> {
   const out: DocumentRow[] = [];
