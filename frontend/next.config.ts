@@ -16,6 +16,9 @@ const csp = [
   `img-src 'self' blob: data: ${apiOrigin}`,
   "font-src 'self'",
   `connect-src 'self' ${apiOrigin}`,
+  // F11.9: the document drawer previews PDFs, video and sound from object URLs this page made itself.
+  "media-src 'self' blob:",
+  "frame-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
