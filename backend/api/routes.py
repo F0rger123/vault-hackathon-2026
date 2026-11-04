@@ -40,7 +40,7 @@ from backend.ingest.media import NOT_READ_NOTE, kind_of
 from backend.ingest.service import ensure_collection, ingest_bytes
 from backend.providers import PROVIDER_NAMES, get_provider
 from backend.providers.base import ProviderError
-from backend.security import audit, face, signin_log, steps, voice
+from backend.security import audit, face, liveness, signin_log, steps, voice
 from backend.security import login as signin
 from backend.security.auth import Principal, list_tokens, revoke_token
 from backend.security.files import FileRejected, contained, original_path
@@ -163,12 +163,46 @@ def login(
     return session
 
 
-class FaceStep(BaseModel):
-    handle: str = Field(max_length=64)
-    embedding: list[float] = Field(max_length=2048)
+class FaceFrame(BaseModel):
+    """One camera frame during the face challenge (F09.22): numbers only, never the picture."""
+
+    t: float = Field(ge=0, le=60_000)  # milliseconds since the challenge reached the browser
+    yaw: float = Field(ge=-90, le=90)  # degrees; positive when the person turns to their own right
+    pitch: float = Field(ge=-90, le=90)  # degrees; positive when the person looks up
+    eye: float = Field(ge=0, le=2)  # how open the eyes are (height over width)
     live: float = Field(ge=0, le=1)
     real: float = Field(ge=0, le=1)
+
+
+class FaceReading(BaseModel):
+    t: float = Field(ge=0, le=60_000)
+    v: list[float] = Field(min_length=1, max_length=1024)
+
+
+class FaceLive(BaseModel):
+    """Answer to a face challenge: the per-frame numbers and at least three fingerprints spread over it."""
+
+    challenge: str = Field(max_length=64)
+    frames: list[FaceFrame] = Field(max_length=liveness.MAX_FRAMES)
+    embeddings: list[FaceReading] = Field(max_length=6)
     quality: dict[str, float] = Field(default_factory=dict, max_length=12)
+
+    def check(self, owner: str, purpose: str) -> tuple[list[list[float]], dict]:
+        """The fingerprints, once the challenge was answered. Raises FaceError (a ValueError) otherwise."""
+        face.check_quality(self.quality)
+        ch = liveness.take(self.challenge, owner, purpose)
+        summary = liveness.check(
+            ch, [f.model_dump() for f in self.frames], [e.model_dump(include={"t"}) for e in self.embeddings]
+        )
+        return [e.v for e in self.embeddings], summary
+
+
+class FaceStep(FaceLive):
+    handle: str = Field(max_length=64)
+
+
+class FaceChallengeAsk(BaseModel):
+    handle: str = Field(max_length=64)
 
 
 class VoiceStep(BaseModel):
@@ -211,15 +245,36 @@ def run_step(conn, request: Request, settings: Settings, handle: str, factor: st
     return result
 
 
+@router.post("/auth/face-challenge")
+def face_challenge(
+    body: FaceChallengeAsk, request: Request, conn=Depends(get_conn), settings: Settings = Depends(get_settings)
+) -> dict:
+    """F09.22: two random moves in a random order, for a sign-in ticket whose next step is the face check."""
+    if not _browser_origin_ok(request, settings):
+        raise HTTPException(status_code=403, detail="sign-in is only accepted from VAULT's own interface")
+    try:
+        ticket = steps.peek(body.handle)
+        row = signin.step_user(conn, ticket["user_id"])
+        if not row or steps.remaining(row, ticket["done"])[:1] != ["face"]:
+            raise HTTPException(status_code=409, detail="this sign-in does not need that step")
+        steps.take_challenge(body.handle)
+    except steps.StepError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+    return liveness.issue(f"ticket:{body.handle}", "signin")
+
+
 @router.post("/auth/face-step")
 def face_step(
     body: FaceStep, request: Request, conn=Depends(get_conn), settings: Settings = Depends(get_settings)
 ) -> dict:
-    """F09.19: the face check after a correct password or passkey. A session exists only once every step passed."""
+    """F09.19: the face check after a correct password or passkey. A session exists only once every step passed.
+
+    F09.22: it answers a challenge from /auth/face-challenge: the moves in order, live across frames, same face.
+    """
 
     def check(row) -> dict:
-        face.check_quality(body.quality)
-        return {"similarity": round(face.match(conn, row["id"], body.embedding, body.live, body.real), 2)}
+        embeddings, summary = body.check(f"ticket:{body.handle}", "signin")
+        return {"similarity": round(face.match(conn, row["id"], embeddings), 2), "moves": summary["moves"]}
 
     return run_step(conn, request, settings, body.handle, "face", check)
 

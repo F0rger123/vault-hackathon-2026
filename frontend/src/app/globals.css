@@ -1080,6 +1080,169 @@ section.rounded-card:hover {
   animation: rise 0.4s var(--ease-settle) both;
 }
 
+/* F09.22: the face check's sign-in sequence. The outline and the scan are painted on a canvas from real readings;
+   these are the pieces round it: the move prompt, the red lock-down, and the vault door that opens on the app. */
+.face-prompt {
+  animation: rise 0.35s var(--ease-settle) both;
+}
+.face-arrow {
+  box-shadow: 0 0 24px rgb(0 230 118 / 0.35);
+}
+.face-arrow-left {
+  animation: nudge-left 1s ease-in-out infinite;
+}
+.face-arrow-right {
+  animation: nudge-right 1s ease-in-out infinite;
+}
+.face-arrow-up {
+  animation: nudge-up 1s ease-in-out infinite;
+}
+.face-arrow-blink {
+  animation: blink-cue 1.4s ease-in-out infinite;
+}
+@keyframes nudge-left {
+  50% {
+    transform: translateX(-10px);
+  }
+}
+@keyframes nudge-right {
+  50% {
+    transform: translateX(10px);
+  }
+}
+@keyframes nudge-up {
+  50% {
+    transform: translateY(-8px);
+  }
+}
+@keyframes blink-cue {
+  45%,
+  55% {
+    transform: scaleY(0.2);
+  }
+}
+.face-lockdown {
+  border-color: #ff4d4d;
+  animation: lockdown-shake 0.45s linear both;
+}
+@keyframes lockdown-shake {
+  15%,
+  55% {
+    transform: translateX(-7px);
+  }
+  35%,
+  75% {
+    transform: translateX(7px);
+  }
+  90% {
+    transform: translateX(-2px);
+  }
+}
+.face-lock-shackle {
+  animation: shackle-shut 0.35s 0.1s var(--ease-settle) both;
+}
+@keyframes shackle-shut {
+  from {
+    transform: translateY(-5px);
+  }
+}
+.face-granted {
+  border-color: #00e676;
+  box-shadow: 0 0 0 1px #00e676, 0 0 32px rgb(0 230 118 / 0.25);
+}
+
+.vault-door {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 18px;
+  background: radial-gradient(circle at 50% 45%, #0d0d0d, #000 70%);
+  perspective: 1400px;
+  animation: fade-in 0.2s linear both;
+}
+.vd-svg {
+  width: min(72vmin, 520px);
+  height: min(72vmin, 520px);
+  overflow: visible;
+}
+.vd-label {
+  font-family: var(--font-data), ui-monospace, monospace;
+  font-size: 13px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #00e676;
+}
+.vd-door {
+  transform-box: view-box;
+  transform-origin: -92px 0;
+}
+.vd-wheel {
+  animation: wheel-spin 1.2s var(--ease-settle) both;
+}
+@keyframes wheel-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(270deg);
+  }
+}
+.vd-bolt {
+  animation: bolt-retract 0.45s 0.85s var(--ease-settle) both;
+}
+@keyframes bolt-retract {
+  to {
+    transform: translateY(22px);
+  }
+}
+.vd-ring {
+  animation: ring-fill 1.1s 0.1s var(--ease-out-soft) both;
+}
+@keyframes ring-fill {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.vault-door-open {
+  animation: door-reveal 1.3s ease-in both;
+}
+.vault-door-open .vd-svg {
+  animation: door-swing 1.1s cubic-bezier(0.55, 0, 0.6, 1) both;
+  transform-origin: 14% 50%;
+}
+.vault-door-open .vd-label {
+  animation: fade-out 0.3s linear both;
+}
+@keyframes door-swing {
+  70% {
+    opacity: 1;
+  }
+  to {
+    transform: rotateY(-108deg) scale(1.15);
+    opacity: 0;
+  }
+}
+@keyframes door-reveal {
+  0%,
+  55% {
+    background-color: #000;
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.vault-door-reduced,
+.vault-door-reduced * {
+  animation: none !important;
+}
+.vault-door-reduced.vault-door-open {
+  animation: fade-out 0.35s linear both !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .loader-dial path[fill="none"] {
     animation: none;
