@@ -548,7 +548,14 @@ class Team:
             row = c.execute("SELECT plan FROM proposals WHERE id = ?", (pid,)).fetchone()
             summary = (loads(row["plan"], {}) or {}).get("summary", {})
             state["proposal"] = {"proposal_id": pid, **summary}
-            return f"Proposal {pid}: {summary.get('redactions', 0)} things to black out", {"shown": state["proposal"]}
+            # "documents" in a helper's result means a list of rows to the chat, so the count goes by another name.
+            shown = {
+                "proposal_id": pid,
+                "checked": summary.get("documents", 0),
+                "relabelled": summary.get("relabelled", 0),
+                "redactions": summary.get("redactions", 0),
+            }
+            return f"Proposal {pid}: {summary.get('redactions', 0)} things to black out", {"shown": shown}
 
         steps = [
             [Step("finder", "to find the documents you named", find)],

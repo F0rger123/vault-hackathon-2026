@@ -11,11 +11,13 @@ async function send(page: Page, message: string) {
   return page.getByRole("article", { name: "Keeper's reply" }).last();
 }
 
-test("an analyst asks Keeper to mark the contracts confidential and gets a proposal", async ({ page }) => {
+// The demo memo ALP-MEM-04 holds a fictional email address, so the Classifier proposes one redaction there.
+test("an analyst asks Keeper to mark the Alpha memos confidential and gets a proposal", async ({ page }) => {
   await signedIn(page, "analyst", "/chat");
-  const reply = await send(page, "mark the pricing contracts as confidential");
+  const reply = await send(page, "mark the Alpha memos as confidential");
   await expect(reply).toContainText("Nothing changes until an administrator approves it", { timeout: 30_000 });
   await expect(reply.locator('[data-helper="classifier"]')).toHaveAttribute("data-status", "finished");
+  await expect(reply.getByRole("link", { name: /Review proposal \d+ in Approvals/ })).toBeVisible();
 });
 
 test("an admin approves the labels and redactions", async ({ page }) => {
@@ -28,21 +30,22 @@ test("an admin approves the labels and redactions", async ({ page }) => {
 
 test("an analyst sees the label and black bars; the original stays with admins", async ({ page }) => {
   await signedIn(page, "analyst", "/chat");
-  const reply = await send(page, "find contracts");
-  const rows = reply.getByTestId("keeper-results").locator("li button.w-full");
-  await expect(rows.first()).toBeVisible({ timeout: 30_000 });
-  await expect(rows.first()).toContainText("confidential");
-  await rows.first().click();
+  const reply = await send(page, "find Alpha memos");
+  const row = reply.getByTestId("keeper-results").locator("li button.w-full").filter({ hasText: "ALP-MEM-04" });
+  await expect(row).toBeVisible({ timeout: 30_000 });
+  await expect(row).toContainText("confidential");
+  await row.click();
   const drawer = page.getByRole("dialog");
   await expect(drawer.getByText("Classification and redactions")).toBeVisible();
   const bar = drawer.locator('[data-redaction="applied"]').first();
   await expect(bar).toBeVisible();
   await expect(bar).toHaveAttribute("title", /^Redacted: /);
-  await expect(drawer.getByRole("button", { name: "Open the original" })).toBeDisabled();
+  await expect(drawer.getByRole("button", { name: "Download the original" })).toBeDisabled();
+  await expect(drawer).toContainText("only an admin may open the original");
 });
 
-test("a viewer cannot find confidential contracts at all", async ({ page }) => {
+test("a viewer cannot find the confidential memos at all", async ({ page }) => {
   await signedIn(page, "viewer", "/chat");
-  const reply = await send(page, "find contracts");
-  await expect(reply).toContainText(/No contracts/, { timeout: 30_000 });
+  const reply = await send(page, "find Alpha memos");
+  await expect(reply).toContainText(/No memos/, { timeout: 30_000 });
 });

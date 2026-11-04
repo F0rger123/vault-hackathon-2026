@@ -1359,15 +1359,39 @@ def _proposal(conn, pid: int) -> dict:
     return r
 
 
+def _proposal_for(conn, p: Principal, pid: int) -> dict:
+    """F09.23: a proposal as this person may see it. Documents above their clearance are left out of the plan and the
+    result, and the hints of what a redaction hides are for administrators only."""
+    r = _proposal(conn, pid)
+    if cls.sees_redacted(p.role):
+        return r
+    levels = dict(conn.execute("SELECT id, classification FROM main.documents").fetchall())
+
+    def keep(items):
+        out = []
+        for i in items or []:
+            if not isinstance(i, dict) or cls.may_open(p.role, levels.get(i.get("document_id"))):
+                if isinstance(i, dict) and isinstance(i.get("redactions"), list):
+                    i = {**i, "redactions": [{k: v for k, v in x.items() if k != "hint"} for x in i["redactions"]]}
+                out.append(i)
+        return out
+
+    if isinstance(r["plan"], dict) and "items" in r["plan"]:
+        r["plan"]["items"] = keep(r["plan"]["items"])
+    if isinstance(r["result"], dict) and "items" in r["result"]:
+        r["result"]["items"] = keep(r["result"]["items"])
+    return r
+
+
 @router.get("/proposals")
-def list_proposals(conn=Depends(get_conn), _: Principal = Depends(require("proposals:read"))) -> list[dict]:
+def list_proposals(conn=Depends(get_conn), p: Principal = Depends(require("proposals:read"))) -> list[dict]:
     rows = conn.execute("SELECT id FROM proposals ORDER BY id DESC LIMIT 50").fetchall()
-    return [_proposal(conn, r["id"]) for r in rows]
+    return [_proposal_for(conn, p, r["id"]) for r in rows]
 
 
 @router.get("/proposals/{proposal_id}")
-def get_proposal(proposal_id: int, conn=Depends(get_conn), _: Principal = Depends(require("proposals:read"))):
-    return _proposal(conn, proposal_id)
+def get_proposal(proposal_id: int, conn=Depends(get_conn), p: Principal = Depends(require("proposals:read"))):
+    return _proposal_for(conn, p, proposal_id)
 
 
 @router.post("/proposals/{proposal_id}/approve")

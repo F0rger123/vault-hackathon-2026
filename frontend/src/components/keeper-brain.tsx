@@ -35,10 +35,16 @@ const TONE: Record<TeamHelperId, string> = {
   facts: "var(--green)",
   models: "var(--muted)",
   navigator: "var(--muted)",
+  classifier: "var(--amber)",
 };
-const SLOT: Record<TeamHelperId, number> = { finder: 0, conflicts: 1, sorter: 2, answer: 3, facts: 4, models: 5, navigator: 6 };
+const SLOT: Record<TeamHelperId, number> = { finder: 0, conflicts: 1, sorter: 2, answer: 3, facts: 4, models: 5, navigator: 6, classifier: 1 };
 
 type P = { x: number; y: number };
+
+/** A helper's listed documents. Only arrays count: a helper may report a plain number under the same name. */
+function rowsOf(v: unknown): { document_id?: number; filename?: string }[] {
+  return Array.isArray(v) ? (v as { document_id?: number; filename?: string }[]) : [];
+}
 
 function hash(n: number): number {
   let h = n * 2654435761;
@@ -83,7 +89,7 @@ export default function KeeperBrain({ collectionId, turn, onOpen }: { collection
     }
     for (const [id, h] of helpers) {
       if (out.has(id) || h.status !== "finished" || !h.result) continue;
-      const rows = [...((h.result.documents as { document_id?: number }[]) ?? []), ...((h.result.first as { document_id?: number }[]) ?? [])];
+      const rows = [...rowsOf(h.result.documents), ...rowsOf(h.result.first)];
       const ids = rows.map((r) => r.document_id).filter((d): d is number => typeof d === "number");
       if (ids.length) out.set(id, [...new Set(ids)]);
     }
@@ -123,7 +129,7 @@ export default function KeeperBrain({ collectionId, turn, onOpen }: { collection
   for (const r of answer?.rows ?? []) names.set(r.document_id, r.filename);
   for (const src of answer?.sources ?? []) names.set(src.document_id, src.filename);
   for (const h of helpers.values()) {
-    const rows = [...((h.result?.documents as { document_id?: number; filename?: string }[]) ?? []), ...((h.result?.first as { document_id?: number; filename?: string }[]) ?? [])];
+    const rows = [...rowsOf(h.result?.documents), ...rowsOf(h.result?.first)];
     for (const r of rows) if (typeof r.document_id === "number" && r.filename) names.set(r.document_id, r.filename);
   }
   const nameOf = (id: number) => layout.get(id)?.label ?? names.get(id) ?? `document ${id}`;

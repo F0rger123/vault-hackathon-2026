@@ -23,6 +23,11 @@ Last updated: 2026-11-03
 
 ## Updates
 
+### 2026-11-03 · F09.23 · review (auth and file handling: not merged)
+- **Built:** vault agents classify and redact. Keeper's Classifier helper proposes a label (public, internal, confidential, restricted) and redactions (emails, phones, ID numbers, amounts, people's names); an admin approves in Approvals; the server then hides documents above each role's clearance and redacted spans everywhere (lists, search, Keeper, findings, records, exports, share packs, originals). Admins relabel and unredact, audited. Migration 15. Branch `luke/F09.23-classify-redact`, issue #115.
+- **Evidence:** pytest 367 passed; e2e 42 passed; ruff, bandit, eslint, tsc, next build pass.
+- **Waiting on Luke:** review and merge the PR; decide whether analysts should see restricted documents (now admins only) and whether viewers should see confidential ones (now hidden).
+
 ### 2026-11-03 · merges · F10.24, F09.22, F11.9 done
 - **Done:** Luke approved; PRs #110 (approvals and guide), #113 (face liveness and vault door) and #114 (in-app viewer and realistic files) merged after main was merged into each and CI went 8/8 green. VAULT restarted on main.
 - **Started:** F11.10 huge test set (PR #116, about 2,300 files already generated in `data/testset-huge`), classify and redact (its own task ID and session, PR to follow; auth and file handling, so Luke reviews before merge).

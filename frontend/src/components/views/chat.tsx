@@ -20,6 +20,7 @@ import { humanize } from "@/lib/format";
 import { helperStates, type HelperState, type VaultTurn } from "@/lib/keeper-turn";
 import { KindBadge, mediaLine, NOT_READ_NOTE } from "@/lib/media";
 import { useLoad } from "@/lib/use-load";
+import { ClassBadge } from "../classification";
 import { DocumentDrawer } from "../document-drawer";
 import { FindingRedline } from "../finding-redline";
 import { Loader } from "../loader";
@@ -1007,6 +1008,12 @@ function Answer({
           Go to {answer.text.replace(/^Open |\.$/g, "")}
         </Link>
       )}
+
+      {answer.kind === "classify" && answer.proposal && (
+        <Link href="/approvals" className="press self-start rounded-control bg-ink px-3.5 py-1.5 text-sm font-medium text-paper">
+          Review proposal {answer.proposal.proposal_id} in Approvals
+        </Link>
+      )}
     </div>
   );
 }
@@ -1048,6 +1055,7 @@ function ResultRow({ r, i, onOpen, onSend }: { r: SearchResult; i: number; onOpe
           <span className="flex min-w-0 items-baseline gap-1">
             <KindBadge kind={r.kind} />
             <span className="truncate font-mono text-[12.5px] font-medium">{r.filename}</span>
+            {r.classification && r.classification !== "internal" && <ClassBadge c={r.classification} className="shrink-0" />}
             {r.page != null && <span className="ml-auto shrink-0 text-[11px] text-muted">p.{r.page}</span>}
           </span>
           <span className="block truncate text-xs text-muted">

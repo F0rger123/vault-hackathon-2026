@@ -11,9 +11,8 @@ import {
   type PageText,
   type Proposal,
 } from "@/lib/api";
-import { useLoad } from "@/lib/use-load";
 import { useSession } from "./session";
-import { Button, cx, Empty, LoadError, Notice, Tag } from "./ui";
+import { Button, cx, Empty, Notice, Tag } from "./ui";
 
 /** F09.23: the four handling labels, lowest first. These are the organisation's own levels, not government ones. */
 export const LEVELS: ClassificationLevel[] = ["public", "internal", "confidential", "restricted"];
@@ -37,7 +36,7 @@ export function ClassBadge({ c, className }: { c?: Classification | Classificati
   );
 }
 
-/** Page text with each redaction drawn as a black bar. The kind shows on hover and to screen readers. */
+/** Page text with each redaction drawn as a black bar. The kind shows on hover and to screen readers. Put it in a <pre>. */
 export function RedactedText({ page, admin }: { page: PageText; admin: boolean }) {
   const parts: React.ReactNode[] = [];
   let at = 0;
@@ -64,8 +63,8 @@ export function RedactedText({ page, admin }: { page: PageText; admin: boolean }
           title={`Redacted: ${s.label}`}
           aria-label={`redacted ${s.label}`}
           data-redaction="applied"
-          className="redaction-bar inline-block select-none rounded-[2px] bg-ink align-baseline text-[0px] leading-none"
-          style={{ width: `${Math.max(3, Math.min(14, s.label.length + 2))}ch`, height: "1.05em" }}
+          // The placeholder text keeps the bar's width; it is drawn in the bar's own colour so only the bar shows.
+          className="redaction-bar select-none rounded-[2px] bg-ink text-transparent"
         >
           {hidden}
         </span>
@@ -74,7 +73,7 @@ export function RedactedText({ page, admin }: { page: PageText; admin: boolean }
     at = s.end;
   }
   parts.push(page.text.slice(at));
-  return <pre className="max-h-80 overflow-auto whitespace-pre-wrap break-words rounded-control border border-line bg-raised p-3 font-mono text-[12.5px] leading-relaxed">{parts}</pre>;
+  return <>{parts}</>;
 }
 
 /** The drawer section: label, who may open it, page text with redactions, and the controls each role may use. */
@@ -82,8 +81,6 @@ export function ClassificationSection({ doc, onChanged }: { doc: DocumentDetail;
   const { me, refresh } = useSession();
   const admin = me.role === "admin";
   const canPropose = atLeast(me, "analyst");
-  const [pageNo, setPageNo] = useState(1);
-  const page = useLoad(doc.page_count > 0 ? `page:${doc.id}:${pageNo}:${doc.redactions.length}` : null, () => vault.page(doc.id, pageNo));
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<{ tone: "info" | "error"; text: string } | null>(null);
   const [proposal, setProposal] = useState<Proposal | null>(null);
@@ -178,29 +175,6 @@ export function ClassificationSection({ doc, onChanged }: { doc: DocumentDetail;
       {message && (
         <div className="mt-2">
           <Notice tone={message.tone}>{message.text}</Notice>
-        </div>
-      )}
-
-      {doc.page_count > 0 && (
-        <div className="mt-3">
-          <div className="mb-1 flex items-center justify-between gap-2 text-xs text-muted">
-            <span>
-              Page {pageNo} of {doc.page_count}
-              {admin ? ", as an admin you see the hidden text, outlined" : page.data?.redacted ? ", redacted for your role" : ""}
-            </span>
-            {doc.page_count > 1 && (
-              <span className="flex gap-1">
-                <Button variant="quiet" disabled={pageNo <= 1} onClick={() => setPageNo((n) => n - 1)}>
-                  Previous
-                </Button>
-                <Button variant="quiet" disabled={pageNo >= doc.page_count} onClick={() => setPageNo((n) => n + 1)}>
-                  Next
-                </Button>
-              </span>
-            )}
-          </div>
-          <LoadError error={page.error} status={page.status} what="this page" />
-          {page.data && <RedactedText page={page.data} admin={admin} />}
         </div>
       )}
 

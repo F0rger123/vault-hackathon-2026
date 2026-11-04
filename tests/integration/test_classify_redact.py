@@ -90,6 +90,12 @@ def test_classify_and_redact_end_to_end(client, tokens, settings):
     done = client.post(f"{API}/proposals/{prop['id']}/approve", json={"note": "ok"}, headers=admin).json()
     assert done["status"] == "executed" and done["result"]["labelled"] == 4 and done["result"]["redactions"] >= 6
 
+    # Viewers (who may read requests since F10.24) do not learn about documents above their clearance from them.
+    seen = client.get(f"{API}/proposals/{prop['id']}", headers=viewer).json()
+    assert [i["filename"] for i in seen["plan"]["items"]] == ["bravo-report.txt"]
+    assert all("hint" not in r for r in seen["plan"]["items"][0]["redactions"])
+    assert "alpha-export" not in json.dumps(client.get(f"{API}/proposals", headers=viewer).json())
+
     # Viewers: restricted and confidential documents are gone from lists and refused when opened, without detail.
     names = {
         d["filename"] for d in client.get(f"{API}/documents", params={"collection_id": cid}, headers=viewer).json()
