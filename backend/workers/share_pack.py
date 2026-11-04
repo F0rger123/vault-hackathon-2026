@@ -10,6 +10,8 @@ Safety by design:
 - Anything VAULT cannot check is left out: pictures (no vision model yet) and documents not read yet.
 - Documents marked RESTRICTED, EXPORT-CONTROLLED, CUI or NUCLEAR are always left out. CONFIDENTIAL ones are left out
   unless the person explicitly includes them.
+- F09.23: documents labelled restricted are always left out, labelled confidential ones follow the same rule as
+  documents marked CONFIDENTIAL, and redactions an administrator approved are always applied.
 - Redactions replace the text with a label saying what kind of thing was removed, never the value itself.
 - The report lists every document, what happened to it, and why. It never repeats a redacted value.
 """
@@ -25,6 +27,7 @@ from backend.agents.security_agent import _INTERNAL, _RESTRICTED, PII_PATTERNS
 from backend.core.config import Settings
 from backend.ingest.media import is_media
 from backend.providers.base import Provider, ProviderError
+from backend.security import classification as cls
 from backend.security.files import safe_join, sanitize_filename
 from backend.storage.db import dumps, loads, now
 
@@ -71,7 +74,7 @@ def clean_criteria(raw: dict) -> dict:
 
 def _documents(conn: sqlite3.Connection, collection_id: int) -> list[sqlite3.Row]:
     return conn.execute(
-        """SELECT d.id, d.filename, d.media_type, x.doc_type, x.project, x.data
+        """SELECT d.id, d.filename, d.media_type, d.classification, x.doc_type, x.project, x.data
            FROM documents d LEFT JOIN extractions x ON x.id = (SELECT MAX(id) FROM extractions WHERE document_id = d.id)
            WHERE d.collection_id = ? ORDER BY d.id""",
         (collection_id,),
@@ -79,9 +82,8 @@ def _documents(conn: sqlite3.Connection, collection_id: int) -> list[sqlite3.Row
 
 
 def _pages(conn: sqlite3.Connection, document_id: int) -> list[str]:
-    return [
-        r["text"] for r in conn.execute("SELECT text FROM pages WHERE document_id = ? ORDER BY page_no", (document_id,))
-    ]
+    """Page text with any redactions an administrator approved already hidden (F09.23)."""
+    return cls.redacted_pages(conn, document_id)
 
 
 def redact(text: str, criteria: dict, names: list[str]) -> tuple[str, dict]:
@@ -128,6 +130,10 @@ def plan_pack(conn: sqlite3.Connection, collection_id: int, recipient: str, crit
             )
         elif d["data"] is None:
             items.append({**item, "action": "left_out", "reason": "Not read yet, so it could not be checked"})
+        elif d["classification"] == "restricted":
+            items.append({**item, "action": "left_out", "reason": "Labelled restricted: never shared"})
+        elif d["classification"] == "confidential" and not criteria["include_confidential"]:
+            items.append({**item, "action": "left_out", "reason": "Labelled confidential"})
         elif m := _RESTRICTED.search(text):
             items.append({**item, "action": "left_out", "reason": f"Marked {m.group(0).upper()}: never shared"})
         elif (m := _INTERNAL.search(text)) and not criteria["include_confidential"]:
@@ -173,14 +179,20 @@ def execute_share(conn: sqlite3.Connection, settings: Settings, proposal_id: int
             report.append(item)
             continue
         d = conn.execute(
-            """SELECT d.filename, x.data FROM documents d LEFT JOIN extractions x
+            """SELECT d.filename, d.classification, x.data FROM documents d LEFT JOIN extractions x
                ON x.id = (SELECT MAX(id) FROM extractions WHERE document_id = d.id) WHERE d.id = ?""",
             (item["document_id"],),
         ).fetchone()
         pages = _pages(conn, item["document_id"]) if d else []
         text = "\n".join(pages)
         # The documents may have changed since the plan was approved: never share something now marked.
-        if not d or _RESTRICTED.search(text) or (_INTERNAL.search(text) and not criteria["include_confidential"]):
+        confidential = _INTERNAL.search(text) or (d and d["classification"] == "confidential")
+        if (
+            not d
+            or d["classification"] == "restricted"
+            or _RESTRICTED.search(text)
+            or (confidential and not criteria["include_confidential"])
+        ):
             report.append(
                 {**item, "action": "left_out", "reason": "Changed since the plan was made; left out to be safe"}
             )

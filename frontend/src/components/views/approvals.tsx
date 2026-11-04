@@ -7,6 +7,7 @@ import { dateTime, formatNumber } from "@/lib/format";
 import { useLoad } from "@/lib/use-load";
 import { DocumentDrawer } from "../document-drawer";
 import { FolderTree } from "../folder-tree";
+import { ClassifyPlanView } from "../classification";
 import { SharePanel, SharePlanView } from "../share-pack";
 import { useSession } from "../session";
 import { TitleBlock } from "../title-block";
@@ -31,6 +32,11 @@ interface Change {
   after: string | null;
   state: "planned" | "copied" | "removed" | "skipped" | "shared" | "left_out";
   why?: string;
+}
+
+/** F09.23: what each kind of request is called. */
+function kindName(p: Proposal): string {
+  return p.kind === "share_pack" ? "Share pack" : p.kind === "classify_redact" ? "Classification" : "Proposal";
 }
 
 function exportFolder(p: Proposal): string {
@@ -65,6 +71,7 @@ function changesOf(p: Proposal): Change[] {
 
 function statusTag(p: Proposal) {
   if (p.status === "pending") return <Tag tone="amber">Waiting for an administrator</Tag>;
+  if (p.status === "executed" && p.kind === "classify_redact") return <Tag tone="green">Labels set and redactions applied</Tag>;
   if (p.status === "executed") return <Tag tone="green">Approved and exported</Tag>;
   return <Tag tone="red">Rejected</Tag>;
 }
@@ -220,7 +227,7 @@ export function ApprovalsView() {
                         >
                           <span className="flex items-center justify-between gap-2">
                             <span className="text-sm font-semibold">
-                              {p.kind === "share_pack" ? "Share pack" : "Proposal"} {p.id}
+                              {kindName(p)} {p.id}
                             </span>
                             <StatusDot status={p.status} />
                           </span>
@@ -481,7 +488,8 @@ function RequestDetail({
   const [confirm, setConfirm] = useState<Pending | null>(null);
   const [query, setQuery] = useState("");
   const share = p.kind === "share_pack";
-  const changes = changesOf(p);
+  const classify = p.kind === "classify_redact";
+  const changes = classify ? [] : changesOf(p);
   const folder = exportFolder(p);
   const liveCopies = changes.filter((c) => c.state === "copied" || c.state === "shared").length;
   const copiesLeft = p.status === "executed" && !p.result?.copies_removed_at && (share || liveCopies > 0);
@@ -520,7 +528,7 @@ function RequestDetail({
   };
 
   return (
-    <Panel title={`${share ? "Share pack" : "Proposal"} ${p.id}`} aside={statusTag(p)}>
+    <Panel title={`${kindName(p)} ${p.id}`} aside={statusTag(p)}>
       <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2 2xl:grid-cols-3">
         <Fact label="What was asked">{p.instruction || "No description"}</Fact>
         <Fact label="Asked by">
@@ -532,7 +540,9 @@ function RequestDetail({
             : `${p.status === "executed" ? "Approved" : "Rejected"} by ${p.decided_by_name ?? "an administrator"}${p.decided_at ? ` on ${dateTime(p.decided_at)}` : ""}`}
         </Fact>
         <Fact label="What it does">
-          {share ? (
+          {classify ? (
+            <>Sets each document&apos;s label and hides the redacted spans from everyone but admins</>
+          ) : share ? (
             <>
               Redacted copies for <span className="text-ink">{p.plan.recipient}</span>
             </>
@@ -543,12 +553,24 @@ function RequestDetail({
           )}
         </Fact>
         <Fact label="From">VAULT&apos;s read-only store of originals. They stay where they are.</Fact>
-        <Fact label={p.status === "executed" ? "Copies went to" : "Copies would go to"}>
-          <span className="font-mono text-[13px] break-all">{folder}</span>
-        </Fact>
+        {classify ? (
+          <Fact label="Original files">Never changed. Redactions hide text as it is shown, searched, answered and exported.</Fact>
+        ) : (
+          <Fact label={p.status === "executed" ? "Copies went to" : "Copies would go to"}>
+            <span className="font-mono text-[13px] break-all">{folder}</span>
+          </Fact>
+        )}
       </dl>
 
-      {p.status === "executed" && p.result && (
+      {classify && p.status === "executed" && p.result && (
+        <p className="mt-4 text-sm">
+          Labelled <span className="font-semibold tabular-nums">{formatNumber(p.result.labelled ?? 0)}</span> documents and applied{" "}
+          <span className="font-semibold tabular-nums">{formatNumber(p.result.redactions ?? 0)}</span> redactions
+          {p.decided_at ? ` on ${dateTime(p.decided_at)}` : ""}. The original files were not touched.
+        </p>
+      )}
+      {classify && <ClassifyPlanView proposal={p} />}
+      {!classify && p.status === "executed" && p.result && (
         <p className="mt-4 text-sm">
           Copied <span className="font-semibold tabular-nums">{formatNumber(p.result.copied)}</span> files to{" "}
           <span className="font-mono text-[13px]">{p.result.export_dir}</span>
@@ -566,6 +588,7 @@ function RequestDetail({
       )}
       {p.status === "rejected" && <p className="mt-4 text-sm text-muted">Rejected. Nothing was copied.</p>}
 
+      {!classify && (
       <section aria-label="Before and after" className="mt-5">
         <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
           <h3 className="text-sm font-semibold">
@@ -634,6 +657,7 @@ function RequestDetail({
           </ol>
         </div>
       </section>
+      )}
 
       {share && p.plan.items && p.plan.summary && <SharePlanView plan={p.plan as Parameters<typeof SharePlanView>[0]["plan"]} />}
       {!share && targets.length > 0 && (
@@ -656,7 +680,7 @@ function RequestDetail({
             </div>
             <div className="flex flex-wrap gap-2">
               <Button variant="primary" busy={busy === "approve"} disabled={busy !== null} onClick={() => decide("approve")}>
-                {share ? "Approve and write the share pack" : "Approve and export copies"}
+                {classify ? "Approve labels and redactions" : share ? "Approve and write the share pack" : "Approve and export copies"}
               </Button>
               <Button variant="danger" busy={busy === "reject"} disabled={busy !== null} onClick={() => decide("reject")}>
                 Reject

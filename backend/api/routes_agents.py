@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 from backend.agents import ask_team as ask_team_mod
 from backend.agents import keeper, run_chat
 from backend.api.deps import effective_settings, get_conn, get_settings, require
-from backend.api.routes import _provider, _row
+from backend.api.routes import _open_check, _provider, _row
 from backend.api.schemas import CalibrateRequest, ExampleCreate
 from backend.core.capacity import CapacityPlan, calibrate, static_ceiling
 from backend.core.config import Settings
@@ -193,8 +193,9 @@ def list_examples(conn=Depends(get_conn), _: Principal = Depends(require("docume
 
 @router.get("/documents/{document_id}/screening")
 def document_screening(
-    document_id: int, conn=Depends(get_conn), _: Principal = Depends(require("documents:read"))
+    document_id: int, conn=Depends(get_conn), p: Principal = Depends(require("documents:read"))
 ) -> dict:
+    _open_check(conn, p, document_id, "document.screening")
     r = _row(conn.execute("SELECT * FROM screenings WHERE document_id = ?", (document_id,)).fetchone())
     return {
         **r,

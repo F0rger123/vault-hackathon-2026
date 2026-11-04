@@ -5,6 +5,7 @@ import { ApiError, downloadOriginal, errorText, vault, type DocumentDetail, type
 import { formatBytes, humanize, providerLabel } from "@/lib/format";
 import { KindBadge, mediaLine, NOT_READ_NOTE } from "@/lib/media";
 import { useLoad } from "@/lib/use-load";
+import { ClassBadge, ClassificationSection } from "./classification";
 import { DocumentPreview } from "./document-preview";
 import { Button, Empty, LoadError, Notice, Tag, VerifiedMark } from "./ui";
 
@@ -26,7 +27,7 @@ async function loadDrawer(id: number): Promise<DrawerData> {
 
 export function DocumentDrawer({ documentId, onClose }: { documentId: number | null; onClose: () => void }) {
   const panelRef = useRef<HTMLDivElement>(null);
-  const { data, error, status, loading } = useLoad(
+  const { data, error, status, loading, reload } = useLoad(
     documentId === null ? null : `doc:${documentId}`,
     () => loadDrawer(documentId as number),
   );
@@ -68,7 +69,9 @@ export function DocumentDrawer({ documentId, onClose }: { documentId: number | n
       >
         <header className="flex items-start justify-between gap-3 border-b border-line px-5 py-4">
           <div className="min-w-0">
-            <p className="text-xs text-muted">Document</p>
+            <p className="flex items-center gap-2 text-xs text-muted">
+              Document {current && <ClassBadge c={current.doc.classification} />}
+            </p>
             <h2 id="drawer-title" className="break-all font-mono text-base font-medium">
               {current?.doc.filename ?? (loading ? "Loading" : `Document ${documentId}`)}
             </h2>
@@ -113,7 +116,7 @@ export function DocumentDrawer({ documentId, onClose }: { documentId: number | n
                 <div className="flex flex-wrap items-center gap-2">
                   <Button
                     busy={opening}
-                    disabled={current.doc.status === "quarantined"}
+                    disabled={current.doc.status === "quarantined" || current.doc.can_open_original === false}
                     onClick={async () => {
                       setOpenError(null);
                       setOpening(true);
@@ -128,7 +131,11 @@ export function DocumentDrawer({ documentId, onClose }: { documentId: number | n
                   >
                     Download the original
                   </Button>
-                  <span className="text-xs text-muted">Viewing and downloading are both recorded in the audit log.</span>
+                  <span className="text-xs text-muted">
+                    {current.doc.can_open_original === false
+                      ? "This document has redactions, so only an admin may open the original. You see its redacted text."
+                      : "Viewing and downloading are both recorded in the audit log."}
+                  </span>
                 </div>
                 {openError && <Notice>Couldn&apos;t download the original: {openError}</Notice>}
               </section>
@@ -218,6 +225,8 @@ export function DocumentDrawer({ documentId, onClose }: { documentId: number | n
                     )}
                   </section>
                 )}
+
+                <ClassificationSection doc={current.doc} onChanged={reload} />
 
                 <section>
                   <h3 className="mb-2 text-sm font-semibold">Security screening</h3>

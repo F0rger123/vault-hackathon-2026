@@ -44,6 +44,7 @@ ROLE_PERMISSIONS: dict[str, set[str]] = {
         "settings:write",
         "audit:read",
         "users:manage",
+        "documents:classify",
     },
 }
 
@@ -66,6 +67,7 @@ PERMISSION_LABELS: dict[str, str] = {
     "settings:write": "Change settings, models and whether anything may leave this computer",
     "audit:read": "Read the audit trail and the sign-in log",
     "users:manage": "Invite people, change roles and sign-in steps",
+    "documents:classify": "Change a document's classification and remove redactions",
 }
 
 ROLE_SUMMARIES: dict[str, str] = {

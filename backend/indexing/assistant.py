@@ -1,7 +1,9 @@
 """The chat box (F06.8): type "find the Alpha drawings" or "sort them by date" and VAULT does it.
 
 A message becomes one of five commands: find (a search with filters and a sort order), ask (a question answered
-with cited sources by `investigate`), open (go to a page), models (which models are downloaded) or help. Rules
+with cited sources by `investigate`), open (go to a page), models (which models are downloaded) or help.
+F09.23 adds classify: "mark the pricing contracts as confidential" finds those documents and has Keeper's Classifier
+helper prepare a proposal for an administrator. It never sets a label itself. Rules
 read the message first, so most messages answer at once. The local model reads it only when the rules find
 nothing, and what it returns is held to the same fixed fields, with every value checked against what VAULT
 knows. The message is never run as code, SQL or a search operator: it only fills those fields.
@@ -22,7 +24,8 @@ from backend.ingest.media import NOT_READ_NOTE
 from backend.ingest.media import PLURAL as MEDIA_PLURAL
 from backend.providers.base import Provider, ProviderError
 
-Kind = Literal["find", "ask", "open", "models", "help"]
+Kind = Literal["find", "ask", "open", "models", "help", "classify"]
+Level = Literal["public", "internal", "confidential", "restricted"]
 SortKey = Literal["relevance", "date", "name", "type", "project", "duration", "size"]
 MediaKind = Literal["image", "photo", "video", "audio", "document"]
 DOC_TYPES = ("engineering_drawing", "inspection_report", "contract", "parts_list", "revision_history", "project_memo")
@@ -51,6 +54,8 @@ _FIND = re.compile(
     r"^(?:please\s+)?(?:find|search(?:\s+for)?|look\s+for|look\s+up|show(?:\s+me)?|list|get|pull\s+up)\b", re.I
 )
 _OPEN = re.compile(r"^(?:please\s+)?(?:open|go\s+to|take\s+me\s+to|switch\s+to)\b", re.I)
+_CLASSIFY = re.compile(r"^(?:please\s+)?(?:mark|label|classify|flag|tag|set|redact\s+and\s+(?:mark|label))\b", re.I)
+_LEVEL = re.compile(r"\b(public|internal|confidential|restricted)\b", re.I)
 _QUESTION = re.compile(r"^(?:which|what|how|why|are|is|does|do|did|who|when|can|could|has|have|tell me)\b", re.I)
 _REFINE = re.compile(
     r"\b(?:only|just|also|now|instead|them|those|these|it|sort|order|arrange|newest|oldest|latest|earliest|"
@@ -116,6 +121,7 @@ class Command(BaseModel):
     sort: SortKey = "relevance"
     order: Literal["asc", "desc"] = "asc"
     page: str | None = Field(None, max_length=20)
+    level: Level | None = None
 
 
 def _filters(cmd: Command) -> bool:
@@ -128,6 +134,15 @@ def interpret(conn: sqlite3.Connection, collection_id: int, message: str, previo
     low = text.casefold()
     if not text or _GREETING.fullmatch(text):
         return Command(kind="help")
+
+    if _CLASSIFY.match(text) and (lvl := _LEVEL.search(text)):
+        level = lvl.group(1).lower()
+        rest = _LEVEL.sub(" ", text[_CLASSIFY.match(text).end() :])
+        rest = re.sub(r"\b(?:as|to|be|being|redact(?:ed)?|and|labell?ed)\b", " ", rest, flags=re.I)
+        found = interpret(conn, collection_id, "find " + rest, None)
+        if found.kind != "find":
+            found = Command()
+        return found.model_copy(update={"kind": "classify", "level": level})
 
     if _OPEN.match(text):
         for path, words in PAGES.items():
